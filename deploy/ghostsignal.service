@@ -1,0 +1,44 @@
+# systemd unit for the GhostSignal server on the VPS (see DEPLOY.md). deploy/install.sh puts it
+# in /etc/systemd/system, and deploy/update.sh copies it again whenever it changes here.
+#
+# Secrets (event and operator tokens, API keys, webhook secrets) go in /etc/ghostsignal.env,
+# root-only, NOT in this file, which is world-readable.
+
+[Unit]
+Description=GhostSignal server (accounts, admin, web player, characters)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ghostsignal
+Group=ghostsignal
+WorkingDirectory=/opt/ghostsignal/server
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=3
+
+# Non-secret configuration. Caddy on this host is the only way in: it terminates HTTPS for
+# ghostsignal.datarail.org and passes each player's address along in X-Forwarded-For, which the
+# per-address limits on sign-ups, sign-ins, characters and voices need (TRUST_PROXY).
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=8090
+Environment=TRUST_PROXY=1
+Environment=DATA_DIR=/srv/ghostsignal/data
+# DataRail admins can sign in to /admin with their DataRail account; the storage service runs
+# on this same host.
+Environment=DATARAIL_API=https://storage.datarail.org/storage/api
+
+# The leading "-" means the service still starts if the file is absent.
+EnvironmentFile=-/etc/ghostsignal.env
+
+# It only ever writes under /srv/ghostsignal.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/ghostsignal
+
+[Install]
+WantedBy=multi-user.target

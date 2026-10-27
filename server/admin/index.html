@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GhostSignal Admin</title>
+<link rel="stylesheet" href="/admin/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/admin/"><i class="dot"></i>DATARAIL <b>GHOSTSIGNAL</b> <span>· ADMIN</span></a>
+  <div class="who" id="who" hidden>
+    <span id="whoName"></span>
+    <button type="button" class="link" id="signOut">Sign out</button>
+  </div>
+</header>
+
+<main>
+  <!-- Sign in -->
+  <section class="card signin" id="signin" hidden>
+    <h1>Sign in</h1>
+    <p class="muted">Admins change where the signals are, what they're called, and which soundtracks runners can play.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" class="tab" id="tabAccount" aria-selected="true">Admin account</button>
+      <button type="button" role="tab" class="tab" id="tabDatarail" aria-selected="false">DataRail account</button>
+      <button type="button" role="tab" class="tab" id="tabToken" aria-selected="false">Operator token</button>
+    </div>
+    <form id="formAccount" class="stack" autocomplete="on">
+      <label>Email <input type="email" name="email" autocomplete="username" required></label>
+      <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="muted small">A GhostSignal account with the admin role: listed in <code>ADMIN_EMAILS</code>, or made an admin by another admin. Create it on the <a href="/account/?signup=1">account page</a> first.</p>
+      <button type="submit" class="btn">Sign in</button>
+    </form>
+    <form id="formDatarail" class="stack" autocomplete="on" hidden>
+      <label>Email <input type="email" name="email" autocomplete="username" required></label>
+      <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="muted small" id="datarailNote">Your DataRail account needs admin rights. The password goes to DataRail; this server doesn't keep it.</p>
+      <button type="submit" class="btn">Sign in</button>
+    </form>
+    <form id="formToken" class="stack" hidden>
+      <label>Operator token <input type="password" name="token" autocomplete="off" required></label>
+      <p class="muted small">The <code>OPERATOR_TOKEN</code> this server was started with.</p>
+      <button type="submit" class="btn">Sign in</button>
+    </form>
+    <p class="error" id="signinError" role="alert"></p>
+  </section>
+
+  <!-- Signed in -->
+  <div id="app" hidden>
+    <nav class="tabs big" role="tablist">
+      <button type="button" role="tab" class="tab" data-view="signals" aria-selected="true">Signals</button>
+      <button type="button" role="tab" class="tab" data-view="tracks" aria-selected="false">Soundtracks</button>
+      <button type="button" role="tab" class="tab" data-view="players" aria-selected="false">Players</button>
+      <button type="button" role="tab" class="tab" data-view="glasses" aria-selected="false">Glasses <span class="count" id="glassesCount"></span></button>
+    </nav>
+
+    <section id="view-signals" class="view">
+      <div class="head">
+        <div>
+          <h2>Signals</h2>
+          <p class="muted">Drag a signal on the map, or type its position. Renaming changes what SmartSpecs and the layer list call it; scripted dialogue keeps the written names.</p>
+        </div>
+      </div>
+      <div class="map" id="map" aria-label="Map of the signals"></div>
+      <ol class="signals" id="signalList"></ol>
+      <div class="savebar" id="signalSave" hidden>
+        <span id="signalDirty">Unsaved changes</span>
+        <button type="button" class="btn ghost" id="signalDiscard">Discard</button>
+        <button type="button" class="btn" id="signalSaveBtn">Save for every phone</button>
+      </div>
+      <p class="status" id="signalStatus" role="status"></p>
+    </section>
+
+    <section id="view-tracks" class="view" hidden>
+      <div class="head">
+        <div>
+          <h2>Soundtracks</h2>
+          <p class="muted" id="trackSummary"></p>
+        </div>
+        <button type="button" class="btn" id="newTrack">New soundtrack</button>
+      </div>
+      <ul class="tracks" id="trackList"></ul>
+
+      <form class="card editor" id="editor" hidden novalidate>
+        <h3 id="editorTitle">New soundtrack</h3>
+        <div class="grid">
+          <label>Title <input name="title" maxlength="60" required></label>
+          <label>ID <input name="id" maxlength="40" pattern="[a-z0-9][a-z0-9-]{1,39}" required><span class="hint">Lowercase, used in links. Can't change once saved.</span></label>
+          <label class="wide">Description <input name="description" maxlength="240"></label>
+          <label>BPM <input name="bpm" type="number" min="40" max="220" step="0.01" required></label>
+          <label>Beats per bar <input name="beatsPerBar" type="number" min="1" max="12" step="1" required></label>
+          <label>Loop length in bars <input name="loopBars" type="number" min="1" max="64" step="1" required></label>
+          <p class="loop" id="loopLength"></p>
+        </div>
+        <fieldset class="avail">
+          <legend>Who can play it</legend>
+          <label class="radio"><input type="radio" name="avail" value="base" checked> Base game: every runner, from their first run</label>
+          <label class="radio"><input type="radio" name="avail" value="bonus"> Bonus: unlocks after <input name="unlock" type="number" min="1" max="20" step="1" value="1" class="tiny"> finished runs</label>
+          <label class="radio"><input type="radio" name="avail" value="premium"> Premium: premium players only, from their first run</label>
+        </fieldset>
+        <h4>Stems <span class="muted small">one per signal: each signal a runner captures adds its stem</span></h4>
+        <ol class="stems" id="stemList"></ol>
+        <ul class="warnings" id="warnings"></ul>
+        <p class="error" id="editorError" role="alert"></p>
+        <div class="actions">
+          <button type="button" class="btn ghost" id="editorCancel">Cancel</button>
+          <button type="button" class="btn ghost" id="editorDraft">Save as draft</button>
+          <button type="button" class="btn" id="editorPublish">Publish</button>
+        </div>
+      </form>
+      <p class="status" id="trackStatus" role="status"></p>
+    </section>
+
+    <section id="view-players" class="view" hidden>
+      <div class="head">
+        <div>
+          <h2>Players</h2>
+          <p class="muted" id="playerCounts"></p>
+        </div>
+        <a class="btn ghost" href="/account/" target="_blank" rel="noopener">Open the account page</a>
+      </div>
+
+      <form class="card" id="payForm" novalidate>
+        <h3>Premium payment link</h3>
+        <p class="muted small">Paste a Stripe Payment Link or a Lemon Squeezy checkout link. Each player's <b>Get premium</b> button opens it with their account attached, and the provider's webhook switches premium on when they pay. Any other link works too, but then you grant premium by hand below.</p>
+        <div class="grid">
+          <label class="wide">Payment link <input name="paymentLink" type="url" placeholder="https://buy.stripe.com/..." maxlength="500"></label>
+          <label>Price shown on the button <input name="priceLabel" maxlength="40" placeholder="$4 a month"></label>
+          <label class="wide">Manage billing page (optional) <input name="manageBillingUrl" type="url" placeholder="https://billing.stripe.com/p/login/..." maxlength="500"></label>
+        </div>
+        <ul class="hooks" id="hooks"></ul>
+        <div class="actions">
+          <span class="muted small" id="payStatus" role="status"></span>
+          <button type="submit" class="btn">Save</button>
+        </div>
+      </form>
+
+      <div class="card unclaimed" id="unclaimedCard" hidden>
+        <h3>Payments waiting for an account</h3>
+        <p class="muted small">These came in without an account attached (for example from a link shared outside the account page). Check who paid, then apply each to the right account.</p>
+        <ul class="tracks" id="unclaimedList"></ul>
+      </div>
+
+      <div class="search">
+        <label>Find a player <input type="search" id="playerSearch" placeholder="email"></label>
+      </div>
+      <ul class="tracks" id="playerList"></ul>
+      <p class="status" id="playerStatus" role="status"></p>
+    </section>
+
+    <section id="view-glasses" class="view" hidden>
+      <div class="head">
+        <div>
+          <h2>Glasses</h2>
+          <p class="muted">A player who links their Meta glasses in the app gets premium once you approve the pair here. The app reports the pair's model, firmware, the name its owner gave it and an identifier from Meta's toolkit, shown as a fingerprint. There's no serial number and nothing signed by Meta, so a person checks. One pair can only be linked to one account.</p>
+        </div>
+      </div>
+      <h3>Waiting for approval</h3>
+      <ul class="tracks" id="glassesPending"></ul>
+      <h3 class="spaced">Linked</h3>
+      <ul class="tracks" id="glassesLinked"></ul>
+      <h3 class="spaced">Turned down or removed</h3>
+      <ul class="tracks" id="glassesClosed"></ul>
+      <h3 class="spaced">Enrolled event glasses</h3>
+      <p class="muted small">Pairs enrolled from the app's Operator screen (<b>Event glasses</b>). Whoever links one gets premium at once.</p>
+      <ul class="tracks" id="glassesEnrolled"></ul>
+      <p class="status" id="glassesStatus" role="status"></p>
+    </section>
+  </div>
+</main>
+
+<script src="/admin/vendor/leaflet/leaflet.js"></script>
+<script src="/admin/admin.js"></script>
+</body>
+</html>

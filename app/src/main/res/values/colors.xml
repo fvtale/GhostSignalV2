@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="void_black">#FF07070C</color>
+    <color name="signal_cyan">#FF2EF2E2</color>
+    <color name="ghost_magenta">#FFFF2E88</color>
+</resources>

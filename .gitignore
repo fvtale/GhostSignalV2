@@ -1,0 +1,15 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+/third_party/fmod/
+node_modules/
+server/data/
+*.keystore
+# The shared debug key that sideloaded builds are signed with (app/build.gradle.kts).
+!app/sideload-debug.keystore

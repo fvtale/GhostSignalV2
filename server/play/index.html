@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07070c">
+<meta name="robots" content="noindex">
+<meta name="description" content="GhostSignal in your browser: a spatial audio hunt around Bryant Park, played through your glasses.">
+<title>GhostSignal Play</title>
+<link rel="manifest" href="/play/manifest.webmanifest">
+<link rel="icon" href="/play/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/play/play.css">
+</head>
+<body>
+<header class="bar">
+  <span class="brand"><i class="dot"></i>GHOST <b>93.3</b> <span>// SIGNAL RUNNER</span></span>
+  <a class="who" id="who" href="/account/?return=/play/">Sign in</a>
+</header>
+
+<main>
+  <p class="loading" id="loading">Tuning in&hellip;</p>
+  <p class="error" id="fatal" role="alert" hidden></p>
+
+  <!-- ============================================================ setup -->
+  <section id="setup" hidden>
+    <div class="hero">
+      <h1>GHOSTSIGNAL</h1>
+      <p>Put your glasses on and keep this page open. HUSH is already listening.</p>
+    </div>
+
+    <ol class="checks">
+      <li id="checkAudio">
+        <div><b>Glasses audio</b><span>Connect your glasses to this phone as Bluetooth audio (the Meta AI app does it). Then play the check: a ping should circle your head.</span></div>
+        <button type="button" class="btn ghost" id="soundCheck">Sound check</button>
+      </li>
+      <li id="checkLocation">
+        <div><b>Location</b><span>The signals are real places around the park.</span></div>
+        <button type="button" class="btn ghost" id="allowLocation">Allow</button>
+      </li>
+      <li id="checkCompass">
+        <div><b>Compass</b><span>So a signal sounds like it's where it is when you turn. Optional.</span></div>
+        <button type="button" class="btn ghost" id="allowCompass">Allow</button>
+      </li>
+      <li id="checkMic">
+        <div><b>Microphone</b><span id="micNote">To answer out loud. You can always tap the answer instead.</span></div>
+        <button type="button" class="btn ghost" id="allowMic">Allow</button>
+      </li>
+    </ol>
+
+    <div class="card">
+      <h2>Soundtrack</h2>
+      <div class="choices" id="soundtracks" role="radiogroup" aria-label="Soundtrack"></div>
+      <p class="muted small" id="soundtrackNote"></p>
+    </div>
+
+    <div class="card">
+      <h2>Where you're playing</h2>
+      <div class="choices" role="radiogroup" aria-label="Location mode">
+        <label class="choice"><input type="radio" name="mode" value="gps"> <span><b>Walk the route</b> Bryant Park, by GPS</span></label>
+        <label class="choice"><input type="radio" name="mode" value="sim"> <span><b>Try it at a desk</b> a simulated walk you steer from the screen</span></label>
+      </div>
+    </div>
+
+    <div class="card" id="accountCard">
+      <h2>Account</h2>
+      <p class="muted" id="accountText"></p>
+    </div>
+
+    <div class="go">
+      <button type="button" class="btn ghost" id="resume" hidden>Resume run</button>
+      <button type="button" class="btn big" id="start">Start new run</button>
+    </div>
+
+    <details class="card about">
+      <summary>Playing in the browser</summary>
+      <ul>
+        <li>Your phone runs the game; the glasses are its speakers, microphone and buttons. A tap on the glasses' touchpad presses <b>capture</b>.</li>
+        <li>Keep this page open with the screen on: <b>Pocket mode</b> blacks it out and keeps it awake. A phone that locks stops the game until you come back.</li>
+        <li>The app does a little more: head tracking from the glasses themselves, the glasses' own voice recognition, and running with the screen off.</li>
+        <li>Signed in, characters speak in their own voices and answer your questions live, and your finished runs follow you.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- ============================================================ run -->
+  <section id="run" hidden>
+    <div class="status-line"><span id="phase">BRIEFING</span><span id="count"></span></div>
+    <h2 id="objective"></h2>
+    <div class="reading">
+      <svg viewBox="-50 -50 100 100" class="dial" aria-hidden="true">
+        <circle r="44" class="ring"/><circle r="28" class="ring faint"/>
+        <g id="arrow"><path d="M0,-40 L7,-24 L-7,-24 Z" class="tip"/></g>
+        <circle r="4" class="you"/>
+      </svg>
+      <div><b id="distance">&mdash;</b><span id="direction"></span><span id="accuracy" class="muted small"></span></div>
+    </div>
+
+    <div class="line" id="speaking" hidden><b id="speaker"></b><span id="spoken"></span></div>
+
+    <div class="listen" id="listening" hidden>
+      <p><span class="mic"></span><span id="partial">Listening&hellip;</span></p>
+      <div class="hints" id="hints"></div>
+      <form id="typeForm" autocomplete="off"><input id="typed" placeholder="or type it" maxlength="200" aria-label="Type your answer"><button class="btn ghost" type="submit">Send</button></form>
+    </div>
+
+    <p class="unlocked" id="unlocked" hidden></p>
+
+    <div class="controls">
+      <button type="button" class="capture" id="capture"><b>CAPTURE</b><span>tap · hold to talk</span></button>
+      <div class="small-controls">
+        <button type="button" class="btn ghost" data-action="HINT">Hint</button>
+        <button type="button" class="btn ghost" data-action="REPEAT">Repeat</button>
+        <button type="button" class="btn ghost" data-action="STATUS">Status</button>
+        <button type="button" class="btn ghost" data-action="PAUSE_TOGGLE" id="pauseBtn">Pause</button>
+      </div>
+    </div>
+
+    <div class="card sim" id="sim" hidden>
+      <h3>Simulated walk</h3>
+      <div class="sim-buttons">
+        <button type="button" class="btn ghost" id="simWalk">Walk to the signal</button>
+        <button type="button" class="btn ghost" id="simRun">Run there</button>
+        <button type="button" class="btn ghost" id="simArrive">Arrive</button>
+        <button type="button" class="btn ghost" id="simSolve" title="The operator's override: counts the challenge as passed">Skip challenge</button>
+      </div>
+      <p class="muted small sim-turn">Turn on the spot <span>(Tune challenge)</span> <button type="button" class="link" id="simLeft">&larr; 30&deg;</button><button type="button" class="link" id="simRight">30&deg; &rarr;</button></p>
+    </div>
+
+    <ol class="layers" id="layers"></ol>
+
+    <div class="run-foot">
+      <button type="button" class="btn" id="pocket">Pocket mode</button>
+      <button type="button" class="btn ghost" id="stop">End run</button>
+    </div>
+
+    <details class="card">
+      <summary>Transcript</summary>
+      <ul class="transcript" id="transcript"></ul>
+    </details>
+  </section>
+</main>
+
+<div class="pocket" id="pocketOverlay" hidden>
+  <p>Tap anywhere to <b>capture</b>, hold to <b>talk</b>.<br>The glasses' touchpad works too.</p>
+  <p class="pocket-status" id="pocketStatus"></p>
+  <button type="button" class="pocket-exit" id="pocketExit">Show the screen</button>
+</div>
+
+<script type="module" src="/play/js/main.js"></script>
+</body>
+</html>

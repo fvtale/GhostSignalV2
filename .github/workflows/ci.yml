@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Game engine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v5
+      - run: ./gradlew -p core jvmTest --no-daemon
+      # The web player runs the same engine compiled to JavaScript, committed under server/play/engine.
+      - name: Web player engine matches the Kotlin source
+        run: tools/check_web_engine.sh
+
+  server:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm test
+      # The scripts that install and update the live server (DEPLOY.md).
+      - name: Deploy scripts
+        working-directory: deploy
+        run: |
+          shellcheck -S warning *.sh
+          # The unit runs /usr/bin/node, where NodeSource puts it on the server.
+          [ -x /usr/bin/node ] || sudo ln -s "$(command -v node)" /usr/bin/node
+          systemd-analyze verify --man=no ghostsignal.service
+
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        env:
+          # Optional: bake the event backend into the build (Settings in the app can change it).
+          GHOSTSIGNAL_BACKENDURL: ${{ vars.GHOSTSIGNAL_BACKEND_URL }}
+          GHOSTSIGNAL_EVENTTOKEN: ${{ secrets.GHOSTSIGNAL_EVENT_TOKEN }}
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ghostsignal-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  # A green build on main, or a run started by hand from the Actions tab, replaces the
+  # android-latest pre-release, so the newest APK is always at one address you can open on the
+  # phone: https://github.com/fvtale/ghostsignal/releases/tag/android-latest
+  release-apk:
+    name: Publish the APK
+    needs: [core, server, android]
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-apk
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: ghostsignal-debug-apk
+      - name: Replace the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mv app-debug.apk GhostSignal.apk
+          printf '%s\n\n%s\n' \
+            "Built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}, $(date -u +%F)." \
+            "To install, open this page on the phone, tap GhostSignal.apk, and let the browser install apps when Android asks. Newer builds install over this one. The app reaches the glasses with Developer Mode on in the Meta AI app." \
+            > notes.md
+          gh release delete android-latest --cleanup-tag --yes 2>/dev/null || true
+          gh release create android-latest GhostSignal.apk --target "$GITHUB_SHA" --prerelease \
+            --title "GhostSignal for Android (latest build)" --notes-file notes.md

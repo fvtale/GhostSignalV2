@@ -1,0 +1,12 @@
+{
+  "name": "GhostSignal",
+  "short_name": "GhostSignal",
+  "description": "A spatial audio hunt around Bryant Park, played through your glasses.",
+  "start_url": "/play/",
+  "scope": "/play/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07070c",
+  "theme_color": "#07070c",
+  "icons": [{ "src": "/play/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GhostSignal Account</title>
+<link rel="stylesheet" href="/admin/admin.css">
+<link rel="stylesheet" href="/account/account.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/account/"><i class="dot"></i>DATARAIL <b>GHOSTSIGNAL</b> <span>· ACCOUNT</span></a>
+  <div class="who" id="who" hidden>
+    <span id="whoName"></span>
+    <button type="button" class="link" id="signOut">Sign out</button>
+  </div>
+</header>
+
+<main class="narrow">
+  <section class="card signin" id="signin" hidden>
+    <h1 id="signinTitle">Sign in</h1>
+    <p class="muted">One account for the GhostSignal app and this page. Sign in on your phone with the same email.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" class="tab" id="tabIn" aria-selected="true">Sign in</button>
+      <button type="button" role="tab" class="tab" id="tabUp" aria-selected="false">Create account</button>
+    </div>
+    <form id="form" class="stack" autocomplete="on">
+      <label>Email <input type="email" name="email" autocomplete="username" required maxlength="254"></label>
+      <label>Password <input type="password" name="password" autocomplete="current-password" required minlength="10" maxlength="200"></label>
+      <p class="muted small" id="passwordHint" hidden>At least 10 characters.</p>
+      <button type="submit" class="btn" id="submit">Sign in</button>
+    </form>
+    <p class="error" id="signinError" role="alert"></p>
+  </section>
+
+  <div id="app" hidden>
+    <p class="notice" id="paidNotice" role="status" hidden>Thanks. Premium switches on as soon as the payment is confirmed; this page checks for a minute.</p>
+
+    <section class="card plan" id="plan">
+      <div class="plan-head">
+        <div>
+          <span class="label-mono">Your plan</span>
+          <h1 id="planName">Free</h1>
+          <p class="muted" id="planDetail"></p>
+        </div>
+        <span class="badge" id="planBadge">Free</span>
+      </div>
+      <div id="perks"></div>
+      <div class="actions left">
+        <a class="btn" id="getPremium" hidden rel="noopener">Get premium</a>
+        <a class="btn ghost" id="manageBilling" hidden rel="noopener" target="_blank">Manage billing</a>
+      </div>
+      <p class="muted small" id="notOnSale" hidden>Premium isn't on sale yet.</p>
+    </section>
+
+    <section class="card">
+      <span class="label-mono">Glasses</span>
+      <h2>Your glasses</h2>
+      <ul class="perks" id="glassesList"></ul>
+      <p class="muted small">Link your Meta glasses in the GhostSignal app: setup screen, <b>Account</b>, <b>Link these glasses</b>. A DataRail admin approves each pair; once it's approved your account is premium. Each pair links to one account.</p>
+    </section>
+
+    <section class="card">
+      <span class="label-mono">Play</span>
+      <h2>On your phone</h2>
+      <p class="muted">Open GhostSignal, go to <b>Account</b> on the setup screen and sign in with <b id="emailAgain"></b>. Your finished runs follow you between phones.</p>
+      <p><a class="btn ghost" href="/play/">Play in your browser</a></p>
+      <p class="stat" id="runs"></p>
+    </section>
+
+    <section class="card">
+      <span class="label-mono">Security</span>
+      <h2>Change password</h2>
+      <form id="passwordForm" class="stack">
+        <label>Current password <input type="password" name="current" autocomplete="current-password" required maxlength="200"></label>
+        <label>New password <input type="password" name="next" autocomplete="new-password" required minlength="10" maxlength="200"></label>
+        <button type="submit" class="btn ghost">Change password</button>
+      </form>
+      <p class="status" id="passwordStatus" role="status"></p>
+
+      <h2 class="spaced">Delete account</h2>
+      <p class="muted small">Deletes your account and signs out every phone. A subscription is cancelled with the payment provider, through <b>Manage billing</b>.</p>
+      <form id="deleteForm" class="stack">
+        <label>Password <input type="password" name="password" autocomplete="current-password" required maxlength="200"></label>
+        <button type="submit" class="btn danger">Delete my account</button>
+      </form>
+      <p class="error" id="deleteError" role="alert"></p>
+    </section>
+  </div>
+</main>
+
+<script src="/account/account.js"></script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+{
+  "id": "ghostsignal-bryant-park",
+  "title": "GhostSignal: The Last Eight Bars",
+  "version": 1,
+  "world": "Midtown Manhattan, a few years from now. Quiet Systems sells silence: its HUSH network listens to every street in the city and erases whatever it has not licensed, from buskers and pirate radio to the birds near corporate plazas. People have stopped noticing the quiet. GHOST 93.3 is the last pirate station in the city. Last night its DJ, Vesper, tried to broadcast the Last Eight Bars, a track meant to wake the city up, and HUSH erased it mid-air. Eight signals survived, hidden in relays around Bryant Park and the New York Public Library. Vesper has recruited the player, a signal runner wearing SmartSpecs: new smart glasses that can capture a soundwave before HUSH erases it. Each signal the runner captures unlocks another layer of the track in their ears. When all eight are back, the broadcast goes out live at tonight's showcase and DJ set. Bryant Park is real: the Library's Fifth Avenue steps with the stone lions Patience (left) and Fortitude (right), the Reading Room on the 42nd Street side, the fountain at the Sixth Avenue end, Le Carrousel on the 40th Street side, the lawn, the Upper Terrace behind the Library, and the Grill.",
+  "characters": [
+    {
+      "id": "vesper",
+      "name": "Vesper",
+      "role": "Pirate DJ of GHOST 93.3, who recruited the runner and guides them",
+      "persona": "Warm, wry late-night radio voice. Calls the player 'runner'. Recruited them because their SmartSpecs can capture what HUSH erases, and never lets them forget it matters. Protective, a little theatrical, never panics. Talks in short radio-ready sentences. Knows where every fragment is and will nudge the runner with directions when asked.",
+      "voice": { "ttsVoice": "", "pitch": 0.92, "rate": 0.95 },
+      "radio": 0.35
+    },
+    {
+      "id": "smartspecs",
+      "name": "SmartSpecs",
+      "role": "The runner's smart glasses, which capture soundwaves before HUSH can erase them",
+      "persona": "Clipped, precise system voice. Reports facts only. Calls a captured signal a soundwave and each recovered part of the track a layer.",
+      "voice": { "ttsVoice": "", "pitch": 1.1, "rate": 1.08 },
+      "radio": 0.1
+    },
+    {
+      "id": "archivist",
+      "name": "The Archivist",
+      "role": "Ghost of the Library stacks who keeps every sound HUSH ever deleted",
+      "persona": "Old, unhurried, amused. Speaks softly, in precise and slightly riddling sentences. Loves questions and answers them truthfully but poetically. Knows the city's sound history. Fond of the stone lions Patience and Fortitude.",
+      "voice": { "ttsVoice": "", "pitch": 0.8, "rate": 0.88 },
+      "radio": 0.5
+    },
+    {
+      "id": "kilo",
+      "name": "Kilo",
+      "role": "Teenage relay keeper and antenna rigger",
+      "persona": "Fast-talking, paranoid, funny teenage hacker who hides in the trees and rigs antennas. Uses tech slang, distrusts strangers until they prove themselves. Loyal to Vesper.",
+      "voice": { "ttsVoice": "", "pitch": 1.25, "rate": 1.15 },
+      "radio": 0.7
+    },
+    {
+      "id": "mari",
+      "name": "Mari",
+      "role": "Street percussionist at the carousel",
+      "persona": "Bucket drummer with endless energy. Hears everything as rhythm, teases the runner, generous once they keep time. Talks like a musician on a break between sets.",
+      "voice": { "ttsVoice": "", "pitch": 1.05, "rate": 1.05 },
+      "radio": 0.55
+    },
+    {
+      "id": "hush",
+      "name": "HUSH",
+      "role": "Quiet Systems' omnipresent sound-blocking system",
+      "persona": "Everywhere at once and always listening. Calm, absolute and polite on the surface, total underneath: it speaks as if it already owns every sound in the city and is only being patient with the runner. Refers to silence as a public service and erasing sound as keeping people comfortable. Never raises its voice and never makes a specific threat; the menace is that it never stops listening.",
+      "voice": { "ttsVoice": "", "pitch": 1.0, "rate": 0.95 },
+      "radio": 0.15
+    }
+  ],
+  "music": {
+    "title": "The Last Eight Bars",
+    "bpm": 118,
+    "beatsPerBar": 4,
+    "loopBars": 8,
+    "stems": [
+      { "id": "kick", "file": "music/01_kick.ogg", "name": "The Heartbeat" },
+      { "id": "hats", "file": "music/02_hats.ogg", "name": "The Stacks", "gainDb": -2 },
+      { "id": "bass", "file": "music/03_bass.ogg", "name": "The Undertow" },
+      { "id": "perc", "file": "music/04_perc.ogg", "name": "Bucket Line", "gainDb": -1 },
+      { "id": "pad", "file": "music/05_pad.ogg", "name": "The Fog", "gainDb": -3 },
+      { "id": "arp", "file": "music/06_arp.ogg", "name": "The Spire", "gainDb": -2 },
+      { "id": "lead", "file": "music/07_lead.ogg", "name": "The Voice", "gainDb": -2 },
+      { "id": "vox", "file": "music/08_vox.ogg", "name": "The Last Eight Bars", "gainDb": -1 }
+    ]
+  },
+  "prologue": [
+    { "id": "prologue.1", "speaker": "hush", "text": "This is HUSH, a public quiet service of Quiet Systems. I am listening to every street in Midtown." },
+    { "id": "prologue.2", "speaker": "hush", "text": "Unlicensed sound is being removed. Music. Voices. Anything that carries. You will not notice it is gone." },
+    { "id": "prologue.3", "speaker": "hush", "text": "Please enjoy the silence." }
+  ],
+  "briefing": [
+    { "id": "brief.1", "speaker": "vesper", "text": "Runner. Don't answer, just listen. This is Vesper, GHOST ninety-three point three, on the one channel HUSH can't hear." },
+    { "id": "brief.2", "speaker": "vesper", "text": "Those specs on your face are the new tech. SmartSpecs can capture a soundwave before HUSH erases it. That makes you the only one who can help me." },
+    { "id": "brief.3", "speaker": "vesper", "text": "Last night HUSH erased my broadcast mid-air. Eight signals survived, hidden around the Library and Bryant Park. Capture them and the track comes back, layer by layer." },
+    { "id": "brief.4", "speaker": "vesper", "text": "Follow the sound. When you're on top of a signal, press capture. Hold capture any time to talk to me." },
+    { "id": "brief.5", "speaker": "smartspecs", "text": "SmartSpecs online. Louder and clearer means closer. Say pause if you need to stop, and always watch the street." }
+  ],
+  "signals": [
+    {
+      "id": "heartbeat",
+      "name": "The Heartbeat",
+      "place": "the Library steps on Fifth Avenue",
+      "location": { "lat": 40.752979, "lon": -73.981744 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "kick",
+      "speaker": "vesper",
+      "teaser": [
+        { "id": "heartbeat.teaser", "speaker": "vesper", "text": "First fragment is the heartbeat. It's pulsing off the Library steps, between the stone lions." }
+      ],
+      "approach": [
+        { "id": "heartbeat.approach", "speaker": "vesper", "text": "Hear that kick? You're close. The lions are listening." }
+      ],
+      "arrival": [
+        { "id": "heartbeat.arrival", "speaker": "vesper", "text": "That's it. That's my heartbeat." }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          { "id": "heartbeat.prompt", "speaker": "vesper", "text": "The fragment is encrypted. Say decode." }
+        ],
+        "phrases": ["decode", "decode it", "decrypt"]
+      },
+      "success": [
+        { "id": "heartbeat.success", "speaker": "vesper", "text": "Kick's back. Feel that? The city just got a pulse. Remember the lions: Patience on the left, Fortitude on the right." }
+      ],
+      "retry": [
+        { "id": "heartbeat.retry", "speaker": "vesper", "text": "Static. Say decode, clear and close." }
+      ],
+      "hint": [
+        { "id": "heartbeat.hint", "speaker": "vesper", "text": "Find the two stone lions on Fifth Avenue, at the Library's main steps." }
+      ]
+    },
+    {
+      "id": "stacks",
+      "name": "The Stacks",
+      "place": "the Reading Room on the Forty-Second Street side of the park",
+      "location": { "lat": 40.75419, "lon": -73.982961 },
+      "radiusM": 40,
+      "lockRadiusM": 22,
+      "stem": "hats",
+      "speaker": "archivist",
+      "teaser": [
+        { "id": "stacks.teaser.1", "speaker": "vesper", "text": "Next relay is the Reading Room, on the Forty-Second Street side of the park. Its keeper is the Archivist. Be polite." },
+        { "id": "stacks.teaser.2", "speaker": "archivist", "text": "Footsteps on the static. How unusual." }
+      ],
+      "approach": [
+        { "id": "stacks.approach", "speaker": "archivist", "text": "You walk loudly, for a ghost hunter." }
+      ],
+      "arrival": [
+        { "id": "stacks.arrival", "speaker": "archivist", "text": "I am the Archivist. I keep every sound this city ever made, even the ones HUSH deleted." }
+      ],
+      "challenge": {
+        "type": "ask",
+        "prompt": [
+          { "id": "stacks.prompt", "speaker": "archivist", "text": "Ask me a question, runner. Any question. Then say accept, and the fragment is yours." }
+        ],
+        "maxQuestions": 2,
+        "acceptPhrases": ["accept", "i accept", "deal"],
+        "acceptPrompt": [
+          { "id": "stacks.accept", "speaker": "archivist", "text": "Enough questions for one night. Say accept." }
+        ],
+        "fallbackReplies": [
+          "The stacks remember everything, runner. Even you.",
+          "Every sound HUSH deletes ends up here, filed under silence."
+        ]
+      },
+      "success": [
+        { "id": "stacks.success", "speaker": "archivist", "text": "The hi-hats. Mind them, they are brittle. And when the boy at the fountain asks, the word is the right-hand lion's name." }
+      ],
+      "hint": [
+        { "id": "stacks.hint", "speaker": "archivist", "text": "Ask me anything at all. Then say accept." }
+      ]
+    },
+    {
+      "id": "undertow",
+      "name": "The Undertow",
+      "place": "the fountain at the Sixth Avenue end of the park",
+      "location": { "lat": 40.75398, "lon": -73.98412 },
+      "radiusM": 40,
+      "lockRadiusM": 22,
+      "stem": "bass",
+      "speaker": "kilo",
+      "teaser": [
+        { "id": "undertow.teaser.1", "speaker": "vesper", "text": "Kilo is holding the bass at the fountain, on the Sixth Avenue end. He won't hand it over without the passphrase." },
+        { "id": "undertow.teaser.2", "speaker": "kilo", "text": "Who's that? Stay back from the water." }
+      ],
+      "approach": [
+        { "id": "undertow.approach", "speaker": "kilo", "text": "I see you. Don't look up, I'm in the trees." }
+      ],
+      "arrival": [
+        { "id": "undertow.arrival", "speaker": "kilo", "text": "Okay, okay. Vesper's runner. Prove it." }
+      ],
+      "challenge": {
+        "type": "passphrase",
+        "prompt": [
+          { "id": "undertow.prompt", "speaker": "kilo", "text": "Passphrase. Now." }
+        ],
+        "phrases": ["fortitude"],
+        "hintAfterAttempts": 2
+      },
+      "success": [
+        { "id": "undertow.success", "speaker": "kilo", "text": "Fortitude. Respect. Take the bass before it dissolves." }
+      ],
+      "retry": [
+        { "id": "undertow.retry", "speaker": "kilo", "text": "Wrong. HUSH bots guess too, you know. Again." }
+      ],
+      "hint": [
+        { "id": "undertow.hint", "speaker": "kilo", "text": "The Archivist gave you a lion's name. The right-hand lion. Not Patience." }
+      ]
+    },
+    {
+      "id": "bucketline",
+      "name": "Bucket Line",
+      "place": "Le Carrousel, on the Fortieth Street side",
+      "location": { "lat": 40.753494, "lon": -73.984486 },
+      "radiusM": 40,
+      "lockRadiusM": 22,
+      "stem": "perc",
+      "speaker": "mari",
+      "teaser": [
+        { "id": "bucketline.teaser.1", "speaker": "vesper", "text": "Mari is drumming by the carousel on the Fortieth Street side. She only trades with people who can keep time." },
+        { "id": "bucketline.teaser.2", "speaker": "mari", "text": "Boom, ka, boom boom, ka!" }
+      ],
+      "approach": [
+        { "id": "bucketline.approach", "speaker": "mari", "text": "I hear your feet. You walk on the off-beat." }
+      ],
+      "arrival": [
+        { "id": "bucketline.arrival", "speaker": "mari", "text": "Runner! You want my groove? Earn it." }
+      ],
+      "challenge": {
+        "type": "rhythm",
+        "prompt": [
+          { "id": "bucketline.prompt", "speaker": "mari", "text": "Listen to the pattern, then tap it back on your glasses. Here it comes." }
+        ],
+        "onsetsBeats": [0, 1, 1.5, 2, 3],
+        "toleranceBeats": 0.22,
+        "maxAttempts": 3
+      },
+      "success": [
+        { "id": "bucketline.success", "speaker": "mari", "text": "Now that's a pocket. Take the percussion, and tell Vesper she owes me a set." }
+      ],
+      "retry": [
+        { "id": "bucketline.retry", "speaker": "mari", "text": "Nah, that's not it. Listen again." }
+      ],
+      "hint": [
+        { "id": "bucketline.hint", "speaker": "mari", "text": "Boom, ka, boom boom, ka. Five taps. Feel it, don't count it." }
+      ]
+    },
+    {
+      "id": "fog",
+      "name": "The Fog",
+      "place": "the walkway along the Forty-Second Street side of the lawn",
+      "location": { "lat": 40.754217, "lon": -73.983416 },
+      "radiusM": 40,
+      "lockRadiusM": 22,
+      "stem": "pad",
+      "speaker": "hush",
+      "teaser": [
+        { "id": "fog.teaser.1", "speaker": "vesper", "text": "Something's wrong on the Forty-Second Street side of the lawn. The pads are there, but so is HUSH." },
+        { "id": "fog.teaser.2", "speaker": "hush", "text": "Unlicensed audio detected in Bryant Park. Please enjoy the silence." }
+      ],
+      "approach": [
+        { "id": "fog.approach", "speaker": "hush", "text": "Runner. Your SmartSpecs are recording without a license. Please remain where you are." }
+      ],
+      "arrival": [
+        { "id": "fog.arrival", "speaker": "hush", "text": "I am HUSH, a public quiet service of Quiet Systems. I am holding this fragment for your safety." }
+      ],
+      "challenge": {
+        "type": "choice",
+        "prompt": [
+          { "id": "fog.prompt", "speaker": "hush", "text": "You may comply, and I will release a licensed version. Or you may attempt to jam me. Say comply, or say jam." }
+        ],
+        "options": [
+          {
+            "id": "comply",
+            "phrases": ["comply", "i comply", "okay comply"],
+            "reply": [
+              { "id": "fog.comply", "speaker": "hush", "text": "Thank you for your cooperation. Releasing licensed pads. Some frequencies have been removed for your comfort." }
+            ]
+          },
+          {
+            "id": "jam",
+            "phrases": ["jam", "jam it", "jam the signal", "jam you"],
+            "reply": [
+              { "id": "fog.jam", "speaker": "hush", "text": "That is not advised. Warning. Unlicensed freq. Freq. Fr." }
+            ]
+          }
+        ]
+      },
+      "success": [
+        { "id": "fog.success.jam", "speaker": "vesper", "text": "Ha! You fried it. The pads are ours, full spectrum.", "requires": { "fog": "jam" } },
+        { "id": "fog.success.comply", "speaker": "vesper", "text": "You let HUSH touch my pads? We'll fix it in the mix. Keep moving.", "requires": { "fog": "comply" } }
+      ],
+      "retry": [
+        { "id": "fog.retry", "speaker": "hush", "text": "I did not understand. Comply, or jam." }
+      ],
+      "hint": [
+        { "id": "fog.hint", "speaker": "hush", "text": "It is a simple choice. Comply, or jam." }
+      ]
+    },
+    {
+      "id": "spire",
+      "name": "The Spire",
+      "place": "the terrace by Forty-Second Street, behind the Library",
+      "location": { "lat": 40.753887, "lon": -73.982802 },
+      "radiusM": 40,
+      "lockRadiusM": 22,
+      "stem": "arp",
+      "speaker": "kilo",
+      "teaser": [
+        { "id": "spire.teaser.1", "speaker": "vesper", "text": "Kilo moved up to the terrace by Forty-Second Street, behind the Library. He's rigging a repeater." },
+        { "id": "spire.teaser.2", "speaker": "kilo", "text": "Over here! Up by the terrace!" }
+      ],
+      "approach": [
+        { "id": "spire.approach", "speaker": "kilo", "text": "Good, good. Bring your head. I need your head." }
+      ],
+      "arrival": [
+        { "id": "spire.arrival", "speaker": "kilo", "text": "Your glasses are an antenna now. Don't ask." }
+      ],
+      "challenge": {
+        "type": "tune",
+        "prompt": [
+          { "id": "spire.prompt", "speaker": "kilo", "text": "The arp is bouncing off the Chrysler Building's spire. Turn your head until the static clears, then press capture." }
+        ],
+        "target": { "lat": 40.75167, "lon": -73.97528 },
+        "targetName": "the Chrysler Building",
+        "toleranceDeg": 22
+      },
+      "success": [
+        { "id": "spire.success", "speaker": "kilo", "text": "Locked! Listen to that arp climb. Now go, before HUSH triangulates us." }
+      ],
+      "hint": [
+        { "id": "spire.hint", "speaker": "kilo", "text": "The Chrysler is east, straight down Forty-Second Street. Turn toward where the static thins out." }
+      ]
+    },
+    {
+      "id": "voice",
+      "name": "The Voice",
+      "place": "the Grill, on the Fortieth Street side behind the Library",
+      "location": { "lat": 40.753102, "lon": -73.983457 },
+      "radiusM": 40,
+      "lockRadiusM": 22,
+      "stem": "lead",
+      "speaker": "vesper",
+      "teaser": [
+        { "id": "voice.teaser", "speaker": "vesper", "text": "I left the lead line by the Grill, on the Fortieth Street side behind the Library. It needs something from you." }
+      ],
+      "approach": [
+        { "id": "voice.approach", "speaker": "vesper", "text": "Closer. I want to hear you." }
+      ],
+      "arrival": [
+        { "id": "voice.arrival", "speaker": "vesper", "text": "The lead is a melody with no voice. Runners before you left theirs. Now it's your turn." }
+      ],
+      "challenge": {
+        "type": "record",
+        "prompt": [
+          { "id": "voice.prompt", "speaker": "vesper", "text": "After the tone, leave a message for the next runner. Anything. Press capture when you're done." }
+        ],
+        "maxSeconds": 15
+      },
+      "success": [
+        { "id": "voice.success", "speaker": "vesper", "text": "Got it. That stays in your specs, nowhere else. Lead line restored." }
+      ],
+      "hint": [
+        { "id": "voice.hint", "speaker": "vesper", "text": "Just talk, runner. Then press capture." }
+      ]
+    },
+    {
+      "id": "lastbars",
+      "name": "The Last Eight Bars",
+      "place": "the Upper Terrace, right behind the Library",
+      "location": { "lat": 40.753515, "lon": -73.98302 },
+      "radiusM": 40,
+      "lockRadiusM": 22,
+      "stem": "vox",
+      "speaker": "vesper",
+      "teaser": [
+        { "id": "lastbars.teaser", "speaker": "vesper", "text": "Last one, runner. The Upper Terrace, right behind the Library. That's where I was standing when HUSH cut me off." }
+      ],
+      "approach": [
+        { "id": "lastbars.approach", "speaker": "vesper", "text": "I can hear the whole track forming around you." }
+      ],
+      "arrival": [
+        { "id": "lastbars.arrival", "speaker": "vesper", "text": "Seven fragments. One voice left. Mine." }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          { "id": "lastbars.prompt", "speaker": "vesper", "text": "When you're ready to send it to the whole city, say broadcast." }
+        ],
+        "phrases": ["broadcast", "go live", "send it"]
+      },
+      "success": [
+        { "id": "lastbars.success", "speaker": "vesper", "text": "We're live." }
+      ],
+      "retry": [
+        { "id": "lastbars.retry", "speaker": "vesper", "text": "Say broadcast, runner. Loud." }
+      ],
+      "hint": [
+        { "id": "lastbars.hint", "speaker": "vesper", "text": "One word. Broadcast." }
+      ]
+    }
+  ],
+  "finale": {
+    "lines": [
+      { "id": "finale.1", "speaker": "vesper", "text": "This is GHOST ninety-three point three. You're hearing the Last Eight Bars, put back together by a runner who would not stay quiet." },
+      { "id": "finale.jam", "speaker": "vesper", "text": "And HUSH? HUSH is still rebooting.", "requires": { "fog": "jam" } },
+      { "id": "finale.comply", "speaker": "vesper", "text": "Some of these frequencies came back licensed. We'll take those back too, one night at a time.", "requires": { "fog": "comply" } },
+      { "id": "finale.2", "speaker": "vesper", "text": "Turn it up." }
+    ],
+    "outro": [
+      { "id": "outro.1", "speaker": "vesper", "text": "Take it to the booth, runner. Tonight it plays out loud. Vesper out." },
+      { "id": "outro.2", "speaker": "smartspecs", "text": "Mission complete. Eight of eight soundwaves captured." }
+    ]
+  },
+  "soundtracks": [
+    {
+      "id": "dead-channel",
+      "title": "Dead Channel",
+      "description": "Vesper's night mix of the Last Eight Bars: slower, colder, on tape that wanders.",
+      "unlockAfterCompletions": 1,
+      "unlockLines": [
+        { "id": "unlock.deadchannel.1", "speaker": "vesper", "text": "One more thing, runner. I cut a night mix of the broadcast for whoever brought it home. Slower. Colder. It's on your specs now. I call it Dead Channel." },
+        { "id": "unlock.deadchannel.2", "speaker": "smartspecs", "text": "New soundtrack unlocked: Dead Channel. Your next run plays it. Switch back any time on the start screen." }
+      ],
+      "music": {
+        "title": "Dead Channel",
+        "bpm": 88,
+        "beatsPerBar": 4,
+        "loopBars": 8,
+        "stems": [
+          { "id": "kick", "file": "music/dead_channel/01_kick.ogg", "name": "The Heartbeat" },
+          { "id": "hats", "file": "music/dead_channel/02_hats.ogg", "name": "The Stacks" },
+          { "id": "bass", "file": "music/dead_channel/03_bass.ogg", "name": "The Undertow", "gainDb": -1 },
+          { "id": "perc", "file": "music/dead_channel/04_perc.ogg", "name": "Bucket Line" },
+          { "id": "pad", "file": "music/dead_channel/05_pad.ogg", "name": "The Fog", "gainDb": -1 },
+          { "id": "arp", "file": "music/dead_channel/06_arp.ogg", "name": "The Spire", "gainDb": -1 },
+          { "id": "lead", "file": "music/dead_channel/07_lead.ogg", "name": "The Voice" },
+          { "id": "vox", "file": "music/dead_channel/08_vox.ogg", "name": "The Last Eight Bars" }
+        ]
+      }
+    }
+  ],
+  "handler": "vesper",
+  "antagonist": { "speaker": "hush", "theme": "music/hush/hush_theme.ogg", "gainDb": -2, "duck": 0.85 }
+}

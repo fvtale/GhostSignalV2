@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A signal ghost: concentric arcs radiating from a dot. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF2EF2E2" android:pathData="M54,58m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path android:strokeColor="#FF2EF2E2" android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M42,46 A17,17 0 0,1 66,46" />
+    <path android:strokeColor="#FFFF2E88" android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M34,38 A28,28 0 0,1 74,38" />
+    <path android:strokeColor="#802EF2E2" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M42,70 A17,17 0 0,0 66,70" />
+</vector>
