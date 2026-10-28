@@ -146,11 +146,14 @@ export function createAccounts({ dir = process.env.DATA_DIR || "data", adminEmai
       if (typeof password !== "string" || password.length < 10 || password.length > 200) {
         throw fail(400, "use a password of at least 10 characters");
       }
+      // Hash first (the slow, async step), then check-and-insert with no await in between, so
+      // two sign-ups for the same email racing each other can't both slip past the check.
+      const passwordHash = await hashPassword(password);
       if (byEmail(e)) throw fail(409, "there's already an account with that email; sign in instead");
       const a = {
         id: `u_${crypto.randomBytes(9).toString("hex")}`,
         email: e,
-        passwordHash: await hashPassword(password),
+        passwordHash,
         role: "player",
         createdAtMs: now(),
         premium: null,

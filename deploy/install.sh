@@ -131,10 +131,8 @@ EVENT_TOKEN=$(token)
 OPERATOR_TOKEN=$(token)
 ADMIN_EMAILS=$admin
 
-# Characters and their voices stay off until these are set.
-ANTHROPIC_API_KEY=
-ELEVENLABS_API_KEY=
-ELEVENLABS_DEFAULT_VOICE=
+# Character replies and speech transcription stay off until this is set.
+MODEL_API_KEY=
 
 # Premium. The link and price can also be set on /admin, Players tab.
 PAYMENT_LINK_URL=
@@ -243,8 +241,8 @@ GhostSignal: https://$domain
 
 Updates from now on:  sudo $app/deploy/update.sh
 EOF
-    grep -q '^ANTHROPIC_API_KEY=.' "$env_file" ||
-        echo "Characters and voices are off until ANTHROPIC_API_KEY and ELEVENLABS_API_KEY are in $env_file (then: systemctl restart ghostsignal)."
+    grep -q '^MODEL_API_KEY=.' "$env_file" ||
+        echo "Characters and speech are off until MODEL_API_KEY is in $env_file (then: systemctl restart ghostsignal)."
 }
 
 main "$@"

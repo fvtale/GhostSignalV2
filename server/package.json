@@ -2,15 +2,14 @@
   "name": "ghostsignal-server",
   "version": "0.1.0",
   "private": true,
-  "description": "Character agents, character voices, shared venue routes and live broadcasts for GhostSignal.",
+  "description": "Character agents, speech transcription, shared venue routes and live broadcasts for GhostSignal.",
   "type": "module",
   "main": "src/index.js",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/index.js",
     "test": "node --test"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.132.1"
   }
 }

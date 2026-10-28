@@ -13,49 +13,37 @@ import { cleanReply, createNpc, systemPrompt, userTurn } from "../src/npc.js";
 import { clientIp, createServer } from "../src/server.js";
 import { createStore } from "../src/store.js";
 import { createTts, pcmToWav } from "../src/tts.js";
+import { createStt } from "../src/stt.js";
 
 const mission = loadMission();
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ghostsignal-"));
 
-/** Stands in for the Anthropic client and records what it was asked. */
-function fakeClient(respond) {
+/** Stands in for the Meta Model API and records what it was asked. */
+function fakeMetaFetch(respond) {
   const calls = [];
-  return {
-    calls,
-    beta: {
-      messages: {
-        create: async (req) => {
-          calls.push(req);
-          return respond(req);
-        },
-      },
-    },
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, init });
+    return { ok: true, status: 200, json: async () => respond(url, init), text: async () => "" };
   };
+  return { calls, fetchImpl };
 }
 
-const textResponse = (obj) => ({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(obj) }] });
+const chatResponse = (content) => ({ choices: [{ message: { content } }] });
 
 let server;
 let base;
-let client;
-let fetchCalls = 0;
+let metaFetch;
 
 before(async () => {
-  client = fakeClient(() => textResponse({ reply: "Left at the lions, runner. **Fast.**" }));
-  const npc = createNpc({ client, log: { warn() {} } });
-  const tts = createTts({
-    apiKey: "test",
-    defaultVoice: "voice-1",
-    cacheDir: path.join(dataDir, "tts"),
-    fetchImpl: async () => {
-      fetchCalls++;
-      return new Response(new Uint8Array(4800), { status: 200 });
-    },
-  });
+  metaFetch = fakeMetaFetch(() => chatResponse("Left at the lions, runner. **Fast.**"));
+  const npc = createNpc({ apiKey: "test-key", fetchImpl: metaFetch.fetchImpl, log: { warn() {} } });
+  const tts = createTts();
+  const stt = createStt({ meta: { enabled: true, transcribe: async () => "decode" } });
   server = createServer({
     mission,
     npc,
     tts,
+    stt,
     store: createStore(dataDir),
     eventToken: "event",
     operatorToken: "operator",
@@ -95,7 +83,8 @@ describe("health and auth", () => {
     const body = await res.json();
     assert.equal(body.mission, mission.id);
     assert.equal(body.npc, true);
-    assert.equal(body.tts, true);
+    assert.equal(body.tts, false, "voices are rendered on the device");
+    assert.equal(body.stt, true);
   });
 
   it("takes the client address from the proxy only when told to, and only from loopback", () => {
@@ -122,20 +111,20 @@ describe("character agent", () => {
     const body = await res.json();
     assert.equal(body.reply, "Left at the lions, runner. Fast.");
 
-    const req = client.calls.at(-1);
-    assert.equal(req.model, "claude-opus-5-5");
-    assert.equal(req.output_config.effort, "low");
-    assert.equal(req.output_config.format.type, "json_schema");
-    assert.equal(req.fallbacks, "default");
-    assert.deepEqual(req.betas, ["server-side-fallback-2026-07-01"]);
-    assert.match(req.system, /You are Vesper/);
-    assert.match(req.system, /Quiet Systems/);
-    assert.match(req.messages[0].content, /about 80 metres from the runner, at 2 o'clock/);
-    assert.match(req.messages[0].content, /Runner: Hello\?/);
+    const { url, init } = metaFetch.calls.at(-1);
+    assert.match(url, /\/chat\/completions$/);
+    const req = JSON.parse(init.body);
+    assert.equal(req.model, "muse-spark-1.3");
+    assert.equal(req.reasoning_effort, "low");
+    assert.match(req.messages[0].content, /You are Vesper/);
+    assert.match(req.messages[0].content, /Quiet Systems/);
+    assert.match(req.messages[1].content, /about 80 metres from the runner, at 2 o'clock/);
+    assert.match(req.messages[1].content, /Runner: Hello\?/);
   });
 
-  it("answers a refusal with an in-world line", async () => {
-    const npc = createNpc({ client: fakeClient(() => ({ stop_reason: "refusal", stop_details: { category: null }, content: [] })), log: { warn() {} } });
+  it("answers an empty reply with an in-world line", async () => {
+    const empty = fakeMetaFetch(() => chatResponse(""));
+    const npc = createNpc({ apiKey: "test-key", fetchImpl: empty.fetchImpl, log: { warn() {} } });
     const reply = await npc.reply(mission, npcBody);
     assert.match(reply, /runner|HUSH/);
   });
@@ -154,16 +143,30 @@ describe("character agent", () => {
 });
 
 describe("voices", () => {
-  it("returns WAV and caches it", async () => {
-    const before = fetchCalls;
+  it("leaves voices to the device", async () => {
     const res = await call("/v1/tts", { method: "POST", body: { missionId: mission.id, characterId: "kilo", text: "Passphrase. Now." } });
+    assert.equal(res.status, 501);
+    assert.match((await res.json()).error, /on the device/);
+  });
+
+  it("transcribes a recorded utterance", async () => {
+    const wav = pcmToWav(Buffer.alloc(16_000), 16_000);
+    const res = await fetch(`${base}/v1/stt?keywords=decode,broadcast`, {
+      method: "POST",
+      headers: { authorization: "Bearer event", "content-type": "audio/wav" },
+      body: wav,
+    });
     assert.equal(res.status, 200);
-    assert.equal(res.headers.get("content-type"), "audio/wav");
-    const wav = Buffer.from(await res.arrayBuffer());
-    assert.equal(wav.toString("ascii", 0, 4), "RIFF");
-    assert.equal(wav.length, 44 + 4800);
-    await call("/v1/tts", { method: "POST", body: { missionId: mission.id, characterId: "kilo", text: "Passphrase. Now." } });
-    assert.equal(fetchCalls, before + 1, "second render comes from the cache");
+    assert.equal((await res.json()).text, "decode");
+  });
+
+  it("rejects speech that is not a mono WAV", async () => {
+    const res = await fetch(`${base}/v1/stt`, {
+      method: "POST",
+      headers: { authorization: "Bearer event", "content-type": "audio/wav" },
+      body: Buffer.from("not a wav"),
+    });
+    assert.equal(res.status, 415);
   });
 
   it("builds a correct WAV header", () => {

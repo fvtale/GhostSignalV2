@@ -90,13 +90,10 @@ If nothing is new, it says so and stops. `--force` re-runs the checks anyway.
 Edit `/etc/ghostsignal.env` on the server (as root; `server/.env.example` explains every
 variable), then `systemctl restart ghostsignal`:
 
-- `ANTHROPIC_API_KEY`: live character replies. Without it, characters use their written
-  fallback lines. Create one in the Claude Console (https://platform.claude.com, Settings → API
-  keys), add credit under Billing, and set a monthly spend limit under Limits.
-- `ELEVENLABS_API_KEY`, `ELEVENLABS_DEFAULT_VOICE` and the per-character
-  `ELEVENLABS_VOICE_*`: the characters' voices. Without them, phones and browsers use their own
-  speech voices. In ElevenLabs, create an API key (Text to Speech access is all the server uses)
-  and copy each voice's ID from the Voices page.
+- `MODEL_API_KEY` (Meta Model API): live character replies (Muse Spark) and runner speech
+  transcription (Muse Voice). Without it, characters use their written fallback lines and
+  speech falls back to the on-device recognizers. Character voices are always rendered on
+  the device (Android TTS, browser speech synthesis); the server keeps no voice keys.
 - Payments: paste the payment link on the admin page (Players tab), or set `PAYMENT_LINK_URL`.
   For premium to switch on by itself, point the provider's webhook at
   `https://ghostsignal.datarail.org/v1/billing/stripe` (or `/v1/billing/lemonsqueezy`) and put its

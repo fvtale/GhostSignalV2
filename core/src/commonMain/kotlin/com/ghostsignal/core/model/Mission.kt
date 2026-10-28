@@ -112,7 +112,7 @@ data class Character(
 
 @Serializable
 data class VoiceSpec(
-    /** Voice id for the cloud TTS provider (e.g. an ElevenLabs voice id). Blank = server default. */
+    /** Legacy cloud-voice id, kept for mission compatibility. Voices render on-device now. */
     val ttsVoice: String = "",
     /** Pitch and rate for the on-phone Android TTS fallback. */
     val pitch: Double = 1.0,

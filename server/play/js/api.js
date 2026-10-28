@@ -88,7 +88,21 @@ export const api = {
   },
   progress: (missionId, completions) => call("/v1/account/progress", { method: "POST", body: { missionId, completions } }),
   npc: (body) => call("/v1/npc", { method: "POST", body }),
-  tts: (missionId, characterId, text) => call("/v1/tts", { method: "POST", body: { missionId, characterId, text }, raw: true }),
+  /** A recorded utterance (mono 16 kHz WAV) to Muse Voice; resolves to the transcript. */
+  async stt(wav, keywords = []) {
+    const headers = { "content-type": "audio/wav" };
+    const token = store.token();
+    if (token) headers["x-account-token"] = token;
+    const query = keywords.length ? `?keywords=${encodeURIComponent(keywords.join(","))}` : "";
+    const res = await fetch(`/v1/stt${query}`, { method: "POST", headers, body: wav });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const err = new Error(data.error || `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    return (await res.json()).text ?? "";
+  },
   broadcasts: (since) => call(`/v1/broadcasts?since=${since}`),
   /** A stem: bundled with the game, or deployed from the admin page ("server:<sha256>.<ext>"). */
   audio(file) {

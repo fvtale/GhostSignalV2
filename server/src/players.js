@@ -103,6 +103,11 @@ export function createPlayers({ accounts, glasses, store, defaults = {}, secrets
   /** At most [max] sign-ups (or sign-ins) a minute from one address. */
   function limited(kind, ip, max) {
     const now = Date.now();
+    // Same housekeeping as the server's token buckets: forget addresses whose last attempt
+    // aged out, so this map doesn't grow with every address that ever tried.
+    if (attempts[kind].size >= 128) {
+      for (const [k, v] of attempts[kind]) if (!v.length || now - v[v.length - 1] >= 60_000) attempts[kind].delete(k);
+    }
     const hits = (attempts[kind].get(ip) ?? []).filter((t) => now - t < 60_000);
     hits.push(now);
     attempts[kind].set(ip, hits);

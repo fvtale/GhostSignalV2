@@ -16,8 +16,8 @@ features you advertise and which fallbacks you keep on.
 | 5 | Head tracking direction | Calibrate, then *Test spatial audio*, turn your head right | The ping moves toward the front and stays fixed in the room | Moves the wrong way → Settings → *Invert yaw*. Wanders → try *Orientation quaternion* |
 | 6 | Glasses speech | Allow glasses mic, start a run, Force lock at signal 1, say "decode" | Transcript appears, signal unlocks | Speech not enabled → Settings → Voice input → *Phone recognizer, glasses mic* |
 | 7 | Audio quality while the mic is open | During a listening window, listen to the music | Note whether it collapses to mono/call quality | Expected with the phone recognizer (Bluetooth call profile); the walkie-talkie effect is designed to hide it. With DAT Speech it may stay clean |
-| 8 | Voices | Prepare transmissions with the backend set | `cloud` count = all lines | Check backend health, ElevenLabs key and voice ids |
-| 9 | Character agent | Hold capture and ask Vesper a question | In-character reply within ~3 s | Backend logs; try `NPC_MODEL=claude-haiku-5-5` if slow |
+| 8 | Voices | Prepare transmissions | Lines render on-device (`local` count grows) | Check the phone's TTS engine and voices |
+| 9 | Character agent | Hold capture and ask Vesper a question | In-character reply within ~3 s | Backend logs; check MODEL_API_KEY and NPC_MODEL if slow |
 
 ## 2. Outdoor checks in Bryant Park (1 hour)
 

@@ -16,7 +16,10 @@ const text = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
  * and nothing signed by Meta. The app reports those, so the server can't prove a request came from
  * real glasses. What it can do: keep one pair to one account, and show the admin the evidence.
  *
- * Identifiers are stored only as salted hashes; admins see a short fingerprint of each.
+ * Identifiers are never stored raw: only a SHA-256 hash with a fixed app-specific prefix is
+ * kept. The prefix is a pepper, not a per-pair salt, so the hash is deterministic — the same
+ * pair always gets the same short fingerprint an admin sees. Treat it as a pseudonymous id,
+ * not as a secret.
  */
 export function createGlasses({ store, accounts, now = Date.now }) {
   const state = store.read("glasses.json", { links: [], enrolled: [] });

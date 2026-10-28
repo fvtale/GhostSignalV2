@@ -10,6 +10,8 @@ captures/
 /third_party/fmod/
 node_modules/
 server/data/
+# Local secrets (server/.env is loaded at startup; real keys never get committed).
+.env
 *.keystore
 # The shared debug key that sideloaded builds are signed with (app/build.gradle.kts).
 !app/sideload-debug.keystore

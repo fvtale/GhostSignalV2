@@ -28,6 +28,7 @@ import com.ghostsignal.app.net.BackendClient
 import com.ghostsignal.app.voice.AndroidSpeechInput
 import com.ghostsignal.app.voice.AudioRouting
 import com.ghostsignal.app.voice.DatSpeechInput
+import com.ghostsignal.app.voice.ServerSpeechInput
 import com.ghostsignal.app.voice.LineVoices
 import com.ghostsignal.app.voice.ListenCallbacks
 import com.ghostsignal.app.voice.PrepareProgress
@@ -147,6 +148,7 @@ class GameController(
   private val datSpeech = DatSpeechInput(glasses, scope)
   private val glassesMicRecognizer = AndroidSpeechInput(context, routing, useGlassesMic = true)
   private val phoneMicRecognizer = AndroidSpeechInput(context, routing, useGlassesMic = false)
+  private val serverSpeech = ServerSpeechInput(context, backend)
 
   private var events = Channel<GameEvent>(Channel.UNLIMITED)
   private var engine: GameEngine? = null
@@ -513,7 +515,9 @@ class GameController(
 
   private fun chooseSpeechInput(): SpeechInput =
       when (settings.value.voiceInput) {
-        VoiceInputMode.AUTO, VoiceInputMode.GLASSES -> if (datSpeech.isAvailable()) datSpeech else glassesMicRecognizer
+        VoiceInputMode.AUTO ->
+            if (datSpeech.isAvailable()) datSpeech else if (serverSpeech.isAvailable()) serverSpeech else glassesMicRecognizer
+        VoiceInputMode.GLASSES -> if (datSpeech.isAvailable()) datSpeech else glassesMicRecognizer
         VoiceInputMode.PHONE_RECOGNIZER -> glassesMicRecognizer
         VoiceInputMode.PHONE_MIC -> phoneMicRecognizer
       }

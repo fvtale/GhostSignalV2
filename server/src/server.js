@@ -10,9 +10,11 @@ import { buildTrack, mergeRoute } from "./content.js";
 import { npcErrorStatus } from "./npc.js";
 import { createPlayers } from "./players.js";
 import { createStatic } from "./static.js";
+import { createStt } from "./stt.js";
 
 const MAX_BODY = 64 * 1024;
 const MAX_BLOB = 40 * 1024 * 1024;
+const MAX_STT = 20 * 1024 * 1024; // ten minutes of 16 kHz mono speech is about 19 MB
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // Pages: the admin page, the players' account page and the web player.
 const PAGES = { "/admin": path.resolve(HERE, "../admin"), "/account": path.resolve(HERE, "../account"), "/play": path.resolve(HERE, "../play") };
@@ -23,10 +25,18 @@ export const DEFAULT_ASSETS_DIR = path.resolve(HERE, "../../app/src/main/assets"
 const PUBLIC_READ = /^\/v1\/(mission|broadcasts|routes\/[\w-]+|tracks\/[\w-]+|blobs\/[0-9a-f]{64}\.(ogg|wav|flac))$/;
 
 /** Tiny per-IP token bucket so one phone (or a leaked token) can't run up the model bill. */
-function limiter(perMinute) {
+export function limiter(perMinute, nowMs = Date.now) {
   const buckets = new Map();
-  return (key) => {
-    const now = Date.now();
+  // A bucket idle for a full minute has refilled completely, so it is indistinguishable from a
+  // fresh one. Once the map grows, sweep those out; otherwise a long-lived server keeps an
+  // entry for every address (or account) it has ever rate-limited.
+  const sweep = (now) => {
+    if (buckets.size < 128) return;
+    for (const [k, b] of buckets) if (now - b.at >= 60_000) buckets.delete(k);
+  };
+  const allow = (key) => {
+    const now = nowMs();
+    sweep(now);
     const b = buckets.get(key) ?? { tokens: perMinute, at: now };
     b.tokens = Math.min(perMinute, b.tokens + ((now - b.at) / 60_000) * perMinute);
     b.at = now;
@@ -38,6 +48,9 @@ function limiter(perMinute) {
     buckets.set(key, b);
     return true;
   };
+  // Exposed for tests and health checks: how many buckets are currently remembered.
+  allow.size = () => buckets.size;
+  return allow;
 }
 
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -91,7 +104,8 @@ function bearer(req) {
  * Routes:
  *   GET    /health                          liveness and which features are configured
  *   POST   /v1/npc                          a character's reply             (event token)
- *   POST   /v1/tts                          a line in a character's voice   (event token)
+ *   POST   /v1/tts                          retired: voices are on-device   (event token)
+ *   POST   /v1/stt                          a recorded utterance -> text  (event token)
  *   GET    /v1/routes/:missionId            shared venue route and names    (event token)
  *   PUT    /v1/routes/:missionId            change placements or names      (admin)
  *   GET    /v1/broadcasts?since=ms          live operator messages          (event token)
@@ -122,6 +136,7 @@ export function createServer({
   operatorToken = "",
   accounts,
   admin,
+  stt,
   players,
   billing = {},
   assetsDir = DEFAULT_ASSETS_DIR,
@@ -130,6 +145,7 @@ export function createServer({
 }) {
   const serveStatic = createStatic({ pages: PAGES, assetsDir });
   accounts ??= createAccounts({ dir: store.dir, adminEmails: billing.adminEmails ?? [] });
+  stt ??= createStt({ log });
   admin ??= createAdmin({ operatorToken, accounts });
   // Linked Meta glasses are a way to premium, once an admin approves the pair (see glasses.js).
   const glasses = createGlasses({ store, accounts });
@@ -147,6 +163,7 @@ export function createServer({
   });
   const npcLimit = limiter(30);
   const ttsLimit = limiter(120);
+  const sttLimit = limiter(60);
   // Anyone can sign up, so a player without the event token gets a tighter allowance of the paid
   // services (character replies and voices) on top of the per-address one.
   const accountNpcLimit = limiter(12);
@@ -170,6 +187,7 @@ export function createServer({
         mission: mission.id,
         npc: npc.enabled,
         tts: tts.enabled,
+        stt: stt.enabled,
         model: npc.model,
         admin: { operatorToken: Boolean(operatorToken), datarail: admin.datarail, accounts: true },
         payments: players.health(),
@@ -244,6 +262,19 @@ export function createServer({
       if (typeof body.characterId !== "string" || !text) return send(res, 400, { error: "characterId and text are required" });
       try {
         return send(res, 200, await tts.render(mission, body.characterId, text), "audio/wav");
+      } catch (e) {
+        return send(res, e.status ?? 502, { error: e.message });
+      }
+    }
+
+    if (route === "POST /v1/stt") {
+      const player = playerOnly(req);
+      if (!sttLimit(ip) || (player && !accountTtsLimit(player.id))) return send(res, 429, { error: "slow down" });
+      const wav = await readBody(req, MAX_STT);
+      // Expected answers bias recognition toward the words that solve challenges.
+      const keywords = (url.searchParams.get("keywords") ?? "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 20);
+      try {
+        return send(res, 200, { text: await stt.transcribe(wav, keywords) });
       } catch (e) {
         return send(res, e.status ?? 502, { error: e.message });
       }

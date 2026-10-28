@@ -65,6 +65,11 @@ object MissionValidator {
 
     fun dupes(ids: List<String>) = ids.groupBy { it }.filterValues { it.size > 1 }.keys
 
+    // The engine falls back to characters.first() for its handler (GameEngine.handler), so an
+    // empty cast doesn't just read badly — it crashes the first free-talk. Catch it here, where
+    // authoring mistakes are reported, instead of on a runner's phone mid-event.
+    if (mission.characters.isEmpty()) problems += "mission has no characters"
+    dupes(mission.characters.map { it.id }).forEach { problems += "duplicate character id '$it'" }
     dupes(mission.signals.map { it.id }).forEach { problems += "duplicate signal id '$it'" }
     dupes(mission.music.stems.map { it.id }).forEach { problems += "duplicate stem id '$it'" }
     val allLines = LineCatalog.all(mission)

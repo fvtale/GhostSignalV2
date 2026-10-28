@@ -1,23 +1,11 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { findCharacter } from "./mission.js";
+import { createMeta, DEFAULT_CHAT_MODEL } from "./meta.js";
 
-// Claude Opus 5.5 at low effort by default: chat-style replies don't need deep thinking, and low
-// effort keeps the runner's wait short. Set NPC_MODEL=claude-haiku-5-5 for the lowest latency.
-export const DEFAULT_MODEL = "claude-opus-5-5";
+// Muse Spark at low reasoning effort by default: chat-style replies don't need deep thinking,
+// and low effort keeps the runner's wait short. NPC_MODEL can name any Model API chat model.
+export const DEFAULT_MODEL = DEFAULT_CHAT_MODEL;
 
-// Models that accept the server-side refusal fallback in its "default" form.
-const FALLBACK_MODELS = new Set(["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
-
-const REPLY_SCHEMA = {
-  type: "object",
-  properties: {
-    reply: { type: "string", description: "What the character says out loud. One or two short sentences." },
-  },
-  required: ["reply"],
-  additionalProperties: false,
-};
-
-/** Lines used when the model declines or fails, so the runner always hears something in-world. */
+/** Lines used when the model returns nothing speakable, so the runner always hears something in-world. */
 const STATIC_LINES = [
   "Static on the line, runner. Ask me something else.",
   "HUSH is crawling all over this frequency. Keep moving.",
@@ -82,12 +70,24 @@ export function cleanReply(text) {
     .slice(0, 320);
 }
 
-export function createNpc({ client = null, model = process.env.NPC_MODEL || DEFAULT_MODEL, effort = process.env.NPC_EFFORT || "low", log = console } = {}) {
-  const anthropic = client ?? (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN ? new Anthropic({ timeout: 15_000, maxRetries: 1 }) : null);
+/**
+ * Character replies from the Meta Model API (Muse Spark). One key — MODEL_API_KEY — also
+ * powers Muse Voice transcription (see stt.js); voices themselves are rendered on the device.
+ */
+export function createNpc({
+  meta = null,
+  apiKey = process.env.MODEL_API_KEY || process.env.META_API_KEY || "",
+  model = process.env.NPC_MODEL || DEFAULT_MODEL,
+  effort = process.env.NPC_EFFORT || "low",
+  baseUrl = process.env.META_API_BASE || undefined,
+  fetchImpl = globalThis.fetch,
+  log = console,
+} = {}) {
+  const client = meta ?? createMeta({ apiKey, ...(baseUrl ? { baseUrl } : {}), fetchImpl, log });
   let staticIndex = 0;
 
   return {
-    enabled: anthropic !== null,
+    enabled: client.enabled,
     model,
 
     async reply(mission, body) {
@@ -97,48 +97,19 @@ export function createNpc({ client = null, model = process.env.NPC_MODEL || DEFA
         err.status = 404;
         throw err;
       }
-      if (!anthropic) {
-        const err = new Error("character agent not configured (set ANTHROPIC_API_KEY)");
+      if (!client.enabled) {
+        const err = new Error("character agent not configured (set MODEL_API_KEY)");
         err.status = 503;
         throw err;
       }
-
-      const request = {
-        model,
-        max_tokens: 2048,
-        cache_control: { type: "ephemeral" },
-        system: systemPrompt(mission, character),
-        messages: [{ role: "user", content: userTurn(body) }],
-        output_config: { effort, format: { type: "json_schema", schema: REPLY_SCHEMA } },
-      };
-      if (FALLBACK_MODELS.has(model)) {
-        request.betas = ["server-side-fallback-2026-07-01"];
-        request.fallbacks = "default";
-      }
-
-      const response = await anthropic.beta.messages.create(request);
-      if (response.stop_reason === "refusal") {
-        log.warn?.(`npc refusal (${response.stop_details?.category ?? "unknown"}) for ${character.id}`);
-        return cleanReply(STATIC_LINES[staticIndex++ % STATIC_LINES.length]);
-      }
-      const text = response.content.find((b) => b.type === "text")?.text ?? "";
-      let reply = text;
-      try {
-        reply = JSON.parse(text).reply ?? text;
-      } catch {
-        // Fall through with the raw text; the schema makes this rare.
-      }
-      reply = cleanReply(reply);
+      const reply = cleanReply(await client.chat({ model, system: systemPrompt(mission, character), user: userTurn(body), effort }));
       return reply || cleanReply(STATIC_LINES[staticIndex++ % STATIC_LINES.length]);
     },
   };
 }
 
-/** Typed SDK errors map to HTTP statuses the app can reason about. */
+/** Upstream failures map to HTTP statuses the app can reason about. */
 export function npcErrorStatus(error) {
-  if (error?.status === 404 || error?.status === 503) return error.status;
-  if (error instanceof Anthropic.RateLimitError) return 429;
-  if (error instanceof Anthropic.APIConnectionError) return 502;
-  if (error instanceof Anthropic.APIError) return 502;
+  if (error?.status === 404 || error?.status === 429 || error?.status === 502 || error?.status === 503) return error.status;
   return 500;
 }

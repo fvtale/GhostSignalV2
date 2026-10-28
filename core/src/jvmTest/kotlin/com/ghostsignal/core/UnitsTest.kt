@@ -201,6 +201,22 @@ class MissionTest {
   }
 
   @Test
+  fun aMissionWithNoCharactersIsRejected() {
+    // GameEngine.handler falls back to characters.first(); the validator must say so first.
+    val problems = MissionValidator.validate(mission.copy(characters = emptyList()))
+    assertTrue(problems.any { "no characters" in it }, problems.joinToString("\n"))
+  }
+
+  @Test
+  fun duplicateCharacterIdsAreRejected() {
+    // character(id) returns the first match, so a second character with the same id is dead
+    // weight at best; the validator must name it.
+    val vesper = mission.characters.first()
+    val problems = MissionValidator.validate(mission.copy(characters = mission.characters + vesper))
+    assertTrue(problems.any { "duplicate character id '${vesper.id}'" in it }, problems.joinToString("\n"))
+  }
+
+  @Test
   fun lineCatalogCoversEveryChallengeBranch() {
     val ids = LineCatalog.all(mission).map { it.id }.toSet()
     assertTrue("fog.jam" in ids && "fog.comply" in ids && "stacks.accept" in ids)

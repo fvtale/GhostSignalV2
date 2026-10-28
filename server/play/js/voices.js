@@ -1,48 +1,21 @@
-import { api, store } from "./api.js";
-
 /**
- * Character voices. Signed in, lines come from the server in each character's own voice (cached
- * there and here) and play through the radio filter, placed where the character's relay is.
- * Signed out, the browser's own speech voice reads them, with each character's pitch and rate.
+ * Character voices, read by the browser's own speech synthesis: one system voice per
+ * character (picked by name), at the character's pitch and rate. The server keeps no voice
+ * keys; the spatial radio placement lives in the app, where the mixer can place a voice at
+ * its relay — here the lines are read plainly so the story still lands.
  */
 export class Voices {
   constructor(audio, missionId) {
     this.audio = audio;
     this.missionId = missionId;
-    this.cache = new Map();
     this.current = null;
-    this.cloud = Boolean(store.token());
   }
 
-  /** Fetches a line ahead of time so it plays without a gap. */
-  prefetch(u) {
-    if (!this.cloud) return;
-    this.buffer(u).catch(() => {});
-  }
-
-  buffer(u) {
-    const key = `${u.speaker}\u0000${u.text}`;
-    if (!this.cache.has(key)) {
-      const p = api.tts(this.missionId, u.speaker, u.text).then((bytes) => this.audio.decode(bytes));
-      p.catch(() => this.cache.delete(key));
-      this.cache.set(key, p);
-    }
-    return this.cache.get(key);
-  }
+  /** Kept for the caller's prefetch cadence; local synthesis needs no warming up. */
+  prefetch() {}
 
   /** Plays one utterance; resolves when it has been said (or skipped). */
   async say(u, bearingDeg) {
-    if (this.cloud) {
-      try {
-        const buffer = await this.buffer(u);
-        const handle = this.audio.playVoice(buffer, { bearingDeg, radio: u.radio });
-        this.current = handle;
-        await handle.ended;
-        return;
-      } catch {
-        // No cloud voice for this line (offline, or not signed in any more): say it locally.
-      }
-    }
     await this.synth(u);
   }
 

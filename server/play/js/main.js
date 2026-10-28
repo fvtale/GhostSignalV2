@@ -111,14 +111,14 @@ function renderSetup() {
   });
 
   $("accountText").textContent = plan
-    ? `Signed in as ${plan.account.email}${plan.account.premium.active ? " · premium" : ""}. Characters speak in their own voices and answer your questions live; your finished runs follow you.`
-    : "Signed out: this browser reads the lines in its own voice, and characters answer with written lines. Sign in for their real voices, live answers and premium soundtracks.";
+    ? `Signed in as ${plan.account.email}${plan.account.premium.active ? " · premium" : ""}. This browser reads the lines aloud, characters answer your questions live, and your finished runs follow you.`
+    : "Signed out: this browser reads the lines in its own voice, and characters answer with written lines. Sign in for live answers and premium soundtracks.";
 
   const progress = store.progress();
   $("resume").hidden = !(progress && !progress.complete && progress.missionId === base.mission.id && progress.collected.length > 0);
   $("micNote").textContent = new Speech().available
     ? "To answer out loud. You can always tap the answer instead."
-    : "This browser can't recognise speech, so you'll tap or type your answers.";
+    : "No microphone here, so you'll tap or type your answers.";
 }
 
 function markCheck(id, ok, note) {

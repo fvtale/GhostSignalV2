@@ -117,6 +117,8 @@ data class AccountPlan(
     val glasses: List<GlassesLink> = emptyList(),
 )
 
+@Serializable data class SttReply(val text: String)
+
 @Serializable data class ProgressBody(val missionId: String, val completions: Int)
 
 @Serializable data class ProgressReply(val completions: Int)
@@ -191,6 +193,19 @@ class BackendClient(private val baseUrl: () -> String, private val eventToken: (
         )
     val text = post("/v1/npc", json.encodeToString(NpcRequestBody.serializer(), body)) { it.string() }
     return json.decodeFromString(NpcReply.serializer(), text).reply
+  }
+
+  /** Transcribes a recorded utterance (mono 16 kHz WAV) with Muse Voice on the backend. */
+  suspend fun transcribe(wav: ByteArray, keywords: List<String>): String {
+    val query =
+        if (keywords.isEmpty()) ""
+        else "?keywords=" + keywords.joinToString(",") { java.net.URLEncoder.encode(it, "UTF-8") }
+    return call(
+        Request.Builder().url(url("/v1/stt$query")).post(wav.toRequestBody("audio/wav".toMediaType())),
+        eventToken(),
+    ) {
+      json.decodeFromString(SttReply.serializer(), it.string()).text
+    }
   }
 
   /** Returns WAV bytes in the character's cloud voice. */

@@ -32,7 +32,8 @@ A **line** is `{ "id": "unique", "speaker": "characterId", "text": "...", "requi
 
 * `radio` (0–1) is how crushed a character sounds. Vesper is a warm 0.35; Kilo, up in the trees,
   is 0.7; HUSH is unnervingly clean at 0.15.
-* `voice.ttsVoice` is the ElevenLabs voice id. `pitch` and `rate` shape the on-phone TTS fallback.
+* `pitch` and `rate` shape each character's on-device voice (Android TTS, browser speech
+  synthesis). `voice.ttsVoice` is a legacy cloud-voice id, kept for mission compatibility.
 * The handler (Vesper) and the SmartSpecs speak inside your head. Everyone else speaks from the
   direction of their relay.
 * The **antagonist** (HUSH) has a looping theme. It holds the frequency during the prologue and
