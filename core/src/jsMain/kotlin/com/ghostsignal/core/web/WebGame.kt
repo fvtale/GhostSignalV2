@@ -73,6 +73,9 @@ class WebGame(missionJson: String, routeJson: String?, catalogJson: String?, sou
   /** Where the runner is facing for the audio, or null: the fused phone compass and walking course. */
   fun listenerHeading(nowMs: Double): Double? = fusion.estimate(nowMs.toLong()).deg
 
+  /** Head pitch for the audio (degrees, up positive), or null when no glasses pitch is fresh. */
+  fun listenerPitch(nowMs: Double): Double? = fusion.estimate(nowMs.toLong()).pitchDeg
+
   /** Call about 20 times a second: feeds the fused heading, then advances timers. */
   fun tick(nowMs: Double): String {
     val now = nowMs.toLong()
@@ -138,6 +141,8 @@ class WebGame(missionJson: String, routeJson: String?, catalogJson: String?, sou
       put("recording", e.recording)
       put("listening", e.listening?.let { l -> buildJsonObject { put("token", l.token); put("mode", l.mode.name); put("purpose", l.purpose.name) } } ?: JsonNull)
       put("headingDeg", e.heading.deg)
+      put("pitchDeg", e.heading.pitchDeg)
+      put("rollDeg", e.heading.rollDeg)
       put("headingSource", e.heading.source.name)
       putJsonArray("collected") { e.collected.forEach { add(JsonPrimitive(it)) } }
       putJsonArray("layers") {
@@ -273,6 +278,7 @@ class WebGame(missionJson: String, routeJson: String?, catalogJson: String?, sou
           put("bearingDeg", st.worldBearingDeg)
           put("distanceM", st.distanceM)
           put("clarity", st.clarity)
+          put("elevationDeg", st.elevationDeg)
         }
       }
     }
@@ -280,6 +286,8 @@ class WebGame(missionJson: String, routeJson: String?, catalogJson: String?, sou
     put("staticBearingDeg", s.staticBearingDeg)
     put("pingIntervalMs", s.pingIntervalMs?.toDouble())
     put("pingBearingDeg", s.pingBearingDeg)
+    put("pingElevationDeg", s.pingElevationDeg)
+    put("staticElevationDeg", s.staticElevationDeg)
     put("paused", s.paused)
     put("antagonistLevel", s.antagonistLevel)
   }

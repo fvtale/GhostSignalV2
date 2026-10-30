@@ -7,6 +7,7 @@ export declare class WebGame {
     position(lat: number, lon: number, accuracyM: number, timeMs: number, speedMps: Nullable<number>, courseDeg: Nullable<number>, simulated: boolean): string;
     phoneHeading(deg: number, nowMs: number, inHand: boolean): void;
     listenerHeading(nowMs: number): Nullable<number>;
+    listenerPitch(nowMs: number): Nullable<number>;
     tick(nowMs: number): string;
     input(action: string, nowMs: number): string;
     heard(token: string, text: string, isFinal: boolean, confidence: number): string;

@@ -33,6 +33,7 @@ export class AudioEngine {
     this.voiceBus = this.bus(this.master);
     this.sfxBus = this.bus(this.master);
     this.heading = null;
+    this.pitch = null;
     this.stems = new Map();
     this.loopSeconds = 0;
     this.barSeconds = 0;
@@ -209,7 +210,8 @@ export class AudioEngine {
       }
       s.mode = mode;
       s.bearing = located ? st.bearingDeg : null;
-      if (located) this.aim(s.panner, st.bearingDeg, t);
+      s.elevation = st.elevationDeg ?? 0;
+      if (located) this.aim(s.panner, st.bearingDeg, t, st.elevationDeg ?? 0);
       s.low.frequency.setTargetAtTime(500 + Math.pow(clarity, 2) * 17500, t, 0.15);
       s.high.frequency.setTargetAtTime(20 + (1 - clarity) * 520, t, 0.15);
     }
@@ -217,11 +219,12 @@ export class AudioEngine {
 
     this.staticGain.gain.setTargetAtTime(scene.staticLevel * 0.22 * pausedFactor, t, 0.2);
     this.staticBearing = scene.staticBearingDeg;
-    if (scene.staticBearingDeg != null) this.aim(this.staticPanner, scene.staticBearingDeg, t);
+    this.staticElevation = scene.staticElevationDeg ?? 0;
+    if (scene.staticBearingDeg != null) this.aim(this.staticPanner, scene.staticBearingDeg, t, scene.staticElevationDeg ?? 0);
 
     if (scene.pingIntervalMs && !scene.paused) {
       if (t >= this.nextPingAt) {
-        this.ping(scene.pingBearingDeg);
+        this.ping(scene.pingBearingDeg, scene.pingElevationDeg ?? 0);
         this.nextPingAt = t + scene.pingIntervalMs / 1000;
       }
     } else {
@@ -231,11 +234,12 @@ export class AudioEngine {
   }
 
   /** The runner's head (or phone) heading in degrees from north, or null when unknown. */
-  setHeading(deg) {
+  setHeading(deg, pitchDeg = null) {
     this.heading = deg;
+    this.pitch = pitchDeg;
     const t = this.now;
-    for (const s of this.stems.values()) if (s.bearing != null) this.aim(s.panner, s.bearing, t);
-    if (this.staticBearing != null) this.aim(this.staticPanner, this.staticBearing, t);
+    for (const s of this.stems.values()) if (s.bearing != null) this.aim(s.panner, s.bearing, t, s.elevation ?? 0);
+    if (this.staticBearing != null) this.aim(this.staticPanner, this.staticBearing, t, this.staticElevation ?? 0);
   }
 
   panner() {
@@ -250,11 +254,12 @@ export class AudioEngine {
   }
 
   /** Points a panner at a world bearing, relative to where the runner is facing. */
-  aim(panner, worldBearingDeg, t = this.now) {
+  aim(panner, worldBearingDeg, t = this.now, elevationDeg = 0) {
     const rel = ((worldBearingDeg - (this.heading ?? 0)) * Math.PI) / 180;
-    panner.positionX.setTargetAtTime(Math.sin(rel), t, 0.03);
-    panner.positionY.setTargetAtTime(0, t, 0.03);
-    panner.positionZ.setTargetAtTime(-Math.cos(rel), t, 0.03);
+    const relElev = ((elevationDeg - (this.pitch ?? 0)) * Math.PI) / 180;
+    panner.positionX.setTargetAtTime(Math.sin(rel) * Math.cos(relElev), t, 0.03);
+    panner.positionY.setTargetAtTime(Math.sin(relElev), t, 0.03);
+    panner.positionZ.setTargetAtTime(-Math.cos(rel) * Math.cos(relElev), t, 0.03);
   }
 
   // ------------------------------------------------------------------ static and ping
@@ -279,7 +284,7 @@ export class AudioEngine {
     this.staticBearing = null;
   }
 
-  ping(bearingDeg) {
+  ping(bearingDeg, elevationDeg = 0) {
     const t = this.now + 0.01;
     const osc = this.ctx.createOscillator();
     osc.frequency.value = 1320;
@@ -288,7 +293,7 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.18, t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
     const p = this.panner();
-    if (bearingDeg != null) this.aim(p, bearingDeg, t);
+    if (bearingDeg != null) this.aim(p, bearingDeg, t, elevationDeg);
     osc.connect(g).connect(p).connect(this.sfxBus);
     osc.start(t);
     osc.stop(t + 0.2);

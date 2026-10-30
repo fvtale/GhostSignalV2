@@ -106,27 +106,27 @@ initMetadataForObject(Letter, 'Letter');
 initMetadataForInterface(Comparator, 'Comparator');
 initMetadataForObject(Unit, 'Unit');
 initMetadataForClass(AbstractCollection, 'AbstractCollection', VOID, VOID, [Collection]);
-initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, AbstractCollection, [AbstractCollection, Collection, MutableIterable]);
+initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, AbstractCollection, [AbstractCollection, MutableIterable, Collection]);
 initMetadataForClass(IteratorImpl, 'IteratorImpl');
 initMetadataForClass(ListIteratorImpl, 'ListIteratorImpl', VOID, IteratorImpl);
-initMetadataForClass(AbstractMutableList, 'AbstractMutableList', VOID, AbstractMutableCollection, [AbstractMutableCollection, MutableIterable, KtList, Collection]);
+initMetadataForClass(AbstractMutableList, 'AbstractMutableList', VOID, AbstractMutableCollection, [AbstractMutableCollection, KtList, MutableIterable, Collection]);
 initMetadataForInterface(RandomAccess, 'RandomAccess');
 initMetadataForClass(SubList, 'SubList', VOID, AbstractMutableList, [AbstractMutableList, RandomAccess]);
 initMetadataForClass(AbstractMap, 'AbstractMap', VOID, VOID, [KtMap]);
 initMetadataForClass(AbstractMutableMap, 'AbstractMutableMap', VOID, AbstractMap, [AbstractMap, KtMutableMap]);
-initMetadataForClass(AbstractMutableSet, 'AbstractMutableSet', VOID, AbstractMutableCollection, [AbstractMutableCollection, MutableIterable, KtSet, Collection]);
+initMetadataForClass(AbstractMutableSet, 'AbstractMutableSet', VOID, AbstractMutableCollection, [AbstractMutableCollection, KtSet, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_2);
-initMetadataForClass(ArrayList, 'ArrayList', ArrayList_init_$Create$, AbstractMutableList, [AbstractMutableList, MutableIterable, KtList, Collection, RandomAccess]);
+initMetadataForClass(ArrayList, 'ArrayList', ArrayList_init_$Create$, AbstractMutableList, [AbstractMutableList, KtList, MutableIterable, Collection, RandomAccess]);
 initMetadataForClass(HashMap, 'HashMap', HashMap_init_$Create$, AbstractMutableMap, [AbstractMutableMap, KtMutableMap]);
-initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, AbstractMutableSet, [MutableIterable, KtSet, Collection, AbstractMutableSet]);
-initMetadataForClass(HashMapValues, 'HashMapValues', VOID, AbstractMutableCollection, [Collection, MutableIterable, AbstractMutableCollection]);
-initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, AbstractMutableSet, [MutableIterable, KtSet, Collection, AbstractMutableSet]);
+initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, AbstractMutableSet, [KtSet, MutableIterable, Collection, AbstractMutableSet]);
+initMetadataForClass(HashMapValues, 'HashMapValues', VOID, AbstractMutableCollection, [MutableIterable, Collection, AbstractMutableCollection]);
+initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, AbstractMutableSet, [KtSet, MutableIterable, Collection, AbstractMutableSet]);
 initMetadataForClass(HashMapEntrySet, 'HashMapEntrySet', VOID, HashMapEntrySetBase);
 initMetadataForClass(HashMapKeysDefault$iterator$1);
 initMetadataForClass(HashMapKeysDefault, 'HashMapKeysDefault', VOID, AbstractMutableSet);
 initMetadataForClass(HashMapValuesDefault$iterator$1);
 initMetadataForClass(HashMapValuesDefault, 'HashMapValuesDefault', VOID, AbstractMutableCollection);
-initMetadataForClass(HashSet, 'HashSet', HashSet_init_$Create$, AbstractMutableSet, [AbstractMutableSet, MutableIterable, KtSet, Collection]);
+initMetadataForClass(HashSet, 'HashSet', HashSet_init_$Create$, AbstractMutableSet, [AbstractMutableSet, KtSet, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_3);
 initMetadataForClass(Itr, 'Itr');
 initMetadataForClass(KeysItr, 'KeysItr', VOID, Itr);
@@ -172,7 +172,7 @@ initMetadataForInterface(InternalMap, 'InternalMap');
 initMetadataForClass(InternalHashMap, 'InternalHashMap', InternalHashMap_init_$Create$, VOID, [InternalMap]);
 initMetadataForObject(EmptyHolder, 'EmptyHolder');
 initMetadataForClass(LinkedHashMap, 'LinkedHashMap', LinkedHashMap_init_$Create$, HashMap, [HashMap, KtMutableMap]);
-initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet_init_$Create$, HashSet, [HashSet, MutableIterable, KtSet, Collection]);
+initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet_init_$Create$, HashSet, [HashSet, KtSet, MutableIterable, Collection]);
 initMetadataForInterface(Continuation, 'Continuation');
 initMetadataForClass(InterceptedCoroutine, 'InterceptedCoroutine', VOID, VOID, [Continuation]);
 initMetadataForClass(CoroutineImpl, 'CoroutineImpl', VOID, InterceptedCoroutine, [InterceptedCoroutine, Continuation]);
@@ -22239,26 +22239,29 @@ function fixed(x, decimals) {
     return sign + n.toString();
   return sign + divide(n, unit).toString() + '.' + padStart(modulo(n, unit).toString(), decimals, _Char___init__impl__6a9atx(48));
 }
-function StemState(stemId, gain, worldBearingDeg, distanceM, clarity) {
+function StemState(stemId, gain, worldBearingDeg, distanceM, clarity, elevationDeg) {
+  elevationDeg = elevationDeg === VOID ? 0.0 : elevationDeg;
   this.a1e_1 = stemId;
   this.b1e_1 = gain;
   this.c1e_1 = worldBearingDeg;
   this.d1e_1 = distanceM;
   this.e1e_1 = clarity;
+  this.f1e_1 = elevationDeg;
 }
-protoOf(StemState).f1e = function (stemId, gain, worldBearingDeg, distanceM, clarity) {
-  return new StemState(stemId, gain, worldBearingDeg, distanceM, clarity);
+protoOf(StemState).g1e = function (stemId, gain, worldBearingDeg, distanceM, clarity, elevationDeg) {
+  return new StemState(stemId, gain, worldBearingDeg, distanceM, clarity, elevationDeg);
 };
-protoOf(StemState).g1e = function (stemId, gain, worldBearingDeg, distanceM, clarity, $super) {
+protoOf(StemState).h1e = function (stemId, gain, worldBearingDeg, distanceM, clarity, elevationDeg, $super) {
   stemId = stemId === VOID ? this.a1e_1 : stemId;
   gain = gain === VOID ? this.b1e_1 : gain;
   worldBearingDeg = worldBearingDeg === VOID ? this.c1e_1 : worldBearingDeg;
   distanceM = distanceM === VOID ? this.d1e_1 : distanceM;
   clarity = clarity === VOID ? this.e1e_1 : clarity;
-  return $super === VOID ? this.f1e(stemId, gain, worldBearingDeg, distanceM, clarity) : $super.f1e.call(this, stemId, gain, worldBearingDeg, distanceM, clarity);
+  elevationDeg = elevationDeg === VOID ? this.f1e_1 : elevationDeg;
+  return $super === VOID ? this.g1e(stemId, gain, worldBearingDeg, distanceM, clarity, elevationDeg) : $super.g1e.call(this, stemId, gain, worldBearingDeg, distanceM, clarity, elevationDeg);
 };
 protoOf(StemState).toString = function () {
-  return 'StemState(stemId=' + this.a1e_1 + ', gain=' + this.b1e_1 + ', worldBearingDeg=' + this.c1e_1 + ', distanceM=' + this.d1e_1 + ', clarity=' + this.e1e_1 + ')';
+  return 'StemState(stemId=' + this.a1e_1 + ', gain=' + this.b1e_1 + ', worldBearingDeg=' + this.c1e_1 + ', distanceM=' + this.d1e_1 + ', clarity=' + this.e1e_1 + ', elevationDeg=' + this.f1e_1 + ')';
 };
 protoOf(StemState).hashCode = function () {
   var result = getStringHashCode(this.a1e_1);
@@ -22266,6 +22269,7 @@ protoOf(StemState).hashCode = function () {
   result = imul_0(result, 31) + (this.c1e_1 == null ? 0 : getNumberHashCode(this.c1e_1)) | 0;
   result = imul_0(result, 31) + getNumberHashCode(this.d1e_1) | 0;
   result = imul_0(result, 31) + getNumberHashCode(this.e1e_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.f1e_1) | 0;
   return result;
 };
 protoOf(StemState).equals = function (other) {
@@ -22283,11 +22287,13 @@ protoOf(StemState).equals = function (other) {
     return false;
   if (!equals(this.e1e_1, other.e1e_1))
     return false;
+  if (!equals(this.f1e_1, other.f1e_1))
+    return false;
   return true;
 };
 function Companion_28() {
   Companion_instance_28 = this;
-  this.h1e_1 = new AudioScene(emptyMap(), 0.0, null, null, null, false);
+  this.i1e_1 = new AudioScene(emptyMap(), 0.0, null, null, null, false);
 }
 var Companion_instance_28;
 function Companion_getInstance_28() {
@@ -22295,36 +22301,40 @@ function Companion_getInstance_28() {
     new Companion_28();
   return Companion_instance_28;
 }
-function AudioScene(stems, staticLevel, staticBearingDeg, pingIntervalMs, pingBearingDeg, paused, antagonistLevel) {
+function AudioScene(stems, staticLevel, staticBearingDeg, pingIntervalMs, pingBearingDeg, paused, antagonistLevel, pingElevationDeg, staticElevationDeg) {
   Companion_getInstance_28();
   antagonistLevel = antagonistLevel === VOID ? 0.0 : antagonistLevel;
-  this.i1e_1 = stems;
-  this.j1e_1 = staticLevel;
-  this.k1e_1 = staticBearingDeg;
-  this.l1e_1 = pingIntervalMs;
-  this.m1e_1 = pingBearingDeg;
-  this.n1e_1 = paused;
-  this.o1e_1 = antagonistLevel;
+  pingElevationDeg = pingElevationDeg === VOID ? 0.0 : pingElevationDeg;
+  staticElevationDeg = staticElevationDeg === VOID ? 0.0 : staticElevationDeg;
+  this.j1e_1 = stems;
+  this.k1e_1 = staticLevel;
+  this.l1e_1 = staticBearingDeg;
+  this.m1e_1 = pingIntervalMs;
+  this.n1e_1 = pingBearingDeg;
+  this.o1e_1 = paused;
+  this.p1e_1 = antagonistLevel;
+  this.q1e_1 = pingElevationDeg;
+  this.r1e_1 = staticElevationDeg;
 }
 protoOf(AudioScene).toString = function () {
-  return 'AudioScene(stems=' + toString_1(this.i1e_1) + ', staticLevel=' + this.j1e_1 + ', staticBearingDeg=' + this.k1e_1 + ', pingIntervalMs=' + toString_0(this.l1e_1) + ', pingBearingDeg=' + this.m1e_1 + ', paused=' + this.n1e_1 + ', antagonistLevel=' + this.o1e_1 + ')';
+  return 'AudioScene(stems=' + toString_1(this.j1e_1) + ', staticLevel=' + this.k1e_1 + ', staticBearingDeg=' + this.l1e_1 + ', pingIntervalMs=' + toString_0(this.m1e_1) + ', pingBearingDeg=' + this.n1e_1 + ', paused=' + this.o1e_1 + ', antagonistLevel=' + this.p1e_1 + ', pingElevationDeg=' + this.q1e_1 + ', staticElevationDeg=' + this.r1e_1 + ')';
 };
 protoOf(AudioScene).hashCode = function () {
-  var result = hashCode_0(this.i1e_1);
-  result = imul_0(result, 31) + getNumberHashCode(this.j1e_1) | 0;
-  result = imul_0(result, 31) + (this.k1e_1 == null ? 0 : getNumberHashCode(this.k1e_1)) | 0;
-  result = imul_0(result, 31) + (this.l1e_1 == null ? 0 : this.l1e_1.hashCode()) | 0;
-  result = imul_0(result, 31) + (this.m1e_1 == null ? 0 : getNumberHashCode(this.m1e_1)) | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.n1e_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.o1e_1) | 0;
+  var result = hashCode_0(this.j1e_1);
+  result = imul_0(result, 31) + getNumberHashCode(this.k1e_1) | 0;
+  result = imul_0(result, 31) + (this.l1e_1 == null ? 0 : getNumberHashCode(this.l1e_1)) | 0;
+  result = imul_0(result, 31) + (this.m1e_1 == null ? 0 : this.m1e_1.hashCode()) | 0;
+  result = imul_0(result, 31) + (this.n1e_1 == null ? 0 : getNumberHashCode(this.n1e_1)) | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.o1e_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.p1e_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.q1e_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.r1e_1) | 0;
   return result;
 };
 protoOf(AudioScene).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof AudioScene))
-    return false;
-  if (!equals(this.i1e_1, other.i1e_1))
     return false;
   if (!equals(this.j1e_1, other.j1e_1))
     return false;
@@ -22334,28 +22344,34 @@ protoOf(AudioScene).equals = function (other) {
     return false;
   if (!equals(this.m1e_1, other.m1e_1))
     return false;
-  if (!(this.n1e_1 === other.n1e_1))
+  if (!equals(this.n1e_1, other.n1e_1))
     return false;
-  if (!equals(this.o1e_1, other.o1e_1))
+  if (!(this.o1e_1 === other.o1e_1))
+    return false;
+  if (!equals(this.p1e_1, other.p1e_1))
+    return false;
+  if (!equals(this.q1e_1, other.q1e_1))
+    return false;
+  if (!equals(this.r1e_1, other.r1e_1))
     return false;
   return true;
 };
 function AudioSceneComposer() {
 }
-protoOf(AudioSceneComposer).p1e = function (engine) {
-  var mission = engine.q1e_1;
+protoOf(AudioSceneComposer).s1e = function (engine) {
+  var mission = engine.t1e_1;
   // Inline function 'kotlin.collections.mutableMapOf' call
   var stems = LinkedHashMap_init_$Create$();
   // Inline function 'kotlin.collections.mapNotNull' call
-  var tmp0 = engine.z1e_1;
+  var tmp0 = engine.c1f_1;
   // Inline function 'kotlin.collections.mapNotNullTo' call
   var destination = ArrayList_init_$Create$();
   // Inline function 'kotlin.collections.forEach' call
   var _iterator__ex2g4s = tmp0.l();
   while (_iterator__ex2g4s.m()) {
     var element = _iterator__ex2g4s.n();
-    var tmp0_safe_receiver = mission.l1g(element);
-    var tmp0_safe_receiver_0 = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.s1g_1;
+    var tmp0_safe_receiver = mission.o1g(element);
+    var tmp0_safe_receiver_0 = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.w1g_1;
     if (tmp0_safe_receiver_0 == null)
       null;
     else {
@@ -22364,14 +22380,14 @@ protoOf(AudioSceneComposer).p1e = function (engine) {
     }
   }
   var collectedStems = toSet_0(destination);
-  var finished = engine.s1e_1.equals(Phase_FINALE_getInstance()) || engine.s1e_1.equals(Phase_COMPLETE_getInstance());
-  var _iterator__ex2g4s_0 = mission.c1g_1.f1h_1.l();
+  var finished = engine.v1e_1.equals(Phase_FINALE_getInstance()) || engine.v1e_1.equals(Phase_COMPLETE_getInstance());
+  var _iterator__ex2g4s_0 = mission.f1g_1.j1h_1.l();
   while (_iterator__ex2g4s_0.m()) {
     var spec = _iterator__ex2g4s_0.n();
-    if (collectedStems.c1(spec.g1h_1) || finished) {
-      var tmp2 = spec.g1h_1;
+    if (collectedStems.c1(spec.k1h_1) || finished) {
+      var tmp2 = spec.k1h_1;
       // Inline function 'kotlin.collections.set' call
-      var value = new StemState(spec.g1h_1, 1.0, null, 0.0, 1.0);
+      var value = new StemState(spec.k1h_1, 1.0, null, 0.0, 1.0);
       stems.a2(tmp2, value);
     }
   }
@@ -22379,27 +22395,27 @@ protoOf(AudioSceneComposer).p1e = function (engine) {
   var staticBearing = null;
   var ping = null;
   var pingBearing = null;
-  var signal = engine.m1h();
-  var reading = engine.x1e_1;
-  if (!(signal == null) && !collectedStems.c1(signal.s1g_1) && !finished) {
-    switch (engine.s1e_1.e2_1) {
+  var signal = engine.q1h();
+  var reading = engine.a1f_1;
+  if (!(signal == null) && !collectedStems.c1(signal.w1g_1) && !finished) {
+    switch (engine.v1e_1.e2_1) {
       case 2:
         if (!(reading == null)) {
           // Inline function 'kotlin.math.pow' call
-          var this_0 = reading.q1h_1;
+          var this_0 = reading.u1h_1;
           var clarity = Math.pow(this_0, 0.8);
-          var tmp2_0 = signal.s1g_1;
+          var tmp2_0 = signal.w1g_1;
           // Inline function 'kotlin.collections.set' call
-          var value_0 = new StemState(signal.s1g_1, 0.35 + 0.65 * reading.q1h_1, reading.p1h_1, reading.n1h_1, clarity);
+          var value_0 = new StemState(signal.w1g_1, 0.35 + 0.65 * reading.u1h_1, reading.t1h_1, reading.r1h_1, clarity, signal.v1g_1);
           stems.a2(tmp2_0, value_0);
           staticLevel = (1 - clarity) * 0.5;
-          staticBearing = reading.p1h_1;
-          ping = SignalField_instance.v1h(reading.q1h_1);
-          pingBearing = reading.p1h_1;
+          staticBearing = reading.t1h_1;
+          ping = SignalField_instance.z1h(reading.u1h_1);
+          pingBearing = reading.t1h_1;
         } else {
-          var tmp2_1 = signal.s1g_1;
+          var tmp2_1 = signal.w1g_1;
           // Inline function 'kotlin.collections.set' call
-          var value_1 = new StemState(signal.s1g_1, 0.25, null, 0.0, 0.1);
+          var value_1 = new StemState(signal.w1g_1, 0.25, null, 0.0, 0.1);
           stems.a2(tmp2_1, value_1);
           staticLevel = 0.3;
         }
@@ -22407,9 +22423,9 @@ protoOf(AudioSceneComposer).p1e = function (engine) {
         break;
       case 3:
         var clarity_0 = 1.0;
-        var c = signal.x1g_1;
+        var c = signal.b1h_1;
         if (c instanceof Tune) {
-          var delta = engine.w1h(c);
+          var delta = engine.a1i(c);
           var tmp;
           if (delta == null) {
             tmp = 0.5;
@@ -22426,16 +22442,16 @@ protoOf(AudioSceneComposer).p1e = function (engine) {
           staticBearing = null;
         }
 
-        var tmp2_2 = signal.s1g_1;
-        var tmp_0 = reading == null ? null : reading.p1h_1;
-        var tmp3_elvis_lhs = reading == null ? null : reading.n1h_1;
+        var tmp2_2 = signal.w1g_1;
+        var tmp_0 = reading == null ? null : reading.t1h_1;
+        var tmp3_elvis_lhs = reading == null ? null : reading.r1h_1;
         // Inline function 'kotlin.math.min' call
 
         var a_0 = tmp3_elvis_lhs == null ? 6.0 : tmp3_elvis_lhs;
         var tmp$ret$15 = Math.min(a_0, 8.0);
         // Inline function 'kotlin.collections.set' call
 
-        var value_2 = new StemState(signal.s1g_1, 0.85, tmp_0, tmp$ret$15, clarity_0);
+        var value_2 = new StemState(signal.w1g_1, 0.85, tmp_0, tmp$ret$15, clarity_0, signal.v1g_1);
         stems.a2(tmp2_2, value_2);
         break;
       case 1:
@@ -22444,27 +22460,27 @@ protoOf(AudioSceneComposer).p1e = function (engine) {
       default:
         break;
     }
-  } else if (engine.s1e_1.equals(Phase_BRIEFING_getInstance())) {
+  } else if (engine.v1e_1.equals(Phase_BRIEFING_getInstance())) {
     staticLevel = 0.12;
   }
-  var antagonist = mission.k1g_1;
+  var antagonist = mission.n1g_1;
   var level = 0.0;
   if (!(antagonist == null) && !finished) {
-    var guarded = !(signal == null) && signal.t1g_1 === antagonist.x1h_1 && !collectedStems.c1(signal.s1g_1);
+    var guarded = !(signal == null) && signal.x1g_1 === antagonist.b1i_1 && !collectedStems.c1(signal.w1g_1);
     var tmp_1;
-    if (engine.b1i() === 'prologue') {
+    if (engine.f1i() === 'prologue') {
       tmp_1 = 1.0;
-    } else if (guarded && engine.s1e_1.equals(Phase_ENCOUNTER_getInstance())) {
+    } else if (guarded && engine.v1e_1.equals(Phase_ENCOUNTER_getInstance())) {
       tmp_1 = 1.0;
-    } else if (guarded && engine.s1e_1.equals(Phase_HUNTING_getInstance())) {
-      var tmp5_elvis_lhs = reading == null ? null : reading.q1h_1;
+    } else if (guarded && engine.v1e_1.equals(Phase_HUNTING_getInstance())) {
+      var tmp5_elvis_lhs = reading == null ? null : reading.u1h_1;
       tmp_1 = 0.35 + 0.65 * (tmp5_elvis_lhs == null ? 0.0 : tmp5_elvis_lhs);
     } else {
       tmp_1 = 0.0;
     }
     level = tmp_1;
   }
-  var tmp7_elvis_lhs = antagonist == null ? null : antagonist.a1i_1;
+  var tmp7_elvis_lhs = antagonist == null ? null : antagonist.e1i_1;
   var duck = 1.0 - (tmp7_elvis_lhs == null ? 0.0 : tmp7_elvis_lhs) * level;
   var tmp_2;
   if (level > 0) {
@@ -22478,7 +22494,7 @@ protoOf(AudioSceneComposer).p1e = function (engine) {
       var tmp_3 = element_0.s1();
       // Inline function 'kotlin.collections.component2' call
       var st = element_0.t1();
-      var tmp$ret$19 = st.g1e(VOID, st.b1e_1 * duck);
+      var tmp$ret$19 = st.h1e(VOID, st.b1e_1 * duck);
       destination_0.a2(tmp_3, tmp$ret$19);
     }
     tmp_2 = destination_0;
@@ -22486,7 +22502,22 @@ protoOf(AudioSceneComposer).p1e = function (engine) {
     tmp_2 = stems;
   }
   var ducked = tmp_2;
-  return new AudioScene(ducked, staticLevel, staticBearing, ping, pingBearing, engine.u1e_1, level);
+  var tmp_4 = staticLevel;
+  var tmp_5 = staticBearing;
+  var tmp_6 = ping;
+  var tmp_7 = pingBearing;
+  var tmp_8 = engine.x1e_1;
+  var tmp_9 = level;
+  var tmp9_elvis_lhs = signal == null ? null : signal.v1g_1;
+  var tmp_10 = tmp9_elvis_lhs == null ? 0.0 : tmp9_elvis_lhs;
+  var tmp_11;
+  if (!(staticBearing == null)) {
+    var tmp11_elvis_lhs = signal == null ? null : signal.v1g_1;
+    tmp_11 = tmp11_elvis_lhs == null ? 0.0 : tmp11_elvis_lhs;
+  } else {
+    tmp_11 = 0.0;
+  }
+  return new AudioScene(ducked, tmp_4, tmp_5, tmp_6, tmp_7, tmp_8, tmp_9, tmp_10, tmp_11);
 };
 var AudioSceneComposer_instance;
 function AudioSceneComposer_getInstance() {
@@ -22505,17 +22536,17 @@ function ListenPurpose_initEntries() {
   ListenPurpose_FREE_TALK_instance = new ListenPurpose('FREE_TALK', 2);
 }
 function ListenState(token, purpose, mode) {
-  this.c1i_1 = token;
-  this.d1i_1 = purpose;
-  this.e1i_1 = mode;
+  this.g1i_1 = token;
+  this.h1i_1 = purpose;
+  this.i1i_1 = mode;
 }
 protoOf(ListenState).toString = function () {
-  return 'ListenState(token=' + this.c1i_1 + ', purpose=' + this.d1i_1.toString() + ', mode=' + this.e1i_1.toString() + ')';
+  return 'ListenState(token=' + this.g1i_1 + ', purpose=' + this.h1i_1.toString() + ', mode=' + this.i1i_1.toString() + ')';
 };
 protoOf(ListenState).hashCode = function () {
-  var result = getStringHashCode(this.c1i_1);
-  result = imul_0(result, 31) + this.d1i_1.hashCode() | 0;
-  result = imul_0(result, 31) + this.e1i_1.hashCode() | 0;
+  var result = getStringHashCode(this.g1i_1);
+  result = imul_0(result, 31) + this.h1i_1.hashCode() | 0;
+  result = imul_0(result, 31) + this.i1i_1.hashCode() | 0;
   return result;
 };
 protoOf(ListenState).equals = function (other) {
@@ -22523,11 +22554,11 @@ protoOf(ListenState).equals = function (other) {
     return true;
   if (!(other instanceof ListenState))
     return false;
-  if (!(this.c1i_1 === other.c1i_1))
+  if (!(this.g1i_1 === other.g1i_1))
     return false;
-  if (!this.d1i_1.equals(other.d1i_1))
+  if (!this.h1i_1.equals(other.h1i_1))
     return false;
-  if (!this.e1i_1.equals(other.e1i_1))
+  if (!this.i1i_1.equals(other.i1i_1))
     return false;
   return true;
 };
@@ -22535,19 +22566,19 @@ function ListenPurpose(name, ordinal) {
   Enum.call(this, name, ordinal);
 }
 function PendingRequest(id, speaker, phase, signalIndex) {
-  this.f1i_1 = id;
-  this.g1i_1 = speaker;
-  this.h1i_1 = phase;
-  this.i1i_1 = signalIndex;
+  this.j1i_1 = id;
+  this.k1i_1 = speaker;
+  this.l1i_1 = phase;
+  this.m1i_1 = signalIndex;
 }
 protoOf(PendingRequest).toString = function () {
-  return 'PendingRequest(id=' + this.f1i_1 + ', speaker=' + this.g1i_1 + ', phase=' + this.h1i_1.toString() + ', signalIndex=' + this.i1i_1 + ')';
+  return 'PendingRequest(id=' + this.j1i_1 + ', speaker=' + this.k1i_1 + ', phase=' + this.l1i_1.toString() + ', signalIndex=' + this.m1i_1 + ')';
 };
 protoOf(PendingRequest).hashCode = function () {
-  var result = this.f1i_1;
-  result = imul_0(result, 31) + getStringHashCode(this.g1i_1) | 0;
-  result = imul_0(result, 31) + this.h1i_1.hashCode() | 0;
-  result = imul_0(result, 31) + this.i1i_1 | 0;
+  var result = this.j1i_1;
+  result = imul_0(result, 31) + getStringHashCode(this.k1i_1) | 0;
+  result = imul_0(result, 31) + this.l1i_1.hashCode() | 0;
+  result = imul_0(result, 31) + this.m1i_1 | 0;
   return result;
 };
 protoOf(PendingRequest).equals = function (other) {
@@ -22555,34 +22586,34 @@ protoOf(PendingRequest).equals = function (other) {
     return true;
   if (!(other instanceof PendingRequest))
     return false;
-  if (!(this.f1i_1 === other.f1i_1))
+  if (!(this.j1i_1 === other.j1i_1))
     return false;
-  if (!(this.g1i_1 === other.g1i_1))
+  if (!(this.k1i_1 === other.k1i_1))
     return false;
-  if (!this.h1i_1.equals(other.h1i_1))
+  if (!this.l1i_1.equals(other.l1i_1))
     return false;
-  if (!(this.i1i_1 === other.i1i_1))
+  if (!(this.m1i_1 === other.m1i_1))
     return false;
   return true;
 };
 function start_0($this, event, out) {
-  $this.w1f_1 = event.j1i_1;
-  $this.z1e_1.c2();
-  $this.a1f_1.c2();
-  $this.b1f_1.c2();
-  $this.t1f_1.c2();
-  $this.u1e_1 = false;
-  $this.c1f_1 = null;
-  $this.h1f_1 = null;
-  $this.d1f_1 = null;
-  var tmp0_safe_receiver = event.k1i_1;
+  $this.z1f_1 = event.n1i_1;
+  $this.c1f_1.c2();
+  $this.d1f_1.c2();
+  $this.e1f_1.c2();
+  $this.w1f_1.c2();
+  $this.x1e_1 = false;
+  $this.f1f_1 = null;
+  $this.k1f_1 = null;
+  $this.g1f_1 = null;
+  var tmp0_safe_receiver = event.o1i_1;
   var tmp;
   if (tmp0_safe_receiver == null) {
     tmp = null;
   } else {
     // Inline function 'kotlin.takeIf' call
     var tmp_0;
-    if (tmp0_safe_receiver.l1i_1 === $this.q1e_1.x1f_1 && !tmp0_safe_receiver.p1i_1) {
+    if (tmp0_safe_receiver.p1i_1 === $this.t1e_1.a1g_1 && !tmp0_safe_receiver.t1i_1) {
       tmp_0 = tmp0_safe_receiver;
     } else {
       tmp_0 = null;
@@ -22593,39 +22624,39 @@ function start_0($this, event, out) {
   var tmp_1;
   if (!(resume == null)) {
     // Inline function 'kotlin.collections.isNotEmpty' call
-    tmp_1 = !resume.n1i_1.q();
+    tmp_1 = !resume.r1i_1.q();
   } else {
     tmp_1 = false;
   }
   if (tmp_1) {
-    var tmp0 = $this.z1e_1;
+    var tmp0 = $this.c1f_1;
     // Inline function 'kotlin.collections.filter' call
-    var tmp0_0 = resume.n1i_1;
+    var tmp0_0 = resume.r1i_1;
     // Inline function 'kotlin.collections.filterTo' call
     var destination = ArrayList_init_$Create$();
     var _iterator__ex2g4s = tmp0_0.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
-      if (!($this.q1e_1.l1g(element) == null)) {
+      if (!($this.t1e_1.o1g(element) == null)) {
         destination.g(element);
       }
     }
     // Inline function 'kotlin.collections.plusAssign' call
     addAll(tmp0, destination);
-    var tmp0_1 = $this.a1f_1;
+    var tmp0_1 = $this.d1f_1;
     // Inline function 'kotlin.collections.plusAssign' call
-    var map = resume.o1i_1;
+    var map = resume.s1i_1;
     tmp0_1.b2(map);
     // Inline function 'kotlin.collections.mapNotNull' call
-    var tmp0_2 = $this.z1e_1;
+    var tmp0_2 = $this.c1f_1;
     // Inline function 'kotlin.collections.mapNotNullTo' call
     var destination_0 = ArrayList_init_$Create$();
     // Inline function 'kotlin.collections.forEach' call
     var _iterator__ex2g4s_0 = tmp0_2.l();
     while (_iterator__ex2g4s_0.m()) {
       var element_0 = _iterator__ex2g4s_0.n();
-      var tmp0_safe_receiver_0 = $this.q1e_1.l1g(element_0);
-      var tmp0_safe_receiver_1 = tmp0_safe_receiver_0 == null ? null : tmp0_safe_receiver_0.s1g_1;
+      var tmp0_safe_receiver_0 = $this.t1e_1.o1g(element_0);
+      var tmp0_safe_receiver_1 = tmp0_safe_receiver_0 == null ? null : tmp0_safe_receiver_0.w1g_1;
       if (tmp0_safe_receiver_1 == null)
         null;
       else {
@@ -22644,22 +22675,22 @@ function start_0($this, event, out) {
     advance($this, out);
     return Unit_instance;
   }
-  $this.s1e_1 = Phase_BRIEFING_getInstance();
+  $this.v1e_1 = Phase_BRIEFING_getInstance();
   // Inline function 'kotlin.collections.isNotEmpty' call
-  if (!$this.q1e_1.d1g_1.q()) {
-    speak$default($this, $this.q1e_1.d1g_1, 'prologue', out, false);
+  if (!$this.t1e_1.g1g_1.q()) {
+    speak$default($this, $this.t1e_1.g1g_1, 'prologue', out, false);
   } else {
-    speak$default($this, $this.q1e_1.e1g_1, 'briefing', out, false);
+    speak$default($this, $this.t1e_1.h1g_1, 'briefing', out, false);
   }
 }
 function activate($this, index, out) {
-  $this.s1e_1 = Phase_HUNTING_getInstance();
-  $this.t1e_1 = index;
-  $this.v1e_1 = false;
-  $this.n1f_1 = false;
-  $this.o1f_1 = new Long(0, 0);
+  $this.v1e_1 = Phase_HUNTING_getInstance();
+  $this.w1e_1 = index;
+  $this.y1e_1 = false;
+  $this.q1f_1 = false;
+  $this.r1f_1 = new Long(0, 0);
   resetChallengeState($this);
-  var tmp0_elvis_lhs = $this.m1h();
+  var tmp0_elvis_lhs = $this.q1h();
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -22667,20 +22698,20 @@ function activate($this, index, out) {
     tmp = tmp0_elvis_lhs;
   }
   var signal = tmp;
-  var tmp1_safe_receiver = $this.w1e_1;
+  var tmp1_safe_receiver = $this.z1e_1;
   if (tmp1_safe_receiver == null)
     null;
   else {
     // Inline function 'kotlin.let' call
-    $this.x1e_1 = SignalField_instance.q1i(signal, tmp1_safe_receiver);
+    $this.a1f_1 = SignalField_instance.u1i(signal, tmp1_safe_receiver);
   }
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new PlaySfx(Sfx_SIGNAL_ACQUIRED_getInstance());
   out.g(element);
-  speak$default($this, signal.u1g_1, 'teaser', out, VOID, signal.m1g_1);
+  speak$default($this, signal.y1g_1, 'teaser', out, VOID, signal.p1g_1);
 }
 function beginEncounter($this, out) {
-  var tmp0_elvis_lhs = $this.m1h();
+  var tmp0_elvis_lhs = $this.q1h();
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -22690,26 +22721,26 @@ function beginEncounter($this, out) {
   var signal = tmp;
   stopSpeaking($this, out);
   stopListening($this, out);
-  $this.s1e_1 = Phase_ENCOUNTER_getInstance();
-  $this.v1e_1 = false;
+  $this.v1e_1 = Phase_ENCOUNTER_getInstance();
+  $this.y1e_1 = false;
   resetChallengeState($this);
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new PlaySfx(Sfx_LOCK_getInstance());
   out.g(element);
-  speak$default($this, plus(signal.w1g_1, signal.x1g_1.r1i()), 'prompt', out, false, signal.m1g_1);
+  speak$default($this, plus(signal.a1h_1, signal.b1h_1.v1i()), 'prompt', out, false, signal.p1g_1);
 }
 function resetChallengeState($this) {
-  $this.k1f_1 = 0;
-  $this.l1f_1 = 0;
+  $this.n1f_1 = 0;
+  $this.o1f_1 = 0;
+  $this.p1f_1 = 0;
   $this.m1f_1 = 0;
-  $this.j1f_1 = 0;
-  $this.f1f_1 = null;
-  $this.g1f_1 = false;
-  $this.e1f_1 = false;
-  $this.p1f_1 = false;
+  $this.i1f_1 = null;
+  $this.j1f_1 = false;
+  $this.h1f_1 = false;
+  $this.s1f_1 = false;
 }
 function openChallenge($this, out) {
-  var tmp0_elvis_lhs = $this.m1h();
+  var tmp0_elvis_lhs = $this.q1h();
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -22717,49 +22748,49 @@ function openChallenge($this, out) {
     tmp = tmp0_elvis_lhs;
   }
   var signal = tmp;
-  var c = signal.x1g_1;
+  var c = signal.b1h_1;
   if (c instanceof Command) {
-    listen($this, ListenPurpose_CHALLENGE_getInstance(), ListenMode_COMMAND_getInstance(), c.m1j_1, out);
+    listen($this, ListenPurpose_CHALLENGE_getInstance(), ListenMode_COMMAND_getInstance(), c.q1j_1, out);
   } else {
     if (c instanceof Passphrase) {
-      listen($this, ListenPurpose_CHALLENGE_getInstance(), ListenMode_COMMAND_getInstance(), c.j1j_1, out);
+      listen($this, ListenPurpose_CHALLENGE_getInstance(), ListenMode_COMMAND_getInstance(), c.n1j_1, out);
     } else {
       if (c instanceof Choice) {
         var tmp_0 = ListenPurpose_CHALLENGE_getInstance();
         var tmp_1 = ListenMode_COMMAND_getInstance();
         // Inline function 'kotlin.collections.flatMap' call
-        var tmp0 = c.e1j_1;
+        var tmp0 = c.i1j_1;
         // Inline function 'kotlin.collections.flatMapTo' call
         var destination = ArrayList_init_$Create$();
         var _iterator__ex2g4s = tmp0.l();
         while (_iterator__ex2g4s.m()) {
           var element = _iterator__ex2g4s.n();
-          var list = element.g1j_1;
+          var list = element.k1j_1;
           addAll(destination, list);
         }
         listen($this, tmp_0, tmp_1, destination, out);
       } else {
         if (c instanceof Ask)
-          if ($this.l1f_1 >= c.z1i_1) {
-            listen($this, ListenPurpose_ACCEPT_getInstance(), ListenMode_COMMAND_getInstance(), c.a1j_1, out);
+          if ($this.o1f_1 >= c.d1j_1) {
+            listen($this, ListenPurpose_ACCEPT_getInstance(), ListenMode_COMMAND_getInstance(), c.e1j_1, out);
           } else {
             listen($this, ListenPurpose_CHALLENGE_getInstance(), ListenMode_FREEFORM_getInstance(), emptyList(), out);
           }
          else {
           if (c instanceof Rhythm) {
-            $this.g1f_1 = true;
-            $this.f1f_1 = null;
+            $this.j1f_1 = true;
+            $this.i1f_1 = null;
             // Inline function 'kotlin.collections.plusAssign' call
-            var element_0 = new PlayRhythm(c.v1i_1, newToken($this, 'rhythm'));
+            var element_0 = new PlayRhythm(c.z1i_1, newToken($this, 'rhythm'));
             out.g(element_0);
           } else {
             if (c instanceof Record) {
-              $this.e1f_1 = true;
+              $this.h1f_1 = true;
               // Inline function 'kotlin.collections.plusAssign' call
               var element_1 = new PlaySfx(Sfx_RECORD_START_getInstance());
               out.g(element_1);
               // Inline function 'kotlin.collections.plusAssign' call
-              var element_2 = new StartRecording(signal.m1g_1, c.t1i_1);
+              var element_2 = new StartRecording(signal.p1g_1, c.x1i_1);
               out.g(element_2);
             } else {
               if (!(c instanceof Tune)) {
@@ -22773,7 +22804,7 @@ function openChallenge($this, out) {
   }
 }
 function succeed($this, out) {
-  var tmp0_elvis_lhs = $this.m1h();
+  var tmp0_elvis_lhs = $this.q1h();
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -22783,35 +22814,35 @@ function succeed($this, out) {
   var signal = tmp;
   stopSpeaking($this, out);
   stopListening($this, out);
-  if ($this.e1f_1) {
-    $this.e1f_1 = false;
+  if ($this.h1f_1) {
+    $this.h1f_1 = false;
     // Inline function 'kotlin.collections.plusAssign' call
     out.g(StopRecording_instance);
   }
-  $this.f1f_1 = null;
-  $this.g1f_1 = false;
-  $this.s1e_1 = Phase_COLLECTING_getInstance();
-  $this.v1e_1 = false;
-  if (!$this.z1e_1.c1(signal.m1g_1)) {
-    var tmp0 = $this.z1e_1;
+  $this.i1f_1 = null;
+  $this.j1f_1 = false;
+  $this.v1e_1 = Phase_COLLECTING_getInstance();
+  $this.y1e_1 = false;
+  if (!$this.c1f_1.c1(signal.p1g_1)) {
+    var tmp0 = $this.c1f_1;
     // Inline function 'kotlin.collections.plusAssign' call
-    var element = signal.m1g_1;
+    var element = signal.p1g_1;
     tmp0.g(element);
   }
   // Inline function 'kotlin.collections.plusAssign' call
   var element_0 = new PlaySfx(Sfx_COLLECT_getInstance());
   out.g(element_0);
   // Inline function 'kotlin.collections.plusAssign' call
-  var element_1 = new UnlockStem(signal.s1g_1);
+  var element_1 = new UnlockStem(signal.w1g_1);
   out.g(element_1);
-  var collectedLine = systemLine($this, 'collected', fill_0($this, $this.q1e_1.h1g_1.c1k_1));
-  speak($this, signal.y1g_1, 'success', out, false, signal.m1g_1, listOf(collectedLine));
+  var collectedLine = systemLine($this, 'collected', fill_0($this, $this.t1e_1.k1g_1.g1k_1));
+  speak($this, signal.c1h_1, 'success', out, false, signal.p1g_1, listOf(collectedLine));
   // Inline function 'kotlin.collections.plusAssign' call
-  var element_2 = new Persist($this.e1k());
+  var element_2 = new Persist($this.i1k());
   out.g(element_2);
 }
 function advance($this, out) {
-  var tmp0 = $this.q1e_1.f1g_1;
+  var tmp0 = $this.t1e_1.i1g_1;
   var tmp$ret$1;
   $l$block: {
     // Inline function 'kotlin.collections.indexOfFirst' call
@@ -22819,7 +22850,7 @@ function advance($this, out) {
     var _iterator__ex2g4s = tmp0.l();
     while (_iterator__ex2g4s.m()) {
       var item = _iterator__ex2g4s.n();
-      if (!$this.z1e_1.c1(item.m1g_1)) {
+      if (!$this.c1f_1.c1(item.p1g_1)) {
         tmp$ret$1 = index;
         break $l$block;
       }
@@ -22835,14 +22866,14 @@ function advance($this, out) {
   }
 }
 function finale($this, out) {
-  $this.s1e_1 = Phase_FINALE_getInstance();
+  $this.v1e_1 = Phase_FINALE_getInstance();
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new PlaySfx(Sfx_FINALE_getInstance());
   out.g(element);
-  speak$default($this, $this.q1e_1.g1g_1.f1k_1, 'finale', out, false);
+  speak$default($this, $this.t1e_1.j1g_1.j1k_1, 'finale', out, false);
 }
 function afterOutro($this, out) {
-  var reward = select($this, $this.r1e_1);
+  var reward = select($this, $this.u1e_1);
   if (reward.q()) {
     complete($this, out);
   } else {
@@ -22850,58 +22881,58 @@ function afterOutro($this, out) {
   }
 }
 function complete($this, out) {
-  $this.s1e_1 = Phase_COMPLETE_getInstance();
+  $this.v1e_1 = Phase_COMPLETE_getInstance();
   // Inline function 'kotlin.collections.plusAssign' call
-  var element = new Persist($this.e1k());
+  var element = new Persist($this.i1k());
   out.g(element);
 }
 function jumpTo($this, index, out) {
-  if (!(0 <= index ? index <= ($this.q1e_1.f1g_1.o() - 1 | 0) : false))
+  if (!(0 <= index ? index <= ($this.t1e_1.i1g_1.o() - 1 | 0) : false))
     return Unit_instance;
   stopSpeaking($this, out);
   stopListening($this, out);
-  if ($this.e1f_1) {
+  if ($this.h1f_1) {
     // Inline function 'kotlin.collections.plusAssign' call
     out.g(StopRecording_instance);
   }
-  $this.u1e_1 = false;
-  $this.h1f_1 = null;
-  $this.z1e_1.c2();
+  $this.x1e_1 = false;
+  $this.k1f_1 = null;
+  $this.c1f_1.c2();
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s = take($this.q1e_1.f1g_1, index).l();
+  var _iterator__ex2g4s = take($this.t1e_1.i1g_1, index).l();
   while (_iterator__ex2g4s.m()) {
     var element = _iterator__ex2g4s.n();
-    var tmp0 = $this.z1e_1;
+    var tmp0 = $this.c1f_1;
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_0 = element.m1g_1;
+    var element_0 = element.p1g_1;
     tmp0.g(element_0);
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_1 = new UnlockStem(element.s1g_1);
+    var element_1 = new UnlockStem(element.w1g_1);
     out.g(element_1);
   }
   activate($this, index, out);
 }
 function onInput($this, event, out) {
-  $this.w1f_1 = event.i1k_1;
-  if (event.h1k_1.equals(PlayerAction_PAUSE_TOGGLE_getInstance()))
+  $this.z1f_1 = event.m1k_1;
+  if (event.l1k_1.equals(PlayerAction_PAUSE_TOGGLE_getInstance()))
     return togglePause($this, out);
-  if ($this.u1e_1 || $this.s1e_1.equals(Phase_IDLE_getInstance()) || $this.s1e_1.equals(Phase_COMPLETE_getInstance()))
+  if ($this.x1e_1 || $this.v1e_1.equals(Phase_IDLE_getInstance()) || $this.v1e_1.equals(Phase_COMPLETE_getInstance()))
     return Unit_instance;
-  var taps = $this.f1f_1;
-  if (!(taps == null) && (event.h1k_1.equals(PlayerAction_TAP_getInstance()) || event.h1k_1.equals(PlayerAction_SCAN_getInstance()))) {
-    var tmp0_elvis_lhs = event.j1k_1;
+  var taps = $this.i1f_1;
+  if (!(taps == null) && (event.l1k_1.equals(PlayerAction_TAP_getInstance()) || event.l1k_1.equals(PlayerAction_SCAN_getInstance()))) {
+    var tmp0_elvis_lhs = event.n1k_1;
     // Inline function 'kotlin.collections.plusAssign' call
-    var element = tmp0_elvis_lhs == null ? event.i1k_1 : tmp0_elvis_lhs;
+    var element = tmp0_elvis_lhs == null ? event.m1k_1 : tmp0_elvis_lhs;
     taps.g(element);
-    var tmp1_safe_receiver = $this.m1h();
-    var tmp = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.x1g_1;
+    var tmp1_safe_receiver = $this.q1h();
+    var tmp = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.b1h_1;
     var c = tmp instanceof Rhythm ? tmp : null;
-    if (!(c == null) && taps.o() >= c.v1i_1.o()) {
+    if (!(c == null) && taps.o() >= c.z1i_1.o()) {
       evaluateRhythm($this, c, out);
     }
     return Unit_instance;
   }
-  switch (event.h1k_1.e2_1) {
+  switch (event.l1k_1.e2_1) {
     case 0:
     case 1:
       onScan($this, out);
@@ -22935,23 +22966,23 @@ function onInput($this, event, out) {
   }
 }
 function onScan($this, out) {
-  switch ($this.s1e_1.e2_1) {
+  switch ($this.v1e_1.e2_1) {
     case 2:
-      if ($this.v1e_1) {
+      if ($this.y1e_1) {
         beginEncounter($this, out);
       } else {
         // Inline function 'kotlin.collections.plusAssign' call
         var element = new PlaySfx(Sfx_DENIED_getInstance());
         out.g(element);
         if (interruptSpeech($this, out)) {
-          speakSystem($this, 'no-lock', fill_0($this, $this.q1e_1.h1g_1.o1j_1), out);
+          speakSystem($this, 'no-lock', fill_0($this, $this.t1e_1.k1g_1.s1j_1), out);
         }
       }
 
       break;
     case 3:
-      var tmp1_safe_receiver = $this.m1h();
-      var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.x1g_1;
+      var tmp1_safe_receiver = $this.q1h();
+      var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.b1h_1;
       var tmp;
       if (tmp2_elvis_lhs == null) {
         return Unit_instance;
@@ -22960,7 +22991,7 @@ function onScan($this, out) {
       }
 
       var c = tmp;
-      if ($this.e1f_1) {
+      if ($this.h1f_1) {
         // Inline function 'kotlin.collections.plusAssign' call
         out.g(StopRecording_instance);
       } else {
@@ -22970,7 +23001,7 @@ function onScan($this, out) {
           }
         } else {
           if (c instanceof Rhythm) {
-            if (!$this.k1k() && !$this.g1f_1) {
+            if (!$this.o1k() && !$this.j1f_1) {
               openChallenge($this, out);
             }
           } else {
@@ -22985,7 +23016,7 @@ function onScan($this, out) {
   }
 }
 function onTalk($this, out) {
-  if (!($this.d1f_1 == null) || $this.e1f_1 || $this.g1f_1 || !($this.f1f_1 == null))
+  if (!($this.g1f_1 == null) || $this.h1f_1 || $this.j1f_1 || !($this.i1f_1 == null))
     return Unit_instance;
   if (!interruptSpeech($this, out)) {
     // Inline function 'kotlin.collections.plusAssign' call
@@ -22993,10 +23024,10 @@ function onTalk($this, out) {
     out.g(element);
     return Unit_instance;
   }
-  switch ($this.s1e_1.e2_1) {
+  switch ($this.v1e_1.e2_1) {
     case 3:
-      var tmp1_safe_receiver = $this.m1h();
-      var tmp2_subject = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.x1g_1;
+      var tmp1_safe_receiver = $this.q1h();
+      var tmp2_subject = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.b1h_1;
       var tmp;
       if (tmp2_subject instanceof Rhythm) {
         tmp = true;
@@ -23027,18 +23058,18 @@ function onTalk($this, out) {
   }
 }
 function togglePause($this, out) {
-  if ($this.s1e_1.equals(Phase_IDLE_getInstance()) || $this.s1e_1.equals(Phase_COMPLETE_getInstance()))
+  if ($this.v1e_1.equals(Phase_IDLE_getInstance()) || $this.v1e_1.equals(Phase_COMPLETE_getInstance()))
     return Unit_instance;
-  if (!$this.u1e_1) {
-    $this.u1e_1 = true;
-    var tmp0_safe_receiver = $this.c1f_1;
+  if (!$this.x1e_1) {
+    $this.x1e_1 = true;
+    var tmp0_safe_receiver = $this.f1f_1;
     var tmp;
     if (tmp0_safe_receiver == null) {
       tmp = null;
     } else {
       // Inline function 'kotlin.takeIf' call
       var tmp_0;
-      if (!tmp0_safe_receiver.n1k_1) {
+      if (!tmp0_safe_receiver.r1k_1) {
         tmp_0 = tmp0_safe_receiver;
       } else {
         tmp_0 = null;
@@ -23050,37 +23081,37 @@ function togglePause($this, out) {
       null;
     else {
       // Inline function 'kotlin.let' call
-      $this.h1f_1 = tmp1_safe_receiver;
+      $this.k1f_1 = tmp1_safe_receiver;
     }
     stopSpeaking($this, out);
     stopListening($this, out);
-    if ($this.e1f_1) {
-      $this.e1f_1 = false;
+    if ($this.h1f_1) {
+      $this.h1f_1 = false;
       // Inline function 'kotlin.collections.plusAssign' call
       out.g(StopRecording_instance);
     }
-    $this.f1f_1 = null;
-    $this.g1f_1 = false;
+    $this.i1f_1 = null;
+    $this.j1f_1 = false;
     // Inline function 'kotlin.collections.plusAssign' call
     var element = new PlaySfx(Sfx_PAUSE_getInstance());
     out.g(element);
-    speakSystem($this, 'paused', $this.q1e_1.h1g_1.s1j_1, out);
+    speakSystem($this, 'paused', $this.t1e_1.k1g_1.w1j_1, out);
   } else {
-    $this.u1e_1 = false;
+    $this.x1e_1 = false;
     stopSpeaking($this, out);
     // Inline function 'kotlin.collections.plusAssign' call
     var element_0 = new PlaySfx(Sfx_RESUME_getInstance());
     out.g(element_0);
-    var resumed = systemLine($this, 'resumed', $this.q1e_1.h1g_1.t1j_1);
-    var replay = $this.h1f_1;
-    $this.h1f_1 = null;
+    var resumed = systemLine($this, 'resumed', $this.t1e_1.k1g_1.x1j_1);
+    var replay = $this.k1f_1;
+    $this.k1f_1 = null;
     if (!(replay == null)) {
-      emitSpeak($this, plus(listOf(resumed), replay.l1k_1), kindOf($this, replay.m1k_1), out, false);
+      emitSpeak($this, plus(listOf(resumed), replay.p1k_1), kindOf($this, replay.q1k_1), out, false);
     } else {
       var tmp_1;
-      if ($this.s1e_1.equals(Phase_ENCOUNTER_getInstance())) {
-        var tmp2_safe_receiver = $this.m1h();
-        var tmp_2 = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.x1g_1;
+      if ($this.v1e_1.equals(Phase_ENCOUNTER_getInstance())) {
+        var tmp2_safe_receiver = $this.q1h();
+        var tmp_2 = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.b1h_1;
         tmp_1 = !(tmp_2 instanceof Tune);
       } else {
         tmp_1 = false;
@@ -23094,7 +23125,7 @@ function togglePause($this, out) {
   }
 }
 function interruptSpeech($this, out) {
-  var tmp0_elvis_lhs = $this.c1f_1;
+  var tmp0_elvis_lhs = $this.f1f_1;
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return true;
@@ -23102,22 +23133,22 @@ function interruptSpeech($this, out) {
     tmp = tmp0_elvis_lhs;
   }
   var speech = tmp;
-  if (!speech.n1k_1)
+  if (!speech.r1k_1)
     return false;
   stopSpeaking($this, out);
   return true;
 }
 function stopSpeaking($this, out) {
-  if (!($this.c1f_1 == null)) {
-    $this.c1f_1 = null;
+  if (!($this.f1f_1 == null)) {
+    $this.f1f_1 = null;
     // Inline function 'kotlin.collections.plusAssign' call
     out.g(StopSpeaking_instance);
   }
 }
 function onPosition($this, fix, out) {
-  $this.w1e_1 = fix;
-  $this.w1f_1 = fix.q1k_1;
-  var tmp0_elvis_lhs = $this.m1h();
+  $this.z1e_1 = fix;
+  $this.z1f_1 = fix.u1k_1;
+  var tmp0_elvis_lhs = $this.q1h();
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -23125,57 +23156,57 @@ function onPosition($this, fix, out) {
     tmp = tmp0_elvis_lhs;
   }
   var signal = tmp;
-  var r = SignalField_instance.q1i(signal, fix);
-  $this.x1e_1 = r;
-  if (!$this.s1e_1.equals(Phase_HUNTING_getInstance()) || $this.u1e_1)
+  var r = SignalField_instance.u1i(signal, fix);
+  $this.a1f_1 = r;
+  if (!$this.v1e_1.equals(Phase_HUNTING_getInstance()) || $this.x1e_1)
     return Unit_instance;
-  if (!$this.n1f_1 && !r.r1h_1.equals(Zone_FAR_getInstance()) && !$this.k1k()) {
-    $this.n1f_1 = true;
-    speak$default($this, signal.v1g_1, 'system', out, VOID, signal.m1g_1);
+  if (!$this.q1f_1 && !r.v1h_1.equals(Zone_FAR_getInstance()) && !$this.o1k()) {
+    $this.q1f_1 = true;
+    speak$default($this, signal.z1g_1, 'system', out, VOID, signal.p1g_1);
   }
-  if (!$this.v1e_1 && r.r1h_1.equals(Zone_LOCK_getInstance())) {
-    $this.v1e_1 = true;
+  if (!$this.y1e_1 && r.v1h_1.equals(Zone_LOCK_getInstance())) {
+    $this.y1e_1 = true;
     // Inline function 'kotlin.collections.plusAssign' call
     var element = new PlaySfx(Sfx_LOCK_AVAILABLE_getInstance());
     out.g(element);
-    $this.o1f_1 = $this.w1f_1;
-    if (!$this.k1k()) {
-      speakSystem($this, 'lock', $this.q1e_1.h1g_1.q1j_1, out);
+    $this.r1f_1 = $this.z1f_1;
+    if (!$this.o1k()) {
+      speakSystem($this, 'lock', $this.t1e_1.k1g_1.u1j_1, out);
     }
-  } else if ($this.v1e_1 && !SignalField_instance.u1k(signal, r)) {
-    $this.v1e_1 = false;
+  } else if ($this.y1e_1 && !SignalField_instance.y1k(signal, r)) {
+    $this.y1e_1 = false;
   }
 }
 function onSpeechFinished($this, token, out) {
-  var tmp0_safe_receiver = $this.c1f_1;
-  if (!(token === (tmp0_safe_receiver == null ? null : tmp0_safe_receiver.m1k_1)))
+  var tmp0_safe_receiver = $this.f1f_1;
+  if (!(token === (tmp0_safe_receiver == null ? null : tmp0_safe_receiver.q1k_1)))
     return Unit_instance;
-  $this.c1f_1 = null;
-  if ($this.u1e_1)
+  $this.f1f_1 = null;
+  if ($this.x1e_1)
     return Unit_instance;
   switch (kindOf($this, token)) {
     case 'prologue':
-      speak$default($this, $this.q1e_1.e1g_1, 'briefing', out, false);
+      speak$default($this, $this.t1e_1.h1g_1, 'briefing', out, false);
       break;
     case 'briefing':
       activate($this, 0, out);
       break;
     case 'prompt':
     case 'retry':
-      if ($this.s1e_1.equals(Phase_ENCOUNTER_getInstance())) {
+      if ($this.v1e_1.equals(Phase_ENCOUNTER_getInstance())) {
         openChallenge($this, out);
       }
 
       break;
     case 'repeat':
     case 'hint':
-      if ($this.s1e_1.equals(Phase_ENCOUNTER_getInstance())) {
+      if ($this.v1e_1.equals(Phase_ENCOUNTER_getInstance())) {
         reopenIfIdle($this, out);
       }
 
       break;
     case 'missed':
-      if ($this.s1e_1.equals(Phase_ENCOUNTER_getInstance()) && $this.m1f_1 < 2) {
+      if ($this.v1e_1.equals(Phase_ENCOUNTER_getInstance()) && $this.p1f_1 < 2) {
         reopenIfIdle($this, out);
       }
 
@@ -23188,9 +23219,9 @@ function onSpeechFinished($this, token, out) {
       break;
     case 'npc':
       var tmp;
-      if ($this.s1e_1.equals(Phase_ENCOUNTER_getInstance())) {
-        var tmp2_safe_receiver = $this.m1h();
-        var tmp_0 = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.x1g_1;
+      if ($this.v1e_1.equals(Phase_ENCOUNTER_getInstance())) {
+        var tmp2_safe_receiver = $this.q1h();
+        var tmp_0 = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.b1h_1;
         tmp = tmp_0 instanceof Ask;
       } else {
         tmp = false;
@@ -23202,7 +23233,7 @@ function onSpeechFinished($this, token, out) {
 
       break;
     case 'finale':
-      var outro = select($this, $this.q1e_1.g1g_1.g1k_1);
+      var outro = select($this, $this.t1e_1.j1g_1.k1k_1);
       if (outro.q()) {
         afterOutro($this, out);
       } else {
@@ -23219,10 +23250,10 @@ function onSpeechFinished($this, token, out) {
   }
 }
 function reopenIfIdle($this, out) {
-  if (!($this.d1f_1 == null) || !($this.f1f_1 == null) || $this.g1f_1 || $this.e1f_1)
+  if (!($this.g1f_1 == null) || !($this.i1f_1 == null) || $this.j1f_1 || $this.h1f_1)
     return Unit_instance;
-  var tmp0_safe_receiver = $this.m1h();
-  var tmp1_subject = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.x1g_1;
+  var tmp0_safe_receiver = $this.q1h();
+  var tmp1_subject = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.b1h_1;
   var tmp;
   if (tmp1_subject instanceof Tune) {
     tmp = true;
@@ -23241,21 +23272,21 @@ function reopenIfIdle($this, out) {
 }
 function listen($this, purpose, mode, hints, out) {
   var token = newToken($this, 'listen');
-  $this.d1f_1 = new ListenState(token, purpose, mode);
+  $this.g1f_1 = new ListenState(token, purpose, mode);
   var timeout = mode.equals(ListenMode_FREEFORM_getInstance()) ? new Long(9000, 0) : new Long(7000, 0);
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new Listen(mode, timeout, token, hints);
   out.g(element);
 }
 function stopListening($this, out) {
-  if (!($this.d1f_1 == null)) {
-    $this.d1f_1 = null;
+  if (!($this.g1f_1 == null)) {
+    $this.g1f_1 = null;
     // Inline function 'kotlin.collections.plusAssign' call
     out.g(StopListening_instance);
   }
 }
 function onHeard($this, event, out) {
-  var tmp0_elvis_lhs = $this.d1f_1;
+  var tmp0_elvis_lhs = $this.g1f_1;
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -23263,46 +23294,46 @@ function onHeard($this, event, out) {
     tmp = tmp0_elvis_lhs;
   }
   var state = tmp;
-  if (!(event.v1k_1 === state.c1i_1) || isBlank(event.w1k_1))
+  if (!(event.z1k_1 === state.g1i_1) || isBlank(event.a1l_1))
     return Unit_instance;
-  if (!event.x1k_1) {
-    if (state.e1i_1.equals(ListenMode_COMMAND_getInstance()) && earlyMatch($this, state, event.w1k_1)) {
+  if (!event.b1l_1) {
+    if (state.i1i_1.equals(ListenMode_COMMAND_getInstance()) && earlyMatch($this, state, event.a1l_1)) {
       stopListening($this, out);
-      heard($this, state, event.w1k_1, out);
+      heard($this, state, event.a1l_1, out);
     }
     return Unit_instance;
   }
   stopListening($this, out);
-  heard($this, state, event.w1k_1, out);
+  heard($this, state, event.a1l_1, out);
 }
 function earlyMatch($this, state, text) {
   var tmp;
-  switch (state.d1i_1.e2_1) {
+  switch (state.h1i_1.e2_1) {
     case 1:
-      var tmp1_safe_receiver = $this.m1h();
-      var tmp_0 = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.x1g_1;
+      var tmp1_safe_receiver = $this.q1h();
+      var tmp_0 = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.b1h_1;
       var tmp2_safe_receiver = tmp_0 instanceof Ask ? tmp_0 : null;
-      tmp = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.a1j_1;
+      tmp = tmp2_safe_receiver == null ? null : tmp2_safe_receiver.e1j_1;
       break;
     case 0:
-      var tmp3_safe_receiver = $this.m1h();
-      var c = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.x1g_1;
+      var tmp3_safe_receiver = $this.q1h();
+      var c = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.b1h_1;
       var tmp_1;
       if (c instanceof Command) {
-        tmp_1 = c.m1j_1;
+        tmp_1 = c.q1j_1;
       } else {
         if (c instanceof Passphrase) {
-          tmp_1 = c.j1j_1;
+          tmp_1 = c.n1j_1;
         } else {
           if (c instanceof Choice) {
             // Inline function 'kotlin.collections.flatMap' call
-            var tmp0 = c.e1j_1;
+            var tmp0 = c.i1j_1;
             // Inline function 'kotlin.collections.flatMapTo' call
             var destination = ArrayList_init_$Create$();
             var _iterator__ex2g4s = tmp0.l();
             while (_iterator__ex2g4s.m()) {
               var element = _iterator__ex2g4s.n();
-              var list = element.g1j_1;
+              var list = element.k1j_1;
               addAll(destination, list);
             }
             tmp_1 = destination;
@@ -23345,7 +23376,7 @@ function earlyMatch($this, state, text) {
     var _iterator__ex2g4s_0 = phrases.l();
     while (_iterator__ex2g4s_0.m()) {
       var element_0 = _iterator__ex2g4s_0.n();
-      if (PhraseMatcher_getInstance().c1l(text, element_0) >= 0.93) {
+      if (PhraseMatcher_getInstance().g1l(text, element_0) >= 0.93) {
         tmp$ret$3 = true;
         break $l$block_0;
       }
@@ -23355,7 +23386,7 @@ function earlyMatch($this, state, text) {
   return tmp$ret$3;
 }
 function onListenEnded($this, event, out) {
-  var tmp0_elvis_lhs = $this.d1f_1;
+  var tmp0_elvis_lhs = $this.g1f_1;
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -23363,22 +23394,22 @@ function onListenEnded($this, event, out) {
     tmp = tmp0_elvis_lhs;
   }
   var state = tmp;
-  if (!(event.d1l_1 === state.c1i_1))
+  if (!(event.h1l_1 === state.g1i_1))
     return Unit_instance;
-  $this.d1f_1 = null;
-  if (state.d1i_1.equals(ListenPurpose_FREE_TALK_getInstance()) || $this.u1e_1)
+  $this.g1f_1 = null;
+  if (state.h1i_1.equals(ListenPurpose_FREE_TALK_getInstance()) || $this.x1e_1)
     return Unit_instance;
-  $this.m1f_1 = $this.m1f_1 + 1 | 0;
-  var text = $this.m1f_1 >= 2 ? $this.q1e_1.h1g_1.v1j_1 + ' ' + $this.q1e_1.h1g_1.u1j_1 : $this.q1e_1.h1g_1.v1j_1;
+  $this.p1f_1 = $this.p1f_1 + 1 | 0;
+  var text = $this.p1f_1 >= 2 ? $this.t1e_1.k1g_1.z1j_1 + ' ' + $this.t1e_1.k1g_1.y1j_1 : $this.t1e_1.k1g_1.z1j_1;
   emitSpeak($this, listOf(systemLine($this, 'heard-nothing', text)), 'missed', out, true);
 }
 function heard($this, state, text, out) {
   record($this, new TranscriptEntry('runner', text, true));
-  $this.m1f_1 = 0;
-  var signal = $this.m1h();
-  var words = split(PhraseMatcher_getInstance().e1l(text), charArrayOf([_Char___init__impl__6a9atx(32)])).o();
-  if (!state.d1i_1.equals(ListenPurpose_FREE_TALK_getInstance()) || words <= 3) {
-    var tmp0_subject = Companion_getInstance_55().g1l(text);
+  $this.p1f_1 = 0;
+  var signal = $this.q1h();
+  var words = split(PhraseMatcher_getInstance().i1l(text), charArrayOf([_Char___init__impl__6a9atx(32)])).o();
+  if (!state.h1i_1.equals(ListenPurpose_FREE_TALK_getInstance()) || words <= 3) {
+    var tmp0_subject = Companion_getInstance_55().k1l(text);
     switch (tmp0_subject == null ? -1 : tmp0_subject.e2_1) {
       case 0:
         return repeatLast($this, out);
@@ -23388,7 +23419,7 @@ function heard($this, state, text, out) {
         return sayStatus($this, out);
       case 3:
         var tmp;
-        if (!$this.u1e_1) {
+        if (!$this.x1e_1) {
           togglePause($this, out);
           tmp = Unit_instance;
         } else {
@@ -23398,7 +23429,7 @@ function heard($this, state, text, out) {
         return tmp;
       case 4:
         var tmp_0;
-        if ($this.u1e_1) {
+        if ($this.x1e_1) {
           togglePause($this, out);
           tmp_0 = Unit_instance;
         } else {
@@ -23413,13 +23444,13 @@ function heard($this, state, text, out) {
         break;
     }
   }
-  switch (state.d1i_1.e2_1) {
+  switch (state.h1i_1.e2_1) {
     case 2:
-      var speaker = $this.s1e_1.equals(Phase_ENCOUNTER_getInstance()) && !(signal == null) ? signal.t1g_1 : $this.h1l();
+      var speaker = $this.v1e_1.equals(Phase_ENCOUNTER_getInstance()) && !(signal == null) ? signal.x1g_1 : $this.l1l();
       askCharacter($this, speaker, text, out);
       break;
     case 1:
-      var tmp_1 = signal == null ? null : signal.x1g_1;
+      var tmp_1 = signal == null ? null : signal.b1h_1;
       var tmp3_elvis_lhs = tmp_1 instanceof Ask ? tmp_1 : null;
       var tmp_2;
       if (tmp3_elvis_lhs == null) {
@@ -23429,10 +23460,10 @@ function heard($this, state, text, out) {
       }
 
       var c = tmp_2;
-      if (PhraseMatcher_getInstance().i1l(text, c.a1j_1)) {
+      if (PhraseMatcher_getInstance().m1l(text, c.e1j_1)) {
         succeed($this, out);
       } else {
-        askCharacter($this, signal.t1g_1, text, out);
+        askCharacter($this, signal.x1g_1, text, out);
       }
 
       break;
@@ -23452,30 +23483,30 @@ function heard($this, state, text, out) {
   }
 }
 function answerChallenge($this, signal, text, out) {
-  var c = signal.x1g_1;
+  var c = signal.b1h_1;
   if (c instanceof Command)
-    if (PhraseMatcher_getInstance().i1l(text, c.m1j_1)) {
+    if (PhraseMatcher_getInstance().m1l(text, c.q1j_1)) {
       succeed($this, out);
     } else {
       retry($this, signal, out);
     }
    else {
     if (c instanceof Passphrase) {
-      if (PhraseMatcher_getInstance().i1l(text, c.j1j_1))
+      if (PhraseMatcher_getInstance().m1l(text, c.n1j_1))
         return succeed($this, out);
-      $this.k1f_1 = $this.k1f_1 + 1 | 0;
-      if ($this.k1f_1 > (c.k1j_1 + 2 | 0)) {
+      $this.n1f_1 = $this.n1f_1 + 1 | 0;
+      if ($this.n1f_1 > (c.o1j_1 + 2 | 0)) {
         succeed($this, out);
       } else {
         var tmp;
-        if ($this.k1f_1 >= c.k1j_1) {
+        if ($this.n1f_1 >= c.o1j_1) {
           // Inline function 'kotlin.collections.isNotEmpty' call
-          tmp = !signal.a1h_1.q();
+          tmp = !signal.e1h_1.q();
         } else {
           tmp = false;
         }
         if (tmp) {
-          speak$default($this, signal.a1h_1, 'retry', out, false, signal.m1g_1);
+          speak$default($this, signal.e1h_1, 'retry', out, false, signal.p1g_1);
         } else {
           retry($this, signal, out);
         }
@@ -23484,7 +23515,7 @@ function answerChallenge($this, signal, text, out) {
       if (c instanceof Choice) {
         var tmp_0 = PhraseMatcher_getInstance();
         // Inline function 'kotlin.collections.associate' call
-        var this_0 = c.e1j_1;
+        var this_0 = c.i1j_1;
         var capacity = coerceAtLeast(mapCapacity(collectionSizeOrDefault(this_0, 10)), 16);
         // Inline function 'kotlin.collections.associateTo' call
         var destination = LinkedHashMap_init_$Create$_0(capacity);
@@ -23492,25 +23523,25 @@ function answerChallenge($this, signal, text, out) {
         while (_iterator__ex2g4s.m()) {
           var element = _iterator__ex2g4s.n();
           // Inline function 'kotlin.collections.plusAssign' call
-          var pair = to(element.f1j_1, element.g1j_1);
+          var pair = to(element.j1j_1, element.k1j_1);
           destination.a2(pair.gd_1, pair.hd_1);
         }
-        var match = tmp_0.j1l(text, destination);
+        var match = tmp_0.n1l(text, destination);
         if (match == null)
           return retry($this, signal, out);
-        var tmp0 = $this.a1f_1;
-        var tmp2 = signal.m1g_1;
+        var tmp0 = $this.d1f_1;
+        var tmp2 = signal.p1g_1;
         // Inline function 'kotlin.collections.set' call
-        var value = match.k1l_1;
+        var value = match.o1l_1;
         tmp0.a2(tmp2, value);
-        var tmp0_0 = c.e1j_1;
+        var tmp0_0 = c.i1j_1;
         var tmp$ret$7;
         $l$block: {
           // Inline function 'kotlin.collections.first' call
           var _iterator__ex2g4s_0 = tmp0_0.l();
           while (_iterator__ex2g4s_0.m()) {
             var element_0 = _iterator__ex2g4s_0.n();
-            if (element_0.f1j_1 === match.k1l_1) {
+            if (element_0.j1j_1 === match.o1l_1) {
               tmp$ret$7 = element_0;
               break $l$block;
             }
@@ -23518,34 +23549,34 @@ function answerChallenge($this, signal, text, out) {
           throw NoSuchElementException_init_$Create$_0('Collection contains no element matching the predicate.');
         }
         var option = tmp$ret$7;
-        if (option.h1j_1.q()) {
+        if (option.l1j_1.q()) {
           succeed($this, out);
         } else {
-          speak$default($this, option.h1j_1, 'choice', out, false, signal.m1g_1);
+          speak$default($this, option.l1j_1, 'choice', out, false, signal.p1g_1);
         }
       } else {
         if (c instanceof Ask) {
-          if ($this.l1f_1 > 0 && PhraseMatcher_getInstance().i1l(text, c.a1j_1))
+          if ($this.o1f_1 > 0 && PhraseMatcher_getInstance().m1l(text, c.e1j_1))
             return succeed($this, out);
-          $this.l1f_1 = $this.l1f_1 + 1 | 0;
-          askCharacter($this, signal.t1g_1, text, out);
+          $this.o1f_1 = $this.o1f_1 + 1 | 0;
+          askCharacter($this, signal.x1g_1, text, out);
         }
       }
     }
   }
 }
 function retry($this, signal, out) {
-  $this.k1f_1 = $this.k1f_1 + 1 | 0;
-  var lines = select($this, signal.z1g_1);
+  $this.n1f_1 = $this.n1f_1 + 1 | 0;
+  var lines = select($this, signal.d1h_1);
   if (lines.q()) {
-    emitSpeak($this, listOf(systemLine($this, 'not-understood', $this.q1e_1.h1g_1.w1j_1)), 'retry', out, false);
+    emitSpeak($this, listOf(systemLine($this, 'not-understood', $this.t1e_1.k1g_1.a1k_1)), 'retry', out, false);
   } else {
-    speak$default($this, lines, 'retry', out, false, signal.m1g_1);
+    speak$default($this, lines, 'retry', out, false, signal.p1g_1);
   }
 }
 function afterAskReply($this, out) {
-  var tmp0_safe_receiver = $this.m1h();
-  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.x1g_1;
+  var tmp0_safe_receiver = $this.q1h();
+  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.b1h_1;
   var tmp1_elvis_lhs = tmp instanceof Ask ? tmp : null;
   var tmp_0;
   if (tmp1_elvis_lhs == null) {
@@ -23555,22 +23586,22 @@ function afterAskReply($this, out) {
   }
   var c = tmp_0;
   var tmp_1;
-  if ($this.l1f_1 >= c.z1i_1) {
+  if ($this.o1f_1 >= c.d1j_1) {
     // Inline function 'kotlin.collections.isNotEmpty' call
-    tmp_1 = !c.b1j_1.q();
+    tmp_1 = !c.f1j_1.q();
   } else {
     tmp_1 = false;
   }
   if (tmp_1) {
-    var tmp2_safe_receiver = $this.m1h();
-    speak$default($this, c.b1j_1, 'retry', out, false, tmp2_safe_receiver == null ? null : tmp2_safe_receiver.m1g_1);
+    var tmp2_safe_receiver = $this.q1h();
+    speak$default($this, c.f1j_1, 'retry', out, false, tmp2_safe_receiver == null ? null : tmp2_safe_receiver.p1g_1);
   } else {
     openChallenge($this, out);
   }
 }
 function askCharacter($this, characterId, text, out) {
   // Inline function 'kotlin.collections.getOrPut' call
-  var this_0 = $this.t1f_1;
+  var this_0 = $this.w1f_1;
   var value = this_0.w1(characterId);
   var tmp;
   if (value == null) {
@@ -23586,16 +23617,16 @@ function askCharacter($this, characterId, text, out) {
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new Turn(true, text);
   history.g(element);
-  $this.q1f_1 = $this.q1f_1 + 1 | 0;
-  $this.r1f_1 = new PendingRequest($this.q1f_1, characterId, $this.s1e_1, $this.t1e_1);
-  var tmp_0 = $this.q1f_1;
-  var tmp0_safe_receiver = $this.m1h();
+  $this.t1f_1 = $this.t1f_1 + 1 | 0;
+  $this.u1f_1 = new PendingRequest($this.t1f_1, characterId, $this.v1e_1, $this.w1e_1);
+  var tmp_0 = $this.t1f_1;
+  var tmp0_safe_receiver = $this.q1h();
   // Inline function 'kotlin.collections.plusAssign' call
-  var element_0 = new AskCharacter(new CharacterRequest(tmp_0, characterId, tmp0_safe_receiver == null ? null : tmp0_safe_receiver.m1g_1, text, $this.n1l(), prior));
+  var element_0 = new AskCharacter(new CharacterRequest(tmp_0, characterId, tmp0_safe_receiver == null ? null : tmp0_safe_receiver.p1g_1, text, $this.r1l(), prior));
   out.g(element_0);
 }
 function onCharacterReplied($this, event, out) {
-  var tmp0_elvis_lhs = $this.r1f_1;
+  var tmp0_elvis_lhs = $this.u1f_1;
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -23603,17 +23634,17 @@ function onCharacterReplied($this, event, out) {
     tmp = tmp0_elvis_lhs;
   }
   var pending = tmp;
-  if (!(event.o1l_1 === pending.f1i_1))
+  if (!(event.s1l_1 === pending.j1i_1))
     return Unit_instance;
-  $this.r1f_1 = null;
-  if (!pending.h1i_1.equals($this.s1e_1) || !(pending.i1i_1 === $this.t1e_1) || $this.u1e_1)
+  $this.u1f_1 = null;
+  if (!pending.l1i_1.equals($this.v1e_1) || !(pending.m1i_1 === $this.w1e_1) || $this.x1e_1)
     return Unit_instance;
   if (!interruptSpeech($this, out))
     return Unit_instance;
-  var tmp1_safe_receiver = $this.m1h();
-  var tmp_0 = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.x1g_1;
+  var tmp1_safe_receiver = $this.q1h();
+  var tmp_0 = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.b1h_1;
   var c = tmp_0 instanceof Ask ? tmp_0 : null;
-  var tmp3_safe_receiver = c == null ? null : c.c1j_1;
+  var tmp3_safe_receiver = c == null ? null : c.g1j_1;
   var tmp_1;
   if (tmp3_safe_receiver == null) {
     tmp_1 = null;
@@ -23634,10 +23665,10 @@ function onCharacterReplied($this, event, out) {
     tmp_3 = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp_3 = tmp4_safe_receiver.p(coerceAtLeast($this.l1f_1 - 1 | 0, 0) % tmp4_safe_receiver.o() | 0);
+    tmp_3 = tmp4_safe_receiver.p(coerceAtLeast($this.o1f_1 - 1 | 0, 0) % tmp4_safe_receiver.o() | 0);
   }
   var fallback = tmp_3;
-  var tmp5_safe_receiver = event.p1l_1;
+  var tmp5_safe_receiver = event.t1l_1;
   var tmp_4;
   if (tmp5_safe_receiver == null) {
     tmp_4 = null;
@@ -23654,10 +23685,10 @@ function onCharacterReplied($this, event, out) {
   }
   var tmp6_elvis_lhs = tmp_4;
   var tmp7_elvis_lhs = tmp6_elvis_lhs == null ? fallback : tmp6_elvis_lhs;
-  var text = tmp7_elvis_lhs == null ? $this.q1e_1.h1g_1.d1k_1 : tmp7_elvis_lhs;
-  var tmp0 = $this.t1f_1;
+  var text = tmp7_elvis_lhs == null ? $this.t1e_1.k1g_1.h1k_1 : tmp7_elvis_lhs;
+  var tmp0 = $this.w1f_1;
   // Inline function 'kotlin.collections.getOrPut' call
-  var key = pending.g1i_1;
+  var key = pending.k1i_1;
   var value = tmp0.w1(key);
   var tmp_6;
   if (value == null) {
@@ -23672,8 +23703,8 @@ function onCharacterReplied($this, event, out) {
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new Turn(false, text);
   tmp0_0.g(element);
-  var tmp8_safe_receiver = $this.m1h();
-  var tmp9_safe_receiver = tmp8_safe_receiver == null ? null : tmp8_safe_receiver.m1g_1;
+  var tmp8_safe_receiver = $this.q1h();
+  var tmp9_safe_receiver = tmp8_safe_receiver == null ? null : tmp8_safe_receiver.p1g_1;
   var tmp_7;
   if (tmp9_safe_receiver == null) {
     tmp_7 = null;
@@ -23681,9 +23712,9 @@ function onCharacterReplied($this, event, out) {
     // Inline function 'kotlin.takeIf' call
     var tmp_8;
     var tmp_9;
-    if ($this.s1e_1.equals(Phase_ENCOUNTER_getInstance())) {
-      var tmp0_safe_receiver = $this.m1h();
-      tmp_9 = pending.g1i_1 === (tmp0_safe_receiver == null ? null : tmp0_safe_receiver.t1g_1);
+    if ($this.v1e_1.equals(Phase_ENCOUNTER_getInstance())) {
+      var tmp0_safe_receiver = $this.q1h();
+      tmp_9 = pending.k1i_1 === (tmp0_safe_receiver == null ? null : tmp0_safe_receiver.x1g_1);
     } else {
       tmp_9 = false;
     }
@@ -23695,19 +23726,19 @@ function onCharacterReplied($this, event, out) {
     tmp_7 = tmp_8;
   }
   var fromSignal = tmp_7;
-  var reply = new Utterance(null, pending.g1i_1, text, fromSignal);
-  var partOfChallenge = $this.s1e_1.equals(Phase_ENCOUNTER_getInstance()) && !(c == null);
+  var reply = new Utterance(null, pending.k1i_1, text, fromSignal);
+  var partOfChallenge = $this.v1e_1.equals(Phase_ENCOUNTER_getInstance()) && !(c == null);
   emitSpeak($this, listOf(reply), 'npc', out, !partOfChallenge);
-  $this.s1f_1 = listOf(reply);
+  $this.v1f_1 = listOf(reply);
 }
 function onRhythmPlayed($this, event, out) {
-  if (!$this.g1f_1 || !(kindOf($this, event.q1l_1) === 'rhythm'))
+  if (!$this.j1f_1 || !(kindOf($this, event.u1l_1) === 'rhythm'))
     return Unit_instance;
-  $this.g1f_1 = false;
-  if (!$this.s1e_1.equals(Phase_ENCOUNTER_getInstance()) || $this.u1e_1)
+  $this.j1f_1 = false;
+  if (!$this.v1e_1.equals(Phase_ENCOUNTER_getInstance()) || $this.x1e_1)
     return Unit_instance;
-  var tmp0_safe_receiver = $this.m1h();
-  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.x1g_1;
+  var tmp0_safe_receiver = $this.q1h();
+  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.b1h_1;
   var tmp1_elvis_lhs = tmp instanceof Rhythm ? tmp : null;
   var tmp_0;
   if (tmp1_elvis_lhs == null) {
@@ -23716,15 +23747,15 @@ function onRhythmPlayed($this, event, out) {
     tmp_0 = tmp1_elvis_lhs;
   }
   var c = tmp_0;
-  $this.w1f_1 = event.r1l_1;
+  $this.z1f_1 = event.v1l_1;
   var tmp_1 = $this;
   // Inline function 'kotlin.collections.mutableListOf' call
-  tmp_1.f1f_1 = ArrayList_init_$Create$();
-  var span = (last(c.v1i_1) - first(c.v1i_1)) * $this.q1e_1.c1g_1.s1l();
-  $this.i1f_1 = add(add(event.r1l_1, numberToLong(span)), new Long(5000, 0));
+  tmp_1.i1f_1 = ArrayList_init_$Create$();
+  var span = (last(c.z1i_1) - first(c.z1i_1)) * $this.t1e_1.f1g_1.w1l();
+  $this.l1f_1 = add(add(event.v1l_1, numberToLong(span)), new Long(5000, 0));
 }
 function evaluateRhythm($this, c, out) {
-  var tmp0_elvis_lhs = $this.f1f_1;
+  var tmp0_elvis_lhs = $this.i1f_1;
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -23732,12 +23763,12 @@ function evaluateRhythm($this, c, out) {
     tmp = tmp0_elvis_lhs;
   }
   var taps = tmp;
-  $this.f1f_1 = null;
-  $this.j1f_1 = $this.j1f_1 + 1 | 0;
-  var passed = taps.o() >= c.v1i_1.o() && RhythmMatcher_instance.x1l(c.v1i_1, taps, $this.q1e_1.c1g_1.s1l(), c.w1i_1).t1l_1;
-  if (passed || $this.j1f_1 >= c.x1i_1)
+  $this.i1f_1 = null;
+  $this.m1f_1 = $this.m1f_1 + 1 | 0;
+  var passed = taps.o() >= c.z1i_1.o() && RhythmMatcher_instance.b1m(c.z1i_1, taps, $this.t1e_1.f1g_1.w1l(), c.a1j_1).x1l_1;
+  if (passed || $this.m1f_1 >= c.b1j_1)
     return succeed($this, out);
-  var tmp1_elvis_lhs = $this.m1h();
+  var tmp1_elvis_lhs = $this.q1h();
   var tmp_0;
   if (tmp1_elvis_lhs == null) {
     return Unit_instance;
@@ -23745,77 +23776,77 @@ function evaluateRhythm($this, c, out) {
     tmp_0 = tmp1_elvis_lhs;
   }
   var signal = tmp_0;
-  var lines = select($this, signal.z1g_1);
+  var lines = select($this, signal.d1h_1);
   if (lines.q()) {
-    emitSpeak($this, listOf(systemLine($this, 'rhythm-miss', $this.q1e_1.h1g_1.a1k_1)), 'retry', out, false);
+    emitSpeak($this, listOf(systemLine($this, 'rhythm-miss', $this.t1e_1.k1g_1.e1k_1)), 'retry', out, false);
   } else {
-    speak$default($this, lines, 'retry', out, false, signal.m1g_1);
+    speak$default($this, lines, 'retry', out, false, signal.p1g_1);
   }
 }
 function checkTune($this, c, out) {
-  var delta = $this.w1h(c);
+  var delta = $this.a1i(c);
   if (delta == null) {
-    if ($this.p1f_1)
+    if ($this.s1f_1)
       return succeed($this, out);
-    $this.p1f_1 = true;
-    speakSystem($this, 'tune-no-heading', replace($this.q1e_1.h1g_1.z1j_1, '{target}', c.a1m_1), out);
+    $this.s1f_1 = true;
+    speakSystem($this, 'tune-no-heading', replace($this.t1e_1.k1g_1.d1k_1, '{target}', c.e1m_1), out);
     return Unit_instance;
   }
   // Inline function 'kotlin.math.abs' call
-  if (Math.abs(delta) <= c.b1m_1)
+  if (Math.abs(delta) <= c.f1m_1)
     return succeed($this, out);
-  $this.k1f_1 = $this.k1f_1 + 1 | 0;
-  if ($this.k1f_1 >= 6)
+  $this.n1f_1 = $this.n1f_1 + 1 | 0;
+  if ($this.n1f_1 >= 6)
     return succeed($this, out);
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new PlaySfx(Sfx_DENIED_getInstance());
   out.g(element);
-  speakSystem($this, 'tune-dir', delta > 0 ? $this.q1e_1.h1g_1.y1j_1 : $this.q1e_1.h1g_1.x1j_1, out);
+  speakSystem($this, 'tune-dir', delta > 0 ? $this.t1e_1.k1g_1.c1k_1 : $this.t1e_1.k1g_1.b1k_1, out);
 }
 function onRecordingFinished($this, event, out) {
-  if (!$this.e1f_1)
+  if (!$this.h1f_1)
     return Unit_instance;
-  $this.e1f_1 = false;
-  if (!(event.c1m_1 == null)) {
-    record($this, new TranscriptEntry($this.q1e_1.h1g_1.n1j_1, $this.q1e_1.h1g_1.b1k_1, false));
+  $this.h1f_1 = false;
+  if (!(event.g1m_1 == null)) {
+    record($this, new TranscriptEntry($this.t1e_1.k1g_1.r1j_1, $this.t1e_1.k1g_1.f1k_1, false));
   }
   succeed($this, out);
 }
 function deliverBroadcast($this, out) {
-  if ($this.u1f_1.q() || $this.u1e_1 || $this.k1k() || !($this.d1f_1 == null) || $this.e1f_1)
+  if ($this.x1f_1.q() || $this.x1e_1 || $this.o1k() || !($this.g1f_1 == null) || $this.h1f_1)
     return Unit_instance;
-  if ($this.g1f_1 || !($this.f1f_1 == null) || !($this.r1f_1 == null))
+  if ($this.j1f_1 || !($this.i1f_1 == null) || !($this.u1f_1 == null))
     return Unit_instance;
-  if ($this.s1e_1.equals(Phase_IDLE_getInstance()) || $this.s1e_1.equals(Phase_COMPLETE_getInstance()))
+  if ($this.v1e_1.equals(Phase_IDLE_getInstance()) || $this.v1e_1.equals(Phase_COMPLETE_getInstance()))
     return Unit_instance;
-  var b = $this.u1f_1.pc();
-  var speaker = !($this.q1e_1.f1m(b.d1m_1) == null) ? b.d1m_1 : $this.h1l();
+  var b = $this.x1f_1.pc();
+  var speaker = !($this.t1e_1.j1m(b.h1m_1) == null) ? b.h1m_1 : $this.l1l();
   // Inline function 'kotlin.collections.plusAssign' call
   var element = new PlaySfx(Sfx_TRANSMISSION_getInstance());
   out.g(element);
-  emitSpeak($this, listOf(new Utterance('live', speaker, b.e1m_1)), 'system', out, true);
+  emitSpeak($this, listOf(new Utterance('live', speaker, b.i1m_1)), 'system', out, true);
 }
 function onTick($this, now, out) {
-  $this.w1f_1 = now;
+  $this.z1f_1 = now;
   deliverBroadcast($this, out);
-  var tmp0_safe_receiver = $this.m1h();
-  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.x1g_1;
+  var tmp0_safe_receiver = $this.q1h();
+  var tmp = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.b1h_1;
   var c = tmp instanceof Rhythm ? tmp : null;
-  if (!(c == null) && !($this.f1f_1 == null) && compare(now, $this.i1f_1) > 0) {
+  if (!(c == null) && !($this.i1f_1 == null) && compare(now, $this.l1f_1) > 0) {
     evaluateRhythm($this, c, out);
   }
-  if ($this.s1e_1.equals(Phase_HUNTING_getInstance()) && $this.v1e_1 && !$this.u1e_1 && !$this.k1k() && compare(subtract(now, $this.o1f_1), new Long(25000, 0)) > 0) {
-    $this.o1f_1 = now;
-    speakSystem($this, 'lock', $this.q1e_1.h1g_1.q1j_1, out);
+  if ($this.v1e_1.equals(Phase_HUNTING_getInstance()) && $this.y1e_1 && !$this.x1e_1 && !$this.o1k() && compare(subtract(now, $this.r1f_1), new Long(25000, 0)) > 0) {
+    $this.r1f_1 = now;
+    speakSystem($this, 'lock', $this.t1e_1.k1g_1.u1j_1, out);
   }
 }
 function repeatLast($this, out) {
-  if ($this.s1f_1.q())
+  if ($this.v1f_1.q())
     return Unit_instance;
-  emitSpeak($this, $this.s1f_1, 'repeat', out, true);
+  emitSpeak($this, $this.v1f_1, 'repeat', out, true);
 }
 function giveHint($this, out) {
-  var tmp0_elvis_lhs = $this.m1h();
+  var tmp0_elvis_lhs = $this.q1h();
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return Unit_instance;
@@ -23823,19 +23854,19 @@ function giveHint($this, out) {
     tmp = tmp0_elvis_lhs;
   }
   var signal = tmp;
-  switch ($this.s1e_1.e2_1) {
+  switch ($this.v1e_1.e2_1) {
     case 2:
-      var status = systemLine($this, 'status', fill_0($this, $this.q1e_1.h1g_1.p1j_1));
+      var status = systemLine($this, 'status', fill_0($this, $this.t1e_1.k1g_1.t1j_1));
       // Inline function 'kotlin.collections.map' call
 
-      var this_0 = select($this, signal.a1h_1);
+      var this_0 = select($this, signal.e1h_1);
       // Inline function 'kotlin.collections.mapTo' call
 
       var destination = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_0, 10));
       var _iterator__ex2g4s = this_0.l();
       while (_iterator__ex2g4s.m()) {
         var item = _iterator__ex2g4s.n();
-        var tmp$ret$0 = toUtterance($this, item, signal.m1g_1);
+        var tmp$ret$0 = toUtterance($this, item, signal.p1g_1);
         destination.g(tmp$ret$0);
       }
 
@@ -23845,10 +23876,10 @@ function giveHint($this, out) {
     case 3:
       // Inline function 'kotlin.collections.ifEmpty' call
 
-      var this_1 = select($this, signal.a1h_1);
+      var this_1 = select($this, signal.e1h_1);
       var tmp_0;
       if (this_1.q()) {
-        tmp_0 = select($this, signal.x1g_1.r1i());
+        tmp_0 = select($this, signal.b1h_1.v1i());
       } else {
         tmp_0 = this_1;
       }
@@ -23862,7 +23893,7 @@ function giveHint($this, out) {
       var _iterator__ex2g4s_0 = lines.l();
       while (_iterator__ex2g4s_0.m()) {
         var item_0 = _iterator__ex2g4s_0.n();
-        var tmp$ret$5 = toUtterance($this, item_0, signal.m1g_1);
+        var tmp$ret$5 = toUtterance($this, item_0, signal.p1g_1);
         destination_0.g(tmp$ret$5);
       }
 
@@ -23874,19 +23905,19 @@ function giveHint($this, out) {
   }
 }
 function sayStatus($this, out) {
-  return speakSystem($this, 'status', fill_0($this, $this.q1e_1.h1g_1.p1j_1), out);
+  return speakSystem($this, 'status', fill_0($this, $this.t1e_1.k1g_1.t1j_1), out);
 }
 function fill_0($this, template) {
-  var r = $this.x1e_1;
-  var tmp0_safe_receiver = $this.m1h();
-  var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.n1g_1;
+  var r = $this.a1f_1;
+  var tmp0_safe_receiver = $this.q1h();
+  var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.q1g_1;
   var tmp = replace(template, '{signal}', tmp1_elvis_lhs == null ? 'the signal' : tmp1_elvis_lhs);
   var tmp_0;
   if (r == null) {
     tmp_0 = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp_0 = Geo_getInstance().i1m(r.n1h_1);
+    tmp_0 = Geo_getInstance().m1m(r.r1h_1);
   }
   var tmp3_elvis_lhs = tmp_0;
   var tmp_1 = replace(tmp, '{distance}', tmp3_elvis_lhs == null ? 'somewhere close' : tmp3_elvis_lhs);
@@ -23895,10 +23926,10 @@ function fill_0($this, template) {
     tmp_2 = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp_2 = $this.j1m(r.p1h_1);
+    tmp_2 = $this.n1m(r.t1h_1);
   }
   var tmp5_elvis_lhs = tmp_2;
-  return replace(replace(replace(tmp_1, '{direction}', tmp5_elvis_lhs == null ? 'but I have no fix on you yet' : tmp5_elvis_lhs), '{count}', $this.z1e_1.o().toString()), '{total}', $this.k1m().toString());
+  return replace(replace(replace(tmp_1, '{direction}', tmp5_elvis_lhs == null ? 'but I have no fix on you yet' : tmp5_elvis_lhs), '{count}', $this.c1f_1.o().toString()), '{total}', $this.o1m().toString());
 }
 function challengeName($this, c) {
   var tmp;
@@ -23934,7 +23965,7 @@ function challengeName($this, c) {
   return tmp;
 }
 function systemLine($this, id, text) {
-  return new Utterance('system.' + id, $this.q1e_1.h1g_1.n1j_1, text);
+  return new Utterance('system.' + id, $this.t1e_1.k1g_1.r1j_1, text);
 }
 function speakSystem($this, id, text, out) {
   return emitSpeak($this, listOf(systemLine($this, id, text)), 'system', out, true);
@@ -23942,13 +23973,13 @@ function speakSystem($this, id, text, out) {
 function toUtterance($this, _this__u8e3s4, fromSignal) {
   // Inline function 'kotlin.takeIf' call
   var tmp;
-  if (!(_this__u8e3s4.m1m_1 === $this.h1l()) && !(_this__u8e3s4.m1m_1 === $this.q1e_1.h1g_1.n1j_1)) {
+  if (!(_this__u8e3s4.q1m_1 === $this.l1l()) && !(_this__u8e3s4.q1m_1 === $this.t1e_1.k1g_1.r1j_1)) {
     tmp = fromSignal;
   } else {
     tmp = null;
   }
   var tmp$ret$1 = tmp;
-  return new Utterance(_this__u8e3s4.l1m_1, _this__u8e3s4.m1m_1, _this__u8e3s4.n1m_1, tmp$ret$1);
+  return new Utterance(_this__u8e3s4.p1m_1, _this__u8e3s4.q1m_1, _this__u8e3s4.r1m_1, tmp$ret$1);
 }
 function select($this, lines) {
   // Inline function 'kotlin.collections.filter' call
@@ -23957,7 +23988,7 @@ function select($this, lines) {
   var _iterator__ex2g4s = lines.l();
   while (_iterator__ex2g4s.m()) {
     var element = _iterator__ex2g4s.n();
-    var tmp0 = element.o1m_1;
+    var tmp0 = element.s1m_1;
     var tmp$ret$0;
     $l$block_0: {
       // Inline function 'kotlin.collections.all' call
@@ -23973,7 +24004,7 @@ function select($this, lines) {
         var k = element_0.s1();
         // Inline function 'kotlin.collections.component2' call
         var v = element_0.t1();
-        if (!($this.a1f_1.w1(k) === v)) {
+        if (!($this.d1f_1.w1(k) === v)) {
           tmp$ret$0 = false;
           break $l$block_0;
         }
@@ -24006,7 +24037,7 @@ function speak($this, lines, kind, out, interruptible, fromSignal, extra) {
     tmp = false;
   }
   if (tmp)
-    $this.s1f_1 = utterances;
+    $this.v1f_1 = utterances;
   emitSpeak($this, plus(utterances, extra), kind, out, interruptible);
 }
 function speak$default($this, lines, kind, out, interruptible, fromSignal, extra, $super) {
@@ -24018,7 +24049,7 @@ function speak$default($this, lines, kind, out, interruptible, fromSignal, extra
 function emitSpeak($this, utterances, kind, out, interruptible) {
   var token = newToken($this, kind);
   if (utterances.q()) {
-    $this.c1f_1 = new Speak(emptyList(), token, interruptible);
+    $this.f1f_1 = new Speak(emptyList(), token, interruptible);
     onSpeechFinished($this, token, out);
     return Unit_instance;
   }
@@ -24026,50 +24057,50 @@ function emitSpeak($this, utterances, kind, out, interruptible) {
   var _iterator__ex2g4s = utterances.l();
   while (_iterator__ex2g4s.m()) {
     var element = _iterator__ex2g4s.n();
-    record($this, new TranscriptEntry(element.q1m_1, element.r1m_1, false));
+    record($this, new TranscriptEntry(element.u1m_1, element.v1m_1, false));
   }
   var speak = new Speak(utterances, token, interruptible);
-  $this.c1f_1 = speak;
+  $this.f1f_1 = speak;
   // Inline function 'kotlin.collections.plusAssign' call
   out.g(speak);
 }
 function newToken($this, kind) {
-  $this.v1f_1 = $this.v1f_1 + 1 | 0;
-  return kind + '#' + $this.v1f_1;
+  $this.y1f_1 = $this.y1f_1 + 1 | 0;
+  return kind + '#' + $this.y1f_1;
 }
 function kindOf($this, token) {
   return substringBefore(token, _Char___init__impl__6a9atx(35));
 }
 function record($this, entry) {
-  $this.b1f_1.oc(entry);
-  while ($this.b1f_1.kc_1 > 40) {
-    $this.b1f_1.pc();
+  $this.e1f_1.oc(entry);
+  while ($this.e1f_1.kc_1 > 40) {
+    $this.e1f_1.pc();
   }
 }
 function Companion_29() {
-  this.t1m_1 = 'prologue';
-  this.u1m_1 = 'briefing';
-  this.v1m_1 = 'teaser';
-  this.w1m_1 = 'prompt';
-  this.x1m_1 = 'retry';
-  this.y1m_1 = 'repeat';
-  this.z1m_1 = 'hint';
-  this.a1n_1 = 'missed';
-  this.b1n_1 = 'choice';
-  this.c1n_1 = 'success';
-  this.d1n_1 = 'npc';
-  this.e1n_1 = 'finale';
-  this.f1n_1 = 'outro';
-  this.g1n_1 = 'reward';
-  this.h1n_1 = 'rhythm';
-  this.i1n_1 = 'system';
+  this.x1m_1 = 'prologue';
+  this.y1m_1 = 'briefing';
+  this.z1m_1 = 'teaser';
+  this.a1n_1 = 'prompt';
+  this.b1n_1 = 'retry';
+  this.c1n_1 = 'repeat';
+  this.d1n_1 = 'hint';
+  this.e1n_1 = 'missed';
+  this.f1n_1 = 'choice';
+  this.g1n_1 = 'success';
+  this.h1n_1 = 'npc';
+  this.i1n_1 = 'finale';
+  this.j1n_1 = 'outro';
+  this.k1n_1 = 'reward';
+  this.l1n_1 = 'rhythm';
+  this.m1n_1 = 'system';
 }
 var Companion_instance_29;
 function Companion_getInstance_29() {
   return Companion_instance_29;
 }
 function GameEngine$objective$lambda(it) {
-  return '"' + first(it.g1j_1) + '"';
+  return '"' + first(it.k1j_1) + '"';
 }
 function ListenPurpose_CHALLENGE_getInstance() {
   ListenPurpose_initEntries();
@@ -24085,52 +24116,52 @@ function ListenPurpose_FREE_TALK_getInstance() {
 }
 function GameEngine(mission, rewardLines) {
   rewardLines = rewardLines === VOID ? emptyList() : rewardLines;
-  this.q1e_1 = mission;
-  this.r1e_1 = rewardLines;
-  this.s1e_1 = Phase_IDLE_getInstance();
-  this.t1e_1 = 0;
-  this.u1e_1 = false;
-  this.v1e_1 = false;
-  this.w1e_1 = null;
-  this.x1e_1 = null;
-  this.y1e_1 = new HeadingEstimate(null, HeadingSource_NONE_getInstance(), false);
+  this.t1e_1 = mission;
+  this.u1e_1 = rewardLines;
+  this.v1e_1 = Phase_IDLE_getInstance();
+  this.w1e_1 = 0;
+  this.x1e_1 = false;
+  this.y1e_1 = false;
+  this.z1e_1 = null;
+  this.a1f_1 = null;
+  this.b1f_1 = new HeadingEstimate(null, HeadingSource_NONE_getInstance(), false);
   var tmp = this;
   // Inline function 'kotlin.collections.mutableListOf' call
-  tmp.z1e_1 = ArrayList_init_$Create$();
+  tmp.c1f_1 = ArrayList_init_$Create$();
   var tmp_0 = this;
   // Inline function 'kotlin.collections.mutableMapOf' call
-  tmp_0.a1f_1 = LinkedHashMap_init_$Create$();
-  this.b1f_1 = ArrayDeque_init_$Create$();
-  this.c1f_1 = null;
-  this.d1f_1 = null;
-  this.e1f_1 = false;
+  tmp_0.d1f_1 = LinkedHashMap_init_$Create$();
+  this.e1f_1 = ArrayDeque_init_$Create$();
   this.f1f_1 = null;
-  this.g1f_1 = false;
-  this.h1f_1 = null;
-  this.i1f_1 = new Long(0, 0);
-  this.j1f_1 = 0;
-  this.k1f_1 = 0;
-  this.l1f_1 = 0;
+  this.g1f_1 = null;
+  this.h1f_1 = false;
+  this.i1f_1 = null;
+  this.j1f_1 = false;
+  this.k1f_1 = null;
+  this.l1f_1 = new Long(0, 0);
   this.m1f_1 = 0;
-  this.n1f_1 = false;
-  this.o1f_1 = new Long(0, 0);
-  this.p1f_1 = false;
-  this.q1f_1 = 0;
-  this.r1f_1 = null;
-  this.s1f_1 = emptyList();
+  this.n1f_1 = 0;
+  this.o1f_1 = 0;
+  this.p1f_1 = 0;
+  this.q1f_1 = false;
+  this.r1f_1 = new Long(0, 0);
+  this.s1f_1 = false;
+  this.t1f_1 = 0;
+  this.u1f_1 = null;
+  this.v1f_1 = emptyList();
   var tmp_1 = this;
   // Inline function 'kotlin.collections.mutableMapOf' call
-  tmp_1.t1f_1 = LinkedHashMap_init_$Create$();
-  this.u1f_1 = ArrayDeque_init_$Create$();
-  this.v1f_1 = 0;
-  this.w1f_1 = new Long(0, 0);
+  tmp_1.w1f_1 = LinkedHashMap_init_$Create$();
+  this.x1f_1 = ArrayDeque_init_$Create$();
+  this.y1f_1 = 0;
+  this.z1f_1 = new Long(0, 0);
 }
-protoOf(GameEngine).m1h = function () {
-  return getOrNull_0(this.q1e_1.f1g_1, this.t1e_1);
+protoOf(GameEngine).q1h = function () {
+  return getOrNull_0(this.t1e_1.i1g_1, this.w1e_1);
 };
-protoOf(GameEngine).h1l = function () {
+protoOf(GameEngine).l1l = function () {
   // Inline function 'kotlin.text.ifBlank' call
-  var this_0 = this.q1e_1.j1g_1;
+  var this_0 = this.t1e_1.m1g_1;
   var tmp;
   if (isBlank(this_0)) {
     tmp = null;
@@ -24140,17 +24171,17 @@ protoOf(GameEngine).h1l = function () {
   var tmp0_elvis_lhs = tmp;
   var tmp_0;
   if (tmp0_elvis_lhs == null) {
-    var tmp1_safe_receiver = firstOrNull(this.q1e_1.e1g_1);
-    tmp_0 = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.m1m_1;
+    var tmp1_safe_receiver = firstOrNull(this.t1e_1.h1g_1);
+    tmp_0 = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.q1m_1;
   } else {
     tmp_0 = tmp0_elvis_lhs;
   }
   var tmp2_elvis_lhs = tmp_0;
-  return tmp2_elvis_lhs == null ? first(this.q1e_1.b1g_1).j1n_1 : tmp2_elvis_lhs;
+  return tmp2_elvis_lhs == null ? first(this.t1e_1.e1g_1).n1n_1 : tmp2_elvis_lhs;
 };
-protoOf(GameEngine).b1i = function () {
-  var tmp0_safe_receiver = this.c1f_1;
-  var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.m1k_1;
+protoOf(GameEngine).f1i = function () {
+  var tmp0_safe_receiver = this.f1f_1;
+  var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.q1k_1;
   var tmp;
   if (tmp1_safe_receiver == null) {
     tmp = null;
@@ -24160,26 +24191,26 @@ protoOf(GameEngine).b1i = function () {
   }
   return tmp;
 };
-protoOf(GameEngine).k1m = function () {
-  return this.q1e_1.f1g_1.o();
+protoOf(GameEngine).o1m = function () {
+  return this.t1e_1.i1g_1.o();
 };
-protoOf(GameEngine).k1k = function () {
-  return !(this.c1f_1 == null);
+protoOf(GameEngine).o1k = function () {
+  return !(this.f1f_1 == null);
 };
-protoOf(GameEngine).e1k = function () {
-  return new Progress(this.q1e_1.x1f_1, this.t1e_1, toList_0(this.z1e_1), toMap_0(this.a1f_1), this.s1e_1.equals(Phase_COMPLETE_getInstance()));
+protoOf(GameEngine).i1k = function () {
+  return new Progress(this.t1e_1.a1g_1, this.w1e_1, toList_0(this.c1f_1), toMap_0(this.d1f_1), this.v1e_1.equals(Phase_COMPLETE_getInstance()));
 };
-protoOf(GameEngine).p1n = function (event) {
+protoOf(GameEngine).t1n = function (event) {
   // Inline function 'kotlin.collections.mutableListOf' call
   var out = ArrayList_init_$Create$();
   if (event instanceof Start) {
     start_0(this, event, out);
   } else {
     if (event instanceof Position) {
-      onPosition(this, event.u1n_1, out);
+      onPosition(this, event.y1n_1, out);
     } else {
       if (event instanceof Heading)
-        this.y1e_1 = event.t1n_1;
+        this.b1f_1 = event.x1n_1;
       else {
         if (event instanceof Input) {
           onInput(this, event, out);
@@ -24191,7 +24222,7 @@ protoOf(GameEngine).p1n = function (event) {
               onListenEnded(this, event, out);
             } else {
               if (event instanceof SpeechFinished) {
-                onSpeechFinished(this, event.s1n_1, out);
+                onSpeechFinished(this, event.w1n_1, out);
               } else {
                 if (event instanceof RhythmPlayed) {
                   onRhythmPlayed(this, event, out);
@@ -24203,25 +24234,25 @@ protoOf(GameEngine).p1n = function (event) {
                       onRecordingFinished(this, event, out);
                     } else {
                       if (event instanceof Tick) {
-                        onTick(this, event.r1n_1, out);
+                        onTick(this, event.v1n_1, out);
                       } else {
                         if (event instanceof Broadcast) {
                           // Inline function 'kotlin.collections.plusAssign' call
-                          this.u1f_1.g(event);
+                          this.x1f_1.g(event);
                           deliverBroadcast(this, out);
                         } else {
                           if (equals(event, ForceLock_instance)) {
-                            if (this.s1e_1.equals(Phase_HUNTING_getInstance()) && !this.u1e_1) {
+                            if (this.v1e_1.equals(Phase_HUNTING_getInstance()) && !this.x1e_1) {
                               beginEncounter(this, out);
                             }
                           } else {
                             if (equals(event, ForceSolve_instance)) {
-                              if ((this.s1e_1.equals(Phase_HUNTING_getInstance()) || this.s1e_1.equals(Phase_ENCOUNTER_getInstance())) && !this.u1e_1) {
+                              if ((this.v1e_1.equals(Phase_HUNTING_getInstance()) || this.v1e_1.equals(Phase_ENCOUNTER_getInstance())) && !this.x1e_1) {
                                 succeed(this, out);
                               }
                             } else {
                               if (event instanceof JumpTo) {
-                                jumpTo(this, event.q1n_1, out);
+                                jumpTo(this, event.u1n_1, out);
                               } else {
                                 noWhenBranchMatchedException();
                               }
@@ -24241,19 +24272,19 @@ protoOf(GameEngine).p1n = function (event) {
   }
   return out;
 };
-protoOf(GameEngine).n1l = function () {
-  var signal = this.m1h();
-  var r = this.x1e_1;
-  var tmp = this.s1e_1;
-  var tmp_0 = this.v1n();
-  var tmp_1 = signal == null ? null : signal.n1g_1;
-  var tmp_2 = signal == null ? null : signal.o1g_1;
+protoOf(GameEngine).r1l = function () {
+  var signal = this.q1h();
+  var r = this.a1f_1;
+  var tmp = this.v1e_1;
+  var tmp_0 = this.z1n();
+  var tmp_1 = signal == null ? null : signal.q1g_1;
+  var tmp_2 = signal == null ? null : signal.r1g_1;
   var tmp_3;
   if (r == null) {
     tmp_3 = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp_3 = Geo_getInstance().i1m(r.n1h_1);
+    tmp_3 = Geo_getInstance().m1m(r.r1h_1);
   }
   var tmp_4 = tmp_3;
   var tmp_5;
@@ -24261,13 +24292,13 @@ protoOf(GameEngine).n1l = function () {
     tmp_5 = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp_5 = this.j1m(r.p1h_1);
+    tmp_5 = this.n1m(r.t1h_1);
   }
   var tmp_6 = tmp_5;
-  var tmp_7 = this.z1e_1.o();
-  var tmp_8 = this.k1m();
-  var tmp_9 = toMap_0(this.a1f_1);
-  var tmp5_safe_receiver = signal == null ? null : signal.x1g_1;
+  var tmp_7 = this.c1f_1.o();
+  var tmp_8 = this.o1m();
+  var tmp_9 = toMap_0(this.d1f_1);
+  var tmp5_safe_receiver = signal == null ? null : signal.b1h_1;
   var tmp_10;
   if (tmp5_safe_receiver == null) {
     tmp_10 = null;
@@ -24277,8 +24308,8 @@ protoOf(GameEngine).n1l = function () {
   }
   return new CharacterContext(tmp, tmp_0, tmp_1, tmp_2, tmp_4, tmp_6, tmp_7, tmp_8, tmp_9, tmp_10);
 };
-protoOf(GameEngine).w1h = function (c) {
-  var tmp0_elvis_lhs = this.y1e_1.w1n_1;
+protoOf(GameEngine).a1i = function (c) {
+  var tmp0_elvis_lhs = this.b1f_1.a1o_1;
   var tmp;
   if (tmp0_elvis_lhs == null) {
     return null;
@@ -24286,12 +24317,12 @@ protoOf(GameEngine).w1h = function (c) {
     tmp = tmp0_elvis_lhs;
   }
   var h = tmp;
-  var tmp1_safe_receiver = this.w1e_1;
-  var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.o1k_1;
+  var tmp1_safe_receiver = this.z1e_1;
+  var tmp2_elvis_lhs = tmp1_safe_receiver == null ? null : tmp1_safe_receiver.s1k_1;
   var tmp_0;
   if (tmp2_elvis_lhs == null) {
-    var tmp3_safe_receiver = this.m1h();
-    tmp_0 = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.p1g_1;
+    var tmp3_safe_receiver = this.q1h();
+    tmp_0 = tmp3_safe_receiver == null ? null : tmp3_safe_receiver.s1g_1;
   } else {
     tmp_0 = tmp2_elvis_lhs;
   }
@@ -24303,24 +24334,24 @@ protoOf(GameEngine).w1h = function (c) {
     tmp_1 = tmp4_elvis_lhs;
   }
   var from = tmp_1;
-  return Geo_getInstance().a1o(h, Geo_getInstance().z1n(from, c.z1l_1));
+  return Geo_getInstance().g1o(h, Geo_getInstance().f1o(from, c.d1m_1));
 };
-protoOf(GameEngine).j1m = function (bearingDeg) {
-  var tmp0_elvis_lhs = this.y1e_1.w1n_1;
+protoOf(GameEngine).n1m = function (bearingDeg) {
+  var tmp0_elvis_lhs = this.b1f_1.a1o_1;
   var tmp;
   if (tmp0_elvis_lhs == null) {
-    return 'to the ' + Geo_getInstance().b1o(bearingDeg);
+    return 'to the ' + Geo_getInstance().h1o(bearingDeg);
   } else {
     tmp = tmp0_elvis_lhs;
   }
   var h = tmp;
-  var clock = Geo_getInstance().c1o(Geo_getInstance().a1o(h, bearingDeg));
+  var clock = Geo_getInstance().i1o(Geo_getInstance().g1o(h, bearingDeg));
   return clock === 12 ? 'straight ahead' : 'at ' + clock + " o'clock";
 };
-protoOf(GameEngine).v1n = function () {
-  var signal = this.m1h();
+protoOf(GameEngine).z1n = function () {
+  var signal = this.q1h();
   var tmp;
-  switch (this.s1e_1.e2_1) {
+  switch (this.v1e_1.e2_1) {
     case 0:
       tmp = 'Stand by';
       break;
@@ -24328,8 +24359,8 @@ protoOf(GameEngine).v1n = function () {
       tmp = 'Listen to the briefing';
       break;
     case 2:
-      var tmp_0 = 'Find ' + (signal == null ? null : signal.n1g_1);
-      var tmp3_safe_receiver = signal == null ? null : signal.o1g_1;
+      var tmp_0 = 'Find ' + (signal == null ? null : signal.q1g_1);
+      var tmp3_safe_receiver = signal == null ? null : signal.r1g_1;
       var tmp_1;
       if (tmp3_safe_receiver == null) {
         tmp_1 = null;
@@ -24358,21 +24389,21 @@ protoOf(GameEngine).v1n = function () {
       tmp = tmp_0 + (tmp5_elvis_lhs == null ? '' : tmp5_elvis_lhs);
       break;
     case 3:
-      var c = signal == null ? null : signal.x1g_1;
+      var c = signal == null ? null : signal.b1h_1;
       var tmp_4;
       if (c instanceof Command) {
-        tmp_4 = 'Say "' + first(c.m1j_1) + '"';
+        tmp_4 = 'Say "' + first(c.q1j_1) + '"';
       } else {
         if (c instanceof Passphrase) {
           tmp_4 = 'Speak the passphrase';
         } else {
           if (c instanceof Choice) {
-            tmp_4 = 'Choose: ' + joinToString_0(c.e1j_1, ' or ', VOID, VOID, VOID, VOID, GameEngine$objective$lambda);
+            tmp_4 = 'Choose: ' + joinToString_0(c.i1j_1, ' or ', VOID, VOID, VOID, VOID, GameEngine$objective$lambda);
           } else {
             if (c instanceof Ask) {
-              var tmp7_safe_receiver = this.q1e_1.f1m(signal.t1g_1);
-              var tmp8_elvis_lhs = tmp7_safe_receiver == null ? null : tmp7_safe_receiver.k1n_1;
-              tmp_4 = 'Ask ' + (tmp8_elvis_lhs == null ? 'them' : tmp8_elvis_lhs) + ' a question, then say "' + first(c.a1j_1) + '"';
+              var tmp7_safe_receiver = this.t1e_1.j1m(signal.x1g_1);
+              var tmp8_elvis_lhs = tmp7_safe_receiver == null ? null : tmp7_safe_receiver.o1n_1;
+              tmp_4 = 'Ask ' + (tmp8_elvis_lhs == null ? 'them' : tmp8_elvis_lhs) + ' a question, then say "' + first(c.e1j_1) + '"';
             } else {
               if (c instanceof Rhythm) {
                 tmp_4 = 'Tap the rhythm back on the touchpad';
@@ -24381,7 +24412,7 @@ protoOf(GameEngine).v1n = function () {
                   tmp_4 = 'Record a message \xB7 press capture to finish';
                 } else {
                   if (c instanceof Tune) {
-                    tmp_4 = 'Face ' + c.a1m_1 + ' \xB7 press capture';
+                    tmp_4 = 'Face ' + c.e1m_1 + ' \xB7 press capture';
                   } else {
                     if (c == null) {
                       tmp_4 = '';
@@ -24399,7 +24430,7 @@ protoOf(GameEngine).v1n = function () {
       tmp = tmp_4;
       break;
     case 4:
-      tmp = 'Fragment ' + this.z1e_1.o() + ' of ' + this.k1m() + ' collected';
+      tmp = 'Fragment ' + this.c1f_1.o() + ' of ' + this.o1m() + ' collected';
       break;
     case 5:
       tmp = 'The final broadcast';
@@ -24429,21 +24460,21 @@ function Zone(name, ordinal) {
   Enum.call(this, name, ordinal);
 }
 function SignalReading(distanceM, effectiveDistanceM, bearingDeg, strength, zone) {
-  this.n1h_1 = distanceM;
-  this.o1h_1 = effectiveDistanceM;
-  this.p1h_1 = bearingDeg;
-  this.q1h_1 = strength;
-  this.r1h_1 = zone;
+  this.r1h_1 = distanceM;
+  this.s1h_1 = effectiveDistanceM;
+  this.t1h_1 = bearingDeg;
+  this.u1h_1 = strength;
+  this.v1h_1 = zone;
 }
 protoOf(SignalReading).toString = function () {
-  return 'SignalReading(distanceM=' + this.n1h_1 + ', effectiveDistanceM=' + this.o1h_1 + ', bearingDeg=' + this.p1h_1 + ', strength=' + this.q1h_1 + ', zone=' + this.r1h_1.toString() + ')';
+  return 'SignalReading(distanceM=' + this.r1h_1 + ', effectiveDistanceM=' + this.s1h_1 + ', bearingDeg=' + this.t1h_1 + ', strength=' + this.u1h_1 + ', zone=' + this.v1h_1.toString() + ')';
 };
 protoOf(SignalReading).hashCode = function () {
-  var result = getNumberHashCode(this.n1h_1);
-  result = imul_0(result, 31) + getNumberHashCode(this.o1h_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.p1h_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.q1h_1) | 0;
-  result = imul_0(result, 31) + this.r1h_1.hashCode() | 0;
+  var result = getNumberHashCode(this.r1h_1);
+  result = imul_0(result, 31) + getNumberHashCode(this.s1h_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.t1h_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.u1h_1) | 0;
+  result = imul_0(result, 31) + this.v1h_1.hashCode() | 0;
   return result;
 };
 protoOf(SignalReading).equals = function (other) {
@@ -24451,54 +24482,54 @@ protoOf(SignalReading).equals = function (other) {
     return true;
   if (!(other instanceof SignalReading))
     return false;
-  if (!equals(this.n1h_1, other.n1h_1))
+  if (!equals(this.r1h_1, other.r1h_1))
     return false;
-  if (!equals(this.o1h_1, other.o1h_1))
+  if (!equals(this.s1h_1, other.s1h_1))
     return false;
-  if (!equals(this.p1h_1, other.p1h_1))
+  if (!equals(this.t1h_1, other.t1h_1))
     return false;
-  if (!equals(this.q1h_1, other.q1h_1))
+  if (!equals(this.u1h_1, other.u1h_1))
     return false;
-  if (!this.r1h_1.equals(other.r1h_1))
+  if (!this.v1h_1.equals(other.v1h_1))
     return false;
   return true;
 };
 function SignalField() {
-  this.s1h_1 = 0.5;
-  this.t1h_1 = 30.0;
-  this.u1h_1 = 0.04;
+  this.w1h_1 = 0.5;
+  this.x1h_1 = 30.0;
+  this.y1h_1 = 0.04;
 }
-protoOf(SignalField).q1i = function (signal, fix) {
-  var distance = Geo_getInstance().d1o(fix.o1k_1, signal.p1g_1);
+protoOf(SignalField).u1i = function (signal, fix) {
+  var distance = Geo_getInstance().j1o(fix.s1k_1, signal.s1g_1);
   // Inline function 'kotlin.math.min' call
-  var a = fix.p1k_1;
+  var a = fix.t1k_1;
   var credit = Math.min(a, 30.0) * 0.5;
   // Inline function 'kotlin.math.max' call
   var b = distance - credit;
   var effective = Math.max(0.0, b);
-  var audible = this.e1o(signal);
+  var audible = this.k1o(signal);
   var tmp;
-  if (effective <= signal.r1g_1) {
+  if (effective <= signal.u1g_1) {
     tmp = 1.0;
   } else {
-    var t = coerceIn((effective - signal.r1g_1) / (audible - signal.r1g_1), 0.0, 1.0);
+    var t = coerceIn((effective - signal.u1g_1) / (audible - signal.u1g_1), 0.0, 1.0);
     var s = 1.0 - t * t * (3 - 2 * t);
     // Inline function 'kotlin.math.max' call
     tmp = Math.max(0.04, s);
   }
   var strength = tmp;
-  var zone = effective <= signal.r1g_1 ? Zone_LOCK_getInstance() : effective <= signal.q1g_1 ? Zone_NEAR_getInstance() : Zone_FAR_getInstance();
-  return new SignalReading(distance, effective, Geo_getInstance().z1n(fix.o1k_1, signal.p1g_1), strength, zone);
+  var zone = effective <= signal.u1g_1 ? Zone_LOCK_getInstance() : effective <= signal.t1g_1 ? Zone_NEAR_getInstance() : Zone_FAR_getInstance();
+  return new SignalReading(distance, effective, Geo_getInstance().f1o(fix.s1k_1, signal.s1g_1), strength, zone);
 };
-protoOf(SignalField).e1o = function (signal) {
+protoOf(SignalField).k1o = function (signal) {
   // Inline function 'kotlin.math.max' call
-  var a = signal.q1g_1 * 5.0;
+  var a = signal.t1g_1 * 5.0;
   return Math.max(a, 260.0);
 };
-protoOf(SignalField).u1k = function (signal, reading) {
-  return reading.o1h_1 <= signal.r1g_1 * 1.4;
+protoOf(SignalField).y1k = function (signal, reading) {
+  return reading.s1h_1 <= signal.u1g_1 * 1.4;
 };
-protoOf(SignalField).v1h = function (strength) {
+protoOf(SignalField).z1h = function (strength) {
   return numberToLong(3800 - 3200 * coerceIn(strength, 0.0, 1.0));
 };
 var SignalField_instance;
@@ -24616,19 +24647,19 @@ function Sfx(name, ordinal) {
 }
 function Utterance(lineId, speaker, text, fromSignal) {
   fromSignal = fromSignal === VOID ? null : fromSignal;
-  this.p1m_1 = lineId;
-  this.q1m_1 = speaker;
-  this.r1m_1 = text;
-  this.s1m_1 = fromSignal;
+  this.t1m_1 = lineId;
+  this.u1m_1 = speaker;
+  this.v1m_1 = text;
+  this.w1m_1 = fromSignal;
 }
 protoOf(Utterance).toString = function () {
-  return 'Utterance(lineId=' + this.p1m_1 + ', speaker=' + this.q1m_1 + ', text=' + this.r1m_1 + ', fromSignal=' + this.s1m_1 + ')';
+  return 'Utterance(lineId=' + this.t1m_1 + ', speaker=' + this.u1m_1 + ', text=' + this.v1m_1 + ', fromSignal=' + this.w1m_1 + ')';
 };
 protoOf(Utterance).hashCode = function () {
-  var result = this.p1m_1 == null ? 0 : getStringHashCode(this.p1m_1);
-  result = imul_0(result, 31) + getStringHashCode(this.q1m_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.r1m_1) | 0;
-  result = imul_0(result, 31) + (this.s1m_1 == null ? 0 : getStringHashCode(this.s1m_1)) | 0;
+  var result = this.t1m_1 == null ? 0 : getStringHashCode(this.t1m_1);
+  result = imul_0(result, 31) + getStringHashCode(this.u1m_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.v1m_1) | 0;
+  result = imul_0(result, 31) + (this.w1m_1 == null ? 0 : getStringHashCode(this.w1m_1)) | 0;
   return result;
 };
 protoOf(Utterance).equals = function (other) {
@@ -24636,26 +24667,26 @@ protoOf(Utterance).equals = function (other) {
     return true;
   if (!(other instanceof Utterance))
     return false;
-  if (!(this.p1m_1 == other.p1m_1))
+  if (!(this.t1m_1 == other.t1m_1))
     return false;
-  if (!(this.q1m_1 === other.q1m_1))
+  if (!(this.u1m_1 === other.u1m_1))
     return false;
-  if (!(this.r1m_1 === other.r1m_1))
+  if (!(this.v1m_1 === other.v1m_1))
     return false;
-  if (!(this.s1m_1 == other.s1m_1))
+  if (!(this.w1m_1 == other.w1m_1))
     return false;
   return true;
 };
 function Turn(fromPlayer, text) {
-  this.f1o_1 = fromPlayer;
-  this.g1o_1 = text;
+  this.l1o_1 = fromPlayer;
+  this.m1o_1 = text;
 }
 protoOf(Turn).toString = function () {
-  return 'Turn(fromPlayer=' + this.f1o_1 + ', text=' + this.g1o_1 + ')';
+  return 'Turn(fromPlayer=' + this.l1o_1 + ', text=' + this.m1o_1 + ')';
 };
 protoOf(Turn).hashCode = function () {
-  var result = getBooleanHashCode(this.f1o_1);
-  result = imul_0(result, 31) + getStringHashCode(this.g1o_1) | 0;
+  var result = getBooleanHashCode(this.l1o_1);
+  result = imul_0(result, 31) + getStringHashCode(this.m1o_1) | 0;
   return result;
 };
 protoOf(Turn).equals = function (other) {
@@ -24663,38 +24694,38 @@ protoOf(Turn).equals = function (other) {
     return true;
   if (!(other instanceof Turn))
     return false;
-  if (!(this.f1o_1 === other.f1o_1))
+  if (!(this.l1o_1 === other.l1o_1))
     return false;
-  if (!(this.g1o_1 === other.g1o_1))
+  if (!(this.m1o_1 === other.m1o_1))
     return false;
   return true;
 };
 function CharacterContext(phase, objective, signalName, place, distance, direction, collected, total, flags, challenge) {
-  this.h1o_1 = phase;
-  this.i1o_1 = objective;
-  this.j1o_1 = signalName;
-  this.k1o_1 = place;
-  this.l1o_1 = distance;
-  this.m1o_1 = direction;
-  this.n1o_1 = collected;
-  this.o1o_1 = total;
-  this.p1o_1 = flags;
-  this.q1o_1 = challenge;
+  this.n1o_1 = phase;
+  this.o1o_1 = objective;
+  this.p1o_1 = signalName;
+  this.q1o_1 = place;
+  this.r1o_1 = distance;
+  this.s1o_1 = direction;
+  this.t1o_1 = collected;
+  this.u1o_1 = total;
+  this.v1o_1 = flags;
+  this.w1o_1 = challenge;
 }
 protoOf(CharacterContext).toString = function () {
-  return 'CharacterContext(phase=' + this.h1o_1.toString() + ', objective=' + this.i1o_1 + ', signalName=' + this.j1o_1 + ', place=' + this.k1o_1 + ', distance=' + this.l1o_1 + ', direction=' + this.m1o_1 + ', collected=' + this.n1o_1 + ', total=' + this.o1o_1 + ', flags=' + toString_1(this.p1o_1) + ', challenge=' + this.q1o_1 + ')';
+  return 'CharacterContext(phase=' + this.n1o_1.toString() + ', objective=' + this.o1o_1 + ', signalName=' + this.p1o_1 + ', place=' + this.q1o_1 + ', distance=' + this.r1o_1 + ', direction=' + this.s1o_1 + ', collected=' + this.t1o_1 + ', total=' + this.u1o_1 + ', flags=' + toString_1(this.v1o_1) + ', challenge=' + this.w1o_1 + ')';
 };
 protoOf(CharacterContext).hashCode = function () {
-  var result = this.h1o_1.hashCode();
-  result = imul_0(result, 31) + getStringHashCode(this.i1o_1) | 0;
-  result = imul_0(result, 31) + (this.j1o_1 == null ? 0 : getStringHashCode(this.j1o_1)) | 0;
-  result = imul_0(result, 31) + (this.k1o_1 == null ? 0 : getStringHashCode(this.k1o_1)) | 0;
-  result = imul_0(result, 31) + (this.l1o_1 == null ? 0 : getStringHashCode(this.l1o_1)) | 0;
-  result = imul_0(result, 31) + (this.m1o_1 == null ? 0 : getStringHashCode(this.m1o_1)) | 0;
-  result = imul_0(result, 31) + this.n1o_1 | 0;
-  result = imul_0(result, 31) + this.o1o_1 | 0;
-  result = imul_0(result, 31) + hashCode_0(this.p1o_1) | 0;
+  var result = this.n1o_1.hashCode();
+  result = imul_0(result, 31) + getStringHashCode(this.o1o_1) | 0;
+  result = imul_0(result, 31) + (this.p1o_1 == null ? 0 : getStringHashCode(this.p1o_1)) | 0;
   result = imul_0(result, 31) + (this.q1o_1 == null ? 0 : getStringHashCode(this.q1o_1)) | 0;
+  result = imul_0(result, 31) + (this.r1o_1 == null ? 0 : getStringHashCode(this.r1o_1)) | 0;
+  result = imul_0(result, 31) + (this.s1o_1 == null ? 0 : getStringHashCode(this.s1o_1)) | 0;
+  result = imul_0(result, 31) + this.t1o_1 | 0;
+  result = imul_0(result, 31) + this.u1o_1 | 0;
+  result = imul_0(result, 31) + hashCode_0(this.v1o_1) | 0;
+  result = imul_0(result, 31) + (this.w1o_1 == null ? 0 : getStringHashCode(this.w1o_1)) | 0;
   return result;
 };
 protoOf(CharacterContext).equals = function (other) {
@@ -24702,46 +24733,46 @@ protoOf(CharacterContext).equals = function (other) {
     return true;
   if (!(other instanceof CharacterContext))
     return false;
-  if (!this.h1o_1.equals(other.h1o_1))
-    return false;
-  if (!(this.i1o_1 === other.i1o_1))
-    return false;
-  if (!(this.j1o_1 == other.j1o_1))
-    return false;
-  if (!(this.k1o_1 == other.k1o_1))
-    return false;
-  if (!(this.l1o_1 == other.l1o_1))
-    return false;
-  if (!(this.m1o_1 == other.m1o_1))
-    return false;
-  if (!(this.n1o_1 === other.n1o_1))
+  if (!this.n1o_1.equals(other.n1o_1))
     return false;
   if (!(this.o1o_1 === other.o1o_1))
     return false;
-  if (!equals(this.p1o_1, other.p1o_1))
+  if (!(this.p1o_1 == other.p1o_1))
     return false;
   if (!(this.q1o_1 == other.q1o_1))
+    return false;
+  if (!(this.r1o_1 == other.r1o_1))
+    return false;
+  if (!(this.s1o_1 == other.s1o_1))
+    return false;
+  if (!(this.t1o_1 === other.t1o_1))
+    return false;
+  if (!(this.u1o_1 === other.u1o_1))
+    return false;
+  if (!equals(this.v1o_1, other.v1o_1))
+    return false;
+  if (!(this.w1o_1 == other.w1o_1))
     return false;
   return true;
 };
 function CharacterRequest(requestId, characterId, signalId, utterance, context, history) {
-  this.r1o_1 = requestId;
-  this.s1o_1 = characterId;
-  this.t1o_1 = signalId;
-  this.u1o_1 = utterance;
-  this.v1o_1 = context;
-  this.w1o_1 = history;
+  this.x1o_1 = requestId;
+  this.y1o_1 = characterId;
+  this.z1o_1 = signalId;
+  this.a1p_1 = utterance;
+  this.b1p_1 = context;
+  this.c1p_1 = history;
 }
 protoOf(CharacterRequest).toString = function () {
-  return 'CharacterRequest(requestId=' + this.r1o_1 + ', characterId=' + this.s1o_1 + ', signalId=' + this.t1o_1 + ', utterance=' + this.u1o_1 + ', context=' + this.v1o_1.toString() + ', history=' + toString_1(this.w1o_1) + ')';
+  return 'CharacterRequest(requestId=' + this.x1o_1 + ', characterId=' + this.y1o_1 + ', signalId=' + this.z1o_1 + ', utterance=' + this.a1p_1 + ', context=' + this.b1p_1.toString() + ', history=' + toString_1(this.c1p_1) + ')';
 };
 protoOf(CharacterRequest).hashCode = function () {
-  var result = this.r1o_1;
-  result = imul_0(result, 31) + getStringHashCode(this.s1o_1) | 0;
-  result = imul_0(result, 31) + (this.t1o_1 == null ? 0 : getStringHashCode(this.t1o_1)) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.u1o_1) | 0;
-  result = imul_0(result, 31) + this.v1o_1.hashCode() | 0;
-  result = imul_0(result, 31) + hashCode_0(this.w1o_1) | 0;
+  var result = this.x1o_1;
+  result = imul_0(result, 31) + getStringHashCode(this.y1o_1) | 0;
+  result = imul_0(result, 31) + (this.z1o_1 == null ? 0 : getStringHashCode(this.z1o_1)) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.a1p_1) | 0;
+  result = imul_0(result, 31) + this.b1p_1.hashCode() | 0;
+  result = imul_0(result, 31) + hashCode_0(this.c1p_1) | 0;
   return result;
 };
 protoOf(CharacterRequest).equals = function (other) {
@@ -24749,32 +24780,32 @@ protoOf(CharacterRequest).equals = function (other) {
     return true;
   if (!(other instanceof CharacterRequest))
     return false;
-  if (!(this.r1o_1 === other.r1o_1))
+  if (!(this.x1o_1 === other.x1o_1))
     return false;
-  if (!(this.s1o_1 === other.s1o_1))
+  if (!(this.y1o_1 === other.y1o_1))
     return false;
-  if (!(this.t1o_1 == other.t1o_1))
+  if (!(this.z1o_1 == other.z1o_1))
     return false;
-  if (!(this.u1o_1 === other.u1o_1))
+  if (!(this.a1p_1 === other.a1p_1))
     return false;
-  if (!this.v1o_1.equals(other.v1o_1))
+  if (!this.b1p_1.equals(other.b1p_1))
     return false;
-  if (!equals(this.w1o_1, other.w1o_1))
+  if (!equals(this.c1p_1, other.c1p_1))
     return false;
   return true;
 };
 function Speak(utterances, token, interruptible) {
-  this.l1k_1 = utterances;
-  this.m1k_1 = token;
-  this.n1k_1 = interruptible;
+  this.p1k_1 = utterances;
+  this.q1k_1 = token;
+  this.r1k_1 = interruptible;
 }
 protoOf(Speak).toString = function () {
-  return 'Speak(utterances=' + toString_1(this.l1k_1) + ', token=' + this.m1k_1 + ', interruptible=' + this.n1k_1 + ')';
+  return 'Speak(utterances=' + toString_1(this.p1k_1) + ', token=' + this.q1k_1 + ', interruptible=' + this.r1k_1 + ')';
 };
 protoOf(Speak).hashCode = function () {
-  var result = hashCode_0(this.l1k_1);
-  result = imul_0(result, 31) + getStringHashCode(this.m1k_1) | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.n1k_1) | 0;
+  var result = hashCode_0(this.p1k_1);
+  result = imul_0(result, 31) + getStringHashCode(this.q1k_1) | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.r1k_1) | 0;
   return result;
 };
 protoOf(Speak).equals = function (other) {
@@ -24782,11 +24813,11 @@ protoOf(Speak).equals = function (other) {
     return true;
   if (!(other instanceof Speak))
     return false;
-  if (!equals(this.l1k_1, other.l1k_1))
+  if (!equals(this.p1k_1, other.p1k_1))
     return false;
-  if (!(this.m1k_1 === other.m1k_1))
+  if (!(this.q1k_1 === other.q1k_1))
     return false;
-  if (!(this.n1k_1 === other.n1k_1))
+  if (!(this.r1k_1 === other.r1k_1))
     return false;
   return true;
 };
@@ -24810,37 +24841,37 @@ function StopSpeaking_getInstance() {
   return StopSpeaking_instance;
 }
 function PlaySfx(sfx) {
-  this.x1o_1 = sfx;
+  this.d1p_1 = sfx;
 }
 protoOf(PlaySfx).toString = function () {
-  return 'PlaySfx(sfx=' + this.x1o_1.toString() + ')';
+  return 'PlaySfx(sfx=' + this.d1p_1.toString() + ')';
 };
 protoOf(PlaySfx).hashCode = function () {
-  return this.x1o_1.hashCode();
+  return this.d1p_1.hashCode();
 };
 protoOf(PlaySfx).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof PlaySfx))
     return false;
-  if (!this.x1o_1.equals(other.x1o_1))
+  if (!this.d1p_1.equals(other.d1p_1))
     return false;
   return true;
 };
 function Listen(mode, timeoutMs, token, hints) {
-  this.y1o_1 = mode;
-  this.z1o_1 = timeoutMs;
-  this.a1p_1 = token;
-  this.b1p_1 = hints;
+  this.e1p_1 = mode;
+  this.f1p_1 = timeoutMs;
+  this.g1p_1 = token;
+  this.h1p_1 = hints;
 }
 protoOf(Listen).toString = function () {
-  return 'Listen(mode=' + this.y1o_1.toString() + ', timeoutMs=' + this.z1o_1.toString() + ', token=' + this.a1p_1 + ', hints=' + toString_1(this.b1p_1) + ')';
+  return 'Listen(mode=' + this.e1p_1.toString() + ', timeoutMs=' + this.f1p_1.toString() + ', token=' + this.g1p_1 + ', hints=' + toString_1(this.h1p_1) + ')';
 };
 protoOf(Listen).hashCode = function () {
-  var result = this.y1o_1.hashCode();
-  result = imul_0(result, 31) + this.z1o_1.hashCode() | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.a1p_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.b1p_1) | 0;
+  var result = this.e1p_1.hashCode();
+  result = imul_0(result, 31) + this.f1p_1.hashCode() | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.g1p_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.h1p_1) | 0;
   return result;
 };
 protoOf(Listen).equals = function (other) {
@@ -24848,13 +24879,13 @@ protoOf(Listen).equals = function (other) {
     return true;
   if (!(other instanceof Listen))
     return false;
-  if (!this.y1o_1.equals(other.y1o_1))
+  if (!this.e1p_1.equals(other.e1p_1))
     return false;
-  if (!equalsLong(this.z1o_1, other.z1o_1))
+  if (!equalsLong(this.f1p_1, other.f1p_1))
     return false;
-  if (!(this.a1p_1 === other.a1p_1))
+  if (!(this.g1p_1 === other.g1p_1))
     return false;
-  if (!equals(this.b1p_1, other.b1p_1))
+  if (!equals(this.h1p_1, other.h1p_1))
     return false;
   return true;
 };
@@ -24878,33 +24909,33 @@ function StopListening_getInstance() {
   return StopListening_instance;
 }
 function AskCharacter(request) {
-  this.c1p_1 = request;
+  this.i1p_1 = request;
 }
 protoOf(AskCharacter).toString = function () {
-  return 'AskCharacter(request=' + this.c1p_1.toString() + ')';
+  return 'AskCharacter(request=' + this.i1p_1.toString() + ')';
 };
 protoOf(AskCharacter).hashCode = function () {
-  return this.c1p_1.hashCode();
+  return this.i1p_1.hashCode();
 };
 protoOf(AskCharacter).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof AskCharacter))
     return false;
-  if (!this.c1p_1.equals(other.c1p_1))
+  if (!this.i1p_1.equals(other.i1p_1))
     return false;
   return true;
 };
 function StartRecording(signalId, maxSeconds) {
-  this.d1p_1 = signalId;
-  this.e1p_1 = maxSeconds;
+  this.j1p_1 = signalId;
+  this.k1p_1 = maxSeconds;
 }
 protoOf(StartRecording).toString = function () {
-  return 'StartRecording(signalId=' + this.d1p_1 + ', maxSeconds=' + this.e1p_1 + ')';
+  return 'StartRecording(signalId=' + this.j1p_1 + ', maxSeconds=' + this.k1p_1 + ')';
 };
 protoOf(StartRecording).hashCode = function () {
-  var result = getStringHashCode(this.d1p_1);
-  result = imul_0(result, 31) + this.e1p_1 | 0;
+  var result = getStringHashCode(this.j1p_1);
+  result = imul_0(result, 31) + this.k1p_1 | 0;
   return result;
 };
 protoOf(StartRecording).equals = function (other) {
@@ -24912,9 +24943,9 @@ protoOf(StartRecording).equals = function (other) {
     return true;
   if (!(other instanceof StartRecording))
     return false;
-  if (!(this.d1p_1 === other.d1p_1))
+  if (!(this.j1p_1 === other.j1p_1))
     return false;
-  if (!(this.e1p_1 === other.e1p_1))
+  if (!(this.k1p_1 === other.k1p_1))
     return false;
   return true;
 };
@@ -24938,15 +24969,15 @@ function StopRecording_getInstance() {
   return StopRecording_instance;
 }
 function PlayRhythm(onsetsBeats, token) {
-  this.f1p_1 = onsetsBeats;
-  this.g1p_1 = token;
+  this.l1p_1 = onsetsBeats;
+  this.m1p_1 = token;
 }
 protoOf(PlayRhythm).toString = function () {
-  return 'PlayRhythm(onsetsBeats=' + toString_1(this.f1p_1) + ', token=' + this.g1p_1 + ')';
+  return 'PlayRhythm(onsetsBeats=' + toString_1(this.l1p_1) + ', token=' + this.m1p_1 + ')';
 };
 protoOf(PlayRhythm).hashCode = function () {
-  var result = hashCode_0(this.f1p_1);
-  result = imul_0(result, 31) + getStringHashCode(this.g1p_1) | 0;
+  var result = hashCode_0(this.l1p_1);
+  result = imul_0(result, 31) + getStringHashCode(this.m1p_1) | 0;
   return result;
 };
 protoOf(PlayRhythm).equals = function (other) {
@@ -24954,59 +24985,59 @@ protoOf(PlayRhythm).equals = function (other) {
     return true;
   if (!(other instanceof PlayRhythm))
     return false;
-  if (!equals(this.f1p_1, other.f1p_1))
+  if (!equals(this.l1p_1, other.l1p_1))
     return false;
-  if (!(this.g1p_1 === other.g1p_1))
+  if (!(this.m1p_1 === other.m1p_1))
     return false;
   return true;
 };
 function UnlockStem(stemId) {
-  this.h1p_1 = stemId;
+  this.n1p_1 = stemId;
 }
 protoOf(UnlockStem).toString = function () {
-  return 'UnlockStem(stemId=' + this.h1p_1 + ')';
+  return 'UnlockStem(stemId=' + this.n1p_1 + ')';
 };
 protoOf(UnlockStem).hashCode = function () {
-  return getStringHashCode(this.h1p_1);
+  return getStringHashCode(this.n1p_1);
 };
 protoOf(UnlockStem).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof UnlockStem))
     return false;
-  if (!(this.h1p_1 === other.h1p_1))
+  if (!(this.n1p_1 === other.n1p_1))
     return false;
   return true;
 };
 function Persist(progress) {
-  this.i1p_1 = progress;
+  this.o1p_1 = progress;
 }
 protoOf(Persist).toString = function () {
-  return 'Persist(progress=' + this.i1p_1.toString() + ')';
+  return 'Persist(progress=' + this.o1p_1.toString() + ')';
 };
 protoOf(Persist).hashCode = function () {
-  return this.i1p_1.hashCode();
+  return this.o1p_1.hashCode();
 };
 protoOf(Persist).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof Persist))
     return false;
-  if (!this.i1p_1.equals(other.i1p_1))
+  if (!this.o1p_1.equals(other.o1p_1))
     return false;
   return true;
 };
 function Start(nowMs, resume) {
   resume = resume === VOID ? null : resume;
-  this.j1i_1 = nowMs;
-  this.k1i_1 = resume;
+  this.n1i_1 = nowMs;
+  this.o1i_1 = resume;
 }
 protoOf(Start).toString = function () {
-  return 'Start(nowMs=' + this.j1i_1.toString() + ', resume=' + toString_0(this.k1i_1) + ')';
+  return 'Start(nowMs=' + this.n1i_1.toString() + ', resume=' + toString_0(this.o1i_1) + ')';
 };
 protoOf(Start).hashCode = function () {
-  var result = this.j1i_1.hashCode();
-  result = imul_0(result, 31) + (this.k1i_1 == null ? 0 : this.k1i_1.hashCode()) | 0;
+  var result = this.n1i_1.hashCode();
+  result = imul_0(result, 31) + (this.o1i_1 == null ? 0 : this.o1i_1.hashCode()) | 0;
   return result;
 };
 protoOf(Start).equals = function (other) {
@@ -25014,61 +25045,61 @@ protoOf(Start).equals = function (other) {
     return true;
   if (!(other instanceof Start))
     return false;
-  if (!equalsLong(this.j1i_1, other.j1i_1))
+  if (!equalsLong(this.n1i_1, other.n1i_1))
     return false;
-  if (!equals(this.k1i_1, other.k1i_1))
+  if (!equals(this.o1i_1, other.o1i_1))
     return false;
   return true;
 };
 function Position(fix) {
-  this.u1n_1 = fix;
+  this.y1n_1 = fix;
 }
 protoOf(Position).toString = function () {
-  return 'Position(fix=' + this.u1n_1.toString() + ')';
+  return 'Position(fix=' + this.y1n_1.toString() + ')';
 };
 protoOf(Position).hashCode = function () {
-  return this.u1n_1.hashCode();
+  return this.y1n_1.hashCode();
 };
 protoOf(Position).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof Position))
     return false;
-  if (!this.u1n_1.equals(other.u1n_1))
+  if (!this.y1n_1.equals(other.y1n_1))
     return false;
   return true;
 };
 function Heading(estimate) {
-  this.t1n_1 = estimate;
+  this.x1n_1 = estimate;
 }
 protoOf(Heading).toString = function () {
-  return 'Heading(estimate=' + this.t1n_1.toString() + ')';
+  return 'Heading(estimate=' + this.x1n_1.toString() + ')';
 };
 protoOf(Heading).hashCode = function () {
-  return this.t1n_1.hashCode();
+  return this.x1n_1.hashCode();
 };
 protoOf(Heading).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof Heading))
     return false;
-  if (!this.t1n_1.equals(other.t1n_1))
+  if (!this.x1n_1.equals(other.x1n_1))
     return false;
   return true;
 };
 function Input(action, nowMs, deviceTimeMs) {
   deviceTimeMs = deviceTimeMs === VOID ? null : deviceTimeMs;
-  this.h1k_1 = action;
-  this.i1k_1 = nowMs;
-  this.j1k_1 = deviceTimeMs;
+  this.l1k_1 = action;
+  this.m1k_1 = nowMs;
+  this.n1k_1 = deviceTimeMs;
 }
 protoOf(Input).toString = function () {
-  return 'Input(action=' + this.h1k_1.toString() + ', nowMs=' + this.i1k_1.toString() + ', deviceTimeMs=' + toString_0(this.j1k_1) + ')';
+  return 'Input(action=' + this.l1k_1.toString() + ', nowMs=' + this.m1k_1.toString() + ', deviceTimeMs=' + toString_0(this.n1k_1) + ')';
 };
 protoOf(Input).hashCode = function () {
-  var result = this.h1k_1.hashCode();
-  result = imul_0(result, 31) + this.i1k_1.hashCode() | 0;
-  result = imul_0(result, 31) + (this.j1k_1 == null ? 0 : this.j1k_1.hashCode()) | 0;
+  var result = this.l1k_1.hashCode();
+  result = imul_0(result, 31) + this.m1k_1.hashCode() | 0;
+  result = imul_0(result, 31) + (this.n1k_1 == null ? 0 : this.n1k_1.hashCode()) | 0;
   return result;
 };
 protoOf(Input).equals = function (other) {
@@ -25076,28 +25107,28 @@ protoOf(Input).equals = function (other) {
     return true;
   if (!(other instanceof Input))
     return false;
-  if (!this.h1k_1.equals(other.h1k_1))
+  if (!this.l1k_1.equals(other.l1k_1))
     return false;
-  if (!equalsLong(this.i1k_1, other.i1k_1))
+  if (!equalsLong(this.m1k_1, other.m1k_1))
     return false;
-  if (!equals(this.j1k_1, other.j1k_1))
+  if (!equals(this.n1k_1, other.n1k_1))
     return false;
   return true;
 };
 function Heard(token, text, isFinal, confidence) {
-  this.v1k_1 = token;
-  this.w1k_1 = text;
-  this.x1k_1 = isFinal;
-  this.y1k_1 = confidence;
+  this.z1k_1 = token;
+  this.a1l_1 = text;
+  this.b1l_1 = isFinal;
+  this.c1l_1 = confidence;
 }
 protoOf(Heard).toString = function () {
-  return 'Heard(token=' + this.v1k_1 + ', text=' + this.w1k_1 + ', isFinal=' + this.x1k_1 + ', confidence=' + this.y1k_1 + ')';
+  return 'Heard(token=' + this.z1k_1 + ', text=' + this.a1l_1 + ', isFinal=' + this.b1l_1 + ', confidence=' + this.c1l_1 + ')';
 };
 protoOf(Heard).hashCode = function () {
-  var result = getStringHashCode(this.v1k_1);
-  result = imul_0(result, 31) + getStringHashCode(this.w1k_1) | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.x1k_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.y1k_1) | 0;
+  var result = getStringHashCode(this.z1k_1);
+  result = imul_0(result, 31) + getStringHashCode(this.a1l_1) | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.b1l_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.c1l_1) | 0;
   return result;
 };
 protoOf(Heard).equals = function (other) {
@@ -25105,62 +25136,62 @@ protoOf(Heard).equals = function (other) {
     return true;
   if (!(other instanceof Heard))
     return false;
-  if (!(this.v1k_1 === other.v1k_1))
+  if (!(this.z1k_1 === other.z1k_1))
     return false;
-  if (!(this.w1k_1 === other.w1k_1))
+  if (!(this.a1l_1 === other.a1l_1))
     return false;
-  if (!(this.x1k_1 === other.x1k_1))
+  if (!(this.b1l_1 === other.b1l_1))
     return false;
-  if (!equals(this.y1k_1, other.y1k_1))
+  if (!equals(this.c1l_1, other.c1l_1))
     return false;
   return true;
 };
 function ListenEnded(token) {
-  this.d1l_1 = token;
+  this.h1l_1 = token;
 }
 protoOf(ListenEnded).toString = function () {
-  return 'ListenEnded(token=' + this.d1l_1 + ')';
+  return 'ListenEnded(token=' + this.h1l_1 + ')';
 };
 protoOf(ListenEnded).hashCode = function () {
-  return getStringHashCode(this.d1l_1);
+  return getStringHashCode(this.h1l_1);
 };
 protoOf(ListenEnded).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof ListenEnded))
     return false;
-  if (!(this.d1l_1 === other.d1l_1))
+  if (!(this.h1l_1 === other.h1l_1))
     return false;
   return true;
 };
 function SpeechFinished(token) {
-  this.s1n_1 = token;
+  this.w1n_1 = token;
 }
 protoOf(SpeechFinished).toString = function () {
-  return 'SpeechFinished(token=' + this.s1n_1 + ')';
+  return 'SpeechFinished(token=' + this.w1n_1 + ')';
 };
 protoOf(SpeechFinished).hashCode = function () {
-  return getStringHashCode(this.s1n_1);
+  return getStringHashCode(this.w1n_1);
 };
 protoOf(SpeechFinished).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof SpeechFinished))
     return false;
-  if (!(this.s1n_1 === other.s1n_1))
+  if (!(this.w1n_1 === other.w1n_1))
     return false;
   return true;
 };
 function RhythmPlayed(token, nowMs) {
-  this.q1l_1 = token;
-  this.r1l_1 = nowMs;
+  this.u1l_1 = token;
+  this.v1l_1 = nowMs;
 }
 protoOf(RhythmPlayed).toString = function () {
-  return 'RhythmPlayed(token=' + this.q1l_1 + ', nowMs=' + this.r1l_1.toString() + ')';
+  return 'RhythmPlayed(token=' + this.u1l_1 + ', nowMs=' + this.v1l_1.toString() + ')';
 };
 protoOf(RhythmPlayed).hashCode = function () {
-  var result = getStringHashCode(this.q1l_1);
-  result = imul_0(result, 31) + this.r1l_1.hashCode() | 0;
+  var result = getStringHashCode(this.u1l_1);
+  result = imul_0(result, 31) + this.v1l_1.hashCode() | 0;
   return result;
 };
 protoOf(RhythmPlayed).equals = function (other) {
@@ -25168,22 +25199,22 @@ protoOf(RhythmPlayed).equals = function (other) {
     return true;
   if (!(other instanceof RhythmPlayed))
     return false;
-  if (!(this.q1l_1 === other.q1l_1))
+  if (!(this.u1l_1 === other.u1l_1))
     return false;
-  if (!equalsLong(this.r1l_1, other.r1l_1))
+  if (!equalsLong(this.v1l_1, other.v1l_1))
     return false;
   return true;
 };
 function CharacterReplied(requestId, text) {
-  this.o1l_1 = requestId;
-  this.p1l_1 = text;
+  this.s1l_1 = requestId;
+  this.t1l_1 = text;
 }
 protoOf(CharacterReplied).toString = function () {
-  return 'CharacterReplied(requestId=' + this.o1l_1 + ', text=' + this.p1l_1 + ')';
+  return 'CharacterReplied(requestId=' + this.s1l_1 + ', text=' + this.t1l_1 + ')';
 };
 protoOf(CharacterReplied).hashCode = function () {
-  var result = this.o1l_1;
-  result = imul_0(result, 31) + (this.p1l_1 == null ? 0 : getStringHashCode(this.p1l_1)) | 0;
+  var result = this.s1l_1;
+  result = imul_0(result, 31) + (this.t1l_1 == null ? 0 : getStringHashCode(this.t1l_1)) | 0;
   return result;
 };
 protoOf(CharacterReplied).equals = function (other) {
@@ -25191,58 +25222,58 @@ protoOf(CharacterReplied).equals = function (other) {
     return true;
   if (!(other instanceof CharacterReplied))
     return false;
-  if (!(this.o1l_1 === other.o1l_1))
+  if (!(this.s1l_1 === other.s1l_1))
     return false;
-  if (!(this.p1l_1 == other.p1l_1))
+  if (!(this.t1l_1 == other.t1l_1))
     return false;
   return true;
 };
 function RecordingFinished(path) {
-  this.c1m_1 = path;
+  this.g1m_1 = path;
 }
 protoOf(RecordingFinished).toString = function () {
-  return 'RecordingFinished(path=' + this.c1m_1 + ')';
+  return 'RecordingFinished(path=' + this.g1m_1 + ')';
 };
 protoOf(RecordingFinished).hashCode = function () {
-  return this.c1m_1 == null ? 0 : getStringHashCode(this.c1m_1);
+  return this.g1m_1 == null ? 0 : getStringHashCode(this.g1m_1);
 };
 protoOf(RecordingFinished).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof RecordingFinished))
     return false;
-  if (!(this.c1m_1 == other.c1m_1))
+  if (!(this.g1m_1 == other.g1m_1))
     return false;
   return true;
 };
 function Tick(nowMs) {
-  this.r1n_1 = nowMs;
+  this.v1n_1 = nowMs;
 }
 protoOf(Tick).toString = function () {
-  return 'Tick(nowMs=' + this.r1n_1.toString() + ')';
+  return 'Tick(nowMs=' + this.v1n_1.toString() + ')';
 };
 protoOf(Tick).hashCode = function () {
-  return this.r1n_1.hashCode();
+  return this.v1n_1.hashCode();
 };
 protoOf(Tick).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof Tick))
     return false;
-  if (!equalsLong(this.r1n_1, other.r1n_1))
+  if (!equalsLong(this.v1n_1, other.v1n_1))
     return false;
   return true;
 };
 function Broadcast(speaker, text) {
-  this.d1m_1 = speaker;
-  this.e1m_1 = text;
+  this.h1m_1 = speaker;
+  this.i1m_1 = text;
 }
 protoOf(Broadcast).toString = function () {
-  return 'Broadcast(speaker=' + this.d1m_1 + ', text=' + this.e1m_1 + ')';
+  return 'Broadcast(speaker=' + this.h1m_1 + ', text=' + this.i1m_1 + ')';
 };
 protoOf(Broadcast).hashCode = function () {
-  var result = getStringHashCode(this.d1m_1);
-  result = imul_0(result, 31) + getStringHashCode(this.e1m_1) | 0;
+  var result = getStringHashCode(this.h1m_1);
+  result = imul_0(result, 31) + getStringHashCode(this.i1m_1) | 0;
   return result;
 };
 protoOf(Broadcast).equals = function (other) {
@@ -25250,9 +25281,9 @@ protoOf(Broadcast).equals = function (other) {
     return true;
   if (!(other instanceof Broadcast))
     return false;
-  if (!(this.d1m_1 === other.d1m_1))
+  if (!(this.h1m_1 === other.h1m_1))
     return false;
-  if (!(this.e1m_1 === other.e1m_1))
+  if (!(this.i1m_1 === other.i1m_1))
     return false;
   return true;
 };
@@ -25295,20 +25326,20 @@ function ForceSolve_getInstance() {
   return ForceSolve_instance;
 }
 function JumpTo(signalIndex) {
-  this.q1n_1 = signalIndex;
+  this.u1n_1 = signalIndex;
 }
 protoOf(JumpTo).toString = function () {
-  return 'JumpTo(signalIndex=' + this.q1n_1 + ')';
+  return 'JumpTo(signalIndex=' + this.u1n_1 + ')';
 };
 protoOf(JumpTo).hashCode = function () {
-  return this.q1n_1;
+  return this.u1n_1;
 };
 protoOf(JumpTo).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof JumpTo))
     return false;
-  if (!(this.q1n_1 === other.q1n_1))
+  if (!(this.u1n_1 === other.u1n_1))
     return false;
   return true;
 };
@@ -25327,9 +25358,9 @@ function Companion_30() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.j1p_1 = [null, null, tmp_1, lazy(tmp_2, Progress$Companion$$childSerializers$_anonymous__t14003_0), null];
+  tmp.p1p_1 = [null, null, tmp_1, lazy(tmp_2, Progress$Companion$$childSerializers$_anonymous__t14003_0), null];
 }
-protoOf(Companion_30).k1p = function () {
+protoOf(Companion_30).q1p = function () {
   return $serializer_getInstance();
 };
 var Companion_instance_30;
@@ -25346,26 +25377,26 @@ function $serializer() {
   tmp0_serialDesc.yr('collected', false);
   tmp0_serialDesc.yr('flags', false);
   tmp0_serialDesc.yr('complete', true);
-  this.l1p_1 = tmp0_serialDesc;
+  this.r1p_1 = tmp0_serialDesc;
 }
-protoOf($serializer).m1p = function (encoder, value) {
-  var tmp0_desc = this.l1p_1;
+protoOf($serializer).s1p = function (encoder, value) {
+  var tmp0_desc = this.r1p_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_30().j1p_1;
-  tmp1_output.mn(tmp0_desc, 0, value.l1i_1);
-  tmp1_output.hn(tmp0_desc, 1, value.m1i_1);
-  tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.n1i_1);
-  tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.o1i_1);
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !(value.p1i_1 === false)) {
-    tmp1_output.en(tmp0_desc, 4, value.p1i_1);
+  var tmp2_cached = Companion_getInstance_30().p1p_1;
+  tmp1_output.mn(tmp0_desc, 0, value.p1i_1);
+  tmp1_output.hn(tmp0_desc, 1, value.q1i_1);
+  tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.r1i_1);
+  tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.s1i_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !(value.t1i_1 === false)) {
+    tmp1_output.en(tmp0_desc, 4, value.t1i_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer).dj = function (encoder, value) {
-  return this.m1p(encoder, value instanceof Progress ? value : THROW_CCE());
+  return this.s1p(encoder, value instanceof Progress ? value : THROW_CCE());
 };
 protoOf($serializer).ej = function (decoder) {
-  var tmp0_desc = this.l1p_1;
+  var tmp0_desc = this.r1p_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -25375,7 +25406,7 @@ protoOf($serializer).ej = function (decoder) {
   var tmp7_local3 = null;
   var tmp8_local4 = false;
   var tmp9_input = decoder.yl(tmp0_desc);
-  var tmp10_cached = Companion_getInstance_30().j1p_1;
+  var tmp10_cached = Companion_getInstance_30().p1p_1;
   if (tmp9_input.om()) {
     tmp4_local0 = tmp9_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -25422,10 +25453,10 @@ protoOf($serializer).ej = function (decoder) {
   return Progress_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, null);
 };
 protoOf($serializer).cj = function () {
-  return this.l1p_1;
+  return this.r1p_1;
 };
 protoOf($serializer).as = function () {
-  var tmp0_cached = Companion_getInstance_30().j1p_1;
+  var tmp0_cached = Companion_getInstance_30().p1p_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -25439,16 +25470,16 @@ function $serializer_getInstance() {
 }
 function Progress_init_$Init$(seen0, missionId, signalIndex, collected, flags, complete, serializationConstructorMarker, $this) {
   if (!(15 === (15 & seen0))) {
-    throwMissingFieldException(seen0, 15, $serializer_getInstance().l1p_1);
+    throwMissingFieldException(seen0, 15, $serializer_getInstance().r1p_1);
   }
-  $this.l1i_1 = missionId;
-  $this.m1i_1 = signalIndex;
-  $this.n1i_1 = collected;
-  $this.o1i_1 = flags;
+  $this.p1i_1 = missionId;
+  $this.q1i_1 = signalIndex;
+  $this.r1i_1 = collected;
+  $this.s1i_1 = flags;
   if (0 === (seen0 & 16))
-    $this.p1i_1 = false;
+    $this.t1i_1 = false;
   else
-    $this.p1i_1 = complete;
+    $this.t1i_1 = complete;
   return $this;
 }
 function Progress_init_$Create$(seen0, missionId, signalIndex, collected, flags, complete, serializationConstructorMarker) {
@@ -25457,21 +25488,21 @@ function Progress_init_$Create$(seen0, missionId, signalIndex, collected, flags,
 function Progress(missionId, signalIndex, collected, flags, complete) {
   Companion_getInstance_30();
   complete = complete === VOID ? false : complete;
-  this.l1i_1 = missionId;
-  this.m1i_1 = signalIndex;
-  this.n1i_1 = collected;
-  this.o1i_1 = flags;
-  this.p1i_1 = complete;
+  this.p1i_1 = missionId;
+  this.q1i_1 = signalIndex;
+  this.r1i_1 = collected;
+  this.s1i_1 = flags;
+  this.t1i_1 = complete;
 }
 protoOf(Progress).toString = function () {
-  return 'Progress(missionId=' + this.l1i_1 + ', signalIndex=' + this.m1i_1 + ', collected=' + toString_1(this.n1i_1) + ', flags=' + toString_1(this.o1i_1) + ', complete=' + this.p1i_1 + ')';
+  return 'Progress(missionId=' + this.p1i_1 + ', signalIndex=' + this.q1i_1 + ', collected=' + toString_1(this.r1i_1) + ', flags=' + toString_1(this.s1i_1) + ', complete=' + this.t1i_1 + ')';
 };
 protoOf(Progress).hashCode = function () {
-  var result = getStringHashCode(this.l1i_1);
-  result = imul_0(result, 31) + this.m1i_1 | 0;
-  result = imul_0(result, 31) + hashCode_0(this.n1i_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.o1i_1) | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.p1i_1) | 0;
+  var result = getStringHashCode(this.p1i_1);
+  result = imul_0(result, 31) + this.q1i_1 | 0;
+  result = imul_0(result, 31) + hashCode_0(this.r1i_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.s1i_1) | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.t1i_1) | 0;
   return result;
 };
 protoOf(Progress).equals = function (other) {
@@ -25479,30 +25510,30 @@ protoOf(Progress).equals = function (other) {
     return true;
   if (!(other instanceof Progress))
     return false;
-  if (!(this.l1i_1 === other.l1i_1))
-    return false;
-  if (!(this.m1i_1 === other.m1i_1))
-    return false;
-  if (!equals(this.n1i_1, other.n1i_1))
-    return false;
-  if (!equals(this.o1i_1, other.o1i_1))
-    return false;
   if (!(this.p1i_1 === other.p1i_1))
+    return false;
+  if (!(this.q1i_1 === other.q1i_1))
+    return false;
+  if (!equals(this.r1i_1, other.r1i_1))
+    return false;
+  if (!equals(this.s1i_1, other.s1i_1))
+    return false;
+  if (!(this.t1i_1 === other.t1i_1))
     return false;
   return true;
 };
 function TranscriptEntry(speaker, text, fromPlayer) {
-  this.n1p_1 = speaker;
-  this.o1p_1 = text;
-  this.p1p_1 = fromPlayer;
+  this.t1p_1 = speaker;
+  this.u1p_1 = text;
+  this.v1p_1 = fromPlayer;
 }
 protoOf(TranscriptEntry).toString = function () {
-  return 'TranscriptEntry(speaker=' + this.n1p_1 + ', text=' + this.o1p_1 + ', fromPlayer=' + this.p1p_1 + ')';
+  return 'TranscriptEntry(speaker=' + this.t1p_1 + ', text=' + this.u1p_1 + ', fromPlayer=' + this.v1p_1 + ')';
 };
 protoOf(TranscriptEntry).hashCode = function () {
-  var result = getStringHashCode(this.n1p_1);
-  result = imul_0(result, 31) + getStringHashCode(this.o1p_1) | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.p1p_1) | 0;
+  var result = getStringHashCode(this.t1p_1);
+  result = imul_0(result, 31) + getStringHashCode(this.u1p_1) | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.v1p_1) | 0;
   return result;
 };
 protoOf(TranscriptEntry).equals = function (other) {
@@ -25510,11 +25541,11 @@ protoOf(TranscriptEntry).equals = function (other) {
     return true;
   if (!(other instanceof TranscriptEntry))
     return false;
-  if (!(this.n1p_1 === other.n1p_1))
+  if (!(this.t1p_1 === other.t1p_1))
     return false;
-  if (!(this.o1p_1 === other.o1p_1))
+  if (!(this.u1p_1 === other.u1p_1))
     return false;
-  if (!(this.p1p_1 === other.p1p_1))
+  if (!(this.v1p_1 === other.v1p_1))
     return false;
   return true;
 };
@@ -25633,20 +25664,20 @@ function $serializer_0() {
   var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('com.ghostsignal.core.geo.LatLon', this, 2);
   tmp0_serialDesc.yr('lat', false);
   tmp0_serialDesc.yr('lon', false);
-  this.q1p_1 = tmp0_serialDesc;
+  this.w1p_1 = tmp0_serialDesc;
 }
-protoOf($serializer_0).r1p = function (encoder, value) {
-  var tmp0_desc = this.q1p_1;
+protoOf($serializer_0).x1p = function (encoder, value) {
+  var tmp0_desc = this.w1p_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  tmp1_output.kn(tmp0_desc, 0, value.s1p_1);
-  tmp1_output.kn(tmp0_desc, 1, value.t1p_1);
+  tmp1_output.kn(tmp0_desc, 0, value.y1p_1);
+  tmp1_output.kn(tmp0_desc, 1, value.z1p_1);
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_0).dj = function (encoder, value) {
-  return this.r1p(encoder, value instanceof LatLon ? value : THROW_CCE());
+  return this.x1p(encoder, value instanceof LatLon ? value : THROW_CCE());
 };
 protoOf($serializer_0).ej = function (decoder) {
-  var tmp0_desc = this.q1p_1;
+  var tmp0_desc = this.w1p_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -25681,7 +25712,7 @@ protoOf($serializer_0).ej = function (decoder) {
   return LatLon_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
 };
 protoOf($serializer_0).cj = function () {
-  return this.q1p_1;
+  return this.w1p_1;
 };
 protoOf($serializer_0).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -25697,25 +25728,25 @@ function $serializer_getInstance_0() {
 }
 function LatLon_init_$Init$(seen0, lat, lon, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_0().q1p_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_0().w1p_1);
   }
-  $this.s1p_1 = lat;
-  $this.t1p_1 = lon;
+  $this.y1p_1 = lat;
+  $this.z1p_1 = lon;
   return $this;
 }
 function LatLon_init_$Create$(seen0, lat, lon, serializationConstructorMarker) {
   return LatLon_init_$Init$(seen0, lat, lon, serializationConstructorMarker, objectCreate(protoOf(LatLon)));
 }
 function LatLon(lat, lon) {
-  this.s1p_1 = lat;
-  this.t1p_1 = lon;
+  this.y1p_1 = lat;
+  this.z1p_1 = lon;
 }
 protoOf(LatLon).toString = function () {
-  return 'LatLon(lat=' + this.s1p_1 + ', lon=' + this.t1p_1 + ')';
+  return 'LatLon(lat=' + this.y1p_1 + ', lon=' + this.z1p_1 + ')';
 };
 protoOf(LatLon).hashCode = function () {
-  var result = getNumberHashCode(this.s1p_1);
-  result = imul_0(result, 31) + getNumberHashCode(this.t1p_1) | 0;
+  var result = getNumberHashCode(this.y1p_1);
+  result = imul_0(result, 31) + getNumberHashCode(this.z1p_1) | 0;
   return result;
 };
 protoOf(LatLon).equals = function (other) {
@@ -25723,9 +25754,9 @@ protoOf(LatLon).equals = function (other) {
     return true;
   if (!(other instanceof LatLon))
     return false;
-  if (!equals(this.s1p_1, other.s1p_1))
+  if (!equals(this.y1p_1, other.y1p_1))
     return false;
-  if (!equals(this.t1p_1, other.t1p_1))
+  if (!equals(this.z1p_1, other.z1p_1))
     return false;
   return true;
 };
@@ -25733,23 +25764,23 @@ function GeoFix(position, accuracyM, timeMs, speedMps, courseDeg, simulated) {
   speedMps = speedMps === VOID ? null : speedMps;
   courseDeg = courseDeg === VOID ? null : courseDeg;
   simulated = simulated === VOID ? false : simulated;
-  this.o1k_1 = position;
-  this.p1k_1 = accuracyM;
-  this.q1k_1 = timeMs;
-  this.r1k_1 = speedMps;
-  this.s1k_1 = courseDeg;
-  this.t1k_1 = simulated;
+  this.s1k_1 = position;
+  this.t1k_1 = accuracyM;
+  this.u1k_1 = timeMs;
+  this.v1k_1 = speedMps;
+  this.w1k_1 = courseDeg;
+  this.x1k_1 = simulated;
 }
 protoOf(GeoFix).toString = function () {
-  return 'GeoFix(position=' + this.o1k_1.toString() + ', accuracyM=' + this.p1k_1 + ', timeMs=' + this.q1k_1.toString() + ', speedMps=' + this.r1k_1 + ', courseDeg=' + this.s1k_1 + ', simulated=' + this.t1k_1 + ')';
+  return 'GeoFix(position=' + this.s1k_1.toString() + ', accuracyM=' + this.t1k_1 + ', timeMs=' + this.u1k_1.toString() + ', speedMps=' + this.v1k_1 + ', courseDeg=' + this.w1k_1 + ', simulated=' + this.x1k_1 + ')';
 };
 protoOf(GeoFix).hashCode = function () {
-  var result = this.o1k_1.hashCode();
-  result = imul_0(result, 31) + getNumberHashCode(this.p1k_1) | 0;
-  result = imul_0(result, 31) + this.q1k_1.hashCode() | 0;
-  result = imul_0(result, 31) + (this.r1k_1 == null ? 0 : getNumberHashCode(this.r1k_1)) | 0;
-  result = imul_0(result, 31) + (this.s1k_1 == null ? 0 : getNumberHashCode(this.s1k_1)) | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.t1k_1) | 0;
+  var result = this.s1k_1.hashCode();
+  result = imul_0(result, 31) + getNumberHashCode(this.t1k_1) | 0;
+  result = imul_0(result, 31) + this.u1k_1.hashCode() | 0;
+  result = imul_0(result, 31) + (this.v1k_1 == null ? 0 : getNumberHashCode(this.v1k_1)) | 0;
+  result = imul_0(result, 31) + (this.w1k_1 == null ? 0 : getNumberHashCode(this.w1k_1)) | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.x1k_1) | 0;
   return result;
 };
 protoOf(GeoFix).equals = function (other) {
@@ -25757,17 +25788,17 @@ protoOf(GeoFix).equals = function (other) {
     return true;
   if (!(other instanceof GeoFix))
     return false;
-  if (!this.o1k_1.equals(other.o1k_1))
+  if (!this.s1k_1.equals(other.s1k_1))
     return false;
-  if (!equals(this.p1k_1, other.p1k_1))
+  if (!equals(this.t1k_1, other.t1k_1))
     return false;
-  if (!equalsLong(this.q1k_1, other.q1k_1))
+  if (!equalsLong(this.u1k_1, other.u1k_1))
     return false;
-  if (!equals(this.r1k_1, other.r1k_1))
+  if (!equals(this.v1k_1, other.v1k_1))
     return false;
-  if (!equals(this.s1k_1, other.s1k_1))
+  if (!equals(this.w1k_1, other.w1k_1))
     return false;
-  if (!(this.t1k_1 === other.t1k_1))
+  if (!(this.x1k_1 === other.x1k_1))
     return false;
   return true;
 };
@@ -25779,14 +25810,14 @@ function toDeg($this, _this__u8e3s4) {
 }
 function Geo() {
   Geo_instance = this;
-  this.g1m_1 = 6371008.8;
-  this.h1m_1 = listOf_0(['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']);
+  this.k1m_1 = 6371008.8;
+  this.l1m_1 = listOf_0(['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west']);
 }
-protoOf(Geo).d1o = function (a, b) {
-  var lat1 = toRad(this, a.s1p_1);
-  var lat2 = toRad(this, b.s1p_1);
-  var dLat = toRad(this, b.s1p_1 - a.s1p_1);
-  var dLon = toRad(this, b.t1p_1 - a.t1p_1);
+protoOf(Geo).j1o = function (a, b) {
+  var lat1 = toRad(this, a.y1p_1);
+  var lat2 = toRad(this, b.y1p_1);
+  var dLat = toRad(this, b.y1p_1 - a.y1p_1);
+  var dLon = toRad(this, b.z1p_1 - a.z1p_1);
   // Inline function 'kotlin.math.sin' call
   var x = dLat / 2;
   // Inline function 'kotlin.let' call
@@ -25808,10 +25839,10 @@ protoOf(Geo).d1o = function (a, b) {
   var x_2 = Math.sqrt(x_1);
   return tmp_2 * Math.asin(x_2);
 };
-protoOf(Geo).z1n = function (from, to) {
-  var lat1 = toRad(this, from.s1p_1);
-  var lat2 = toRad(this, to.s1p_1);
-  var dLon = toRad(this, to.t1p_1 - from.t1p_1);
+protoOf(Geo).f1o = function (from, to) {
+  var lat1 = toRad(this, from.y1p_1);
+  var lat2 = toRad(this, to.y1p_1);
+  var dLon = toRad(this, to.z1p_1 - from.z1p_1);
   // Inline function 'kotlin.math.sin' call
   var tmp = Math.sin(dLon);
   // Inline function 'kotlin.math.cos' call
@@ -25828,28 +25859,28 @@ protoOf(Geo).z1n = function (from, to) {
   var x = tmp_1 - tmp_3 * Math.cos(dLon);
   // Inline function 'kotlin.math.atan2' call
   var tmp$ret$7 = Math.atan2(y, x);
-  return this.u1p(toDeg(this, tmp$ret$7));
+  return this.a1q(toDeg(this, tmp$ret$7));
 };
-protoOf(Geo).u1p = function (deg) {
+protoOf(Geo).a1q = function (deg) {
   var r = deg % 360.0;
   return r < 0 ? r + 360.0 : r;
 };
-protoOf(Geo).a1o = function (from, to) {
-  var d = this.u1p(to) - this.u1p(from);
+protoOf(Geo).g1o = function (from, to) {
+  var d = this.a1q(to) - this.a1q(from);
   if (d > 180)
     d = d - 360;
   if (d <= -180)
     d = d + 360;
   return d;
 };
-protoOf(Geo).c1o = function (relativeDeg) {
-  var hour = roundToInt(this.u1p(relativeDeg) / 30.0) % 12 | 0;
+protoOf(Geo).i1o = function (relativeDeg) {
+  var hour = roundToInt(this.a1q(relativeDeg) / 30.0) % 12 | 0;
   return hour === 0 ? 12 : hour;
 };
-protoOf(Geo).b1o = function (bearingDeg) {
-  return this.h1m_1.p(numberToInt((this.u1p(bearingDeg) + 22.5) / 45.0) % 8 | 0);
+protoOf(Geo).h1o = function (bearingDeg) {
+  return this.l1m_1.p(numberToInt((this.a1q(bearingDeg) + 22.5) / 45.0) % 8 | 0);
 };
-protoOf(Geo).i1m = function (distanceM) {
+protoOf(Geo).m1m = function (distanceM) {
   return distanceM < 12 ? 'right on top of it' : distanceM < 100 ? 'about ' + imul_0(roundToInt(distanceM / 10), 10) + ' metres' : distanceM < 1000 ? 'about ' + imul_0(roundToInt(distanceM / 25), 25) + ' metres' : 'about ' + fixed(distanceM / 1000, 1) + ' kilometres';
 };
 var Geo_instance;
@@ -25860,7 +25891,7 @@ function Geo_getInstance() {
 }
 function Companion_32() {
   Companion_instance_32 = this;
-  this.v1p_1 = new Vec3(0.0, 0.0, 0.0);
+  this.b1q_1 = new Vec3(0.0, 0.0, 0.0);
 }
 var Companion_instance_32;
 function Companion_getInstance_32() {
@@ -25870,17 +25901,17 @@ function Companion_getInstance_32() {
 }
 function Vec3(x, y, z) {
   Companion_getInstance_32();
-  this.w1p_1 = x;
-  this.x1p_1 = y;
-  this.y1p_1 = z;
+  this.c1q_1 = x;
+  this.d1q_1 = y;
+  this.e1q_1 = z;
 }
 protoOf(Vec3).toString = function () {
-  return 'Vec3(x=' + this.w1p_1 + ', y=' + this.x1p_1 + ', z=' + this.y1p_1 + ')';
+  return 'Vec3(x=' + this.c1q_1 + ', y=' + this.d1q_1 + ', z=' + this.e1q_1 + ')';
 };
 protoOf(Vec3).hashCode = function () {
-  var result = getNumberHashCode(this.w1p_1);
-  result = imul_0(result, 31) + getNumberHashCode(this.x1p_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.y1p_1) | 0;
+  var result = getNumberHashCode(this.c1q_1);
+  result = imul_0(result, 31) + getNumberHashCode(this.d1q_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.e1q_1) | 0;
   return result;
 };
 protoOf(Vec3).equals = function (other) {
@@ -25888,11 +25919,11 @@ protoOf(Vec3).equals = function (other) {
     return true;
   if (!(other instanceof Vec3))
     return false;
-  if (!equals(this.w1p_1, other.w1p_1))
+  if (!equals(this.c1q_1, other.c1q_1))
     return false;
-  if (!equals(this.x1p_1, other.x1p_1))
+  if (!equals(this.d1q_1, other.d1q_1))
     return false;
-  if (!equals(this.y1p_1, other.y1p_1))
+  if (!equals(this.e1q_1, other.e1q_1))
     return false;
   return true;
 };
@@ -25913,18 +25944,24 @@ function HeadingSource_initEntries() {
 function HeadingSource(name, ordinal) {
   Enum.call(this, name, ordinal);
 }
-function HeadingEstimate(deg, source, glassesAligned) {
-  this.w1n_1 = deg;
-  this.x1n_1 = source;
-  this.y1n_1 = glassesAligned;
+function HeadingEstimate(deg, source, glassesAligned, pitchDeg, rollDeg) {
+  pitchDeg = pitchDeg === VOID ? null : pitchDeg;
+  rollDeg = rollDeg === VOID ? null : rollDeg;
+  this.a1o_1 = deg;
+  this.b1o_1 = source;
+  this.c1o_1 = glassesAligned;
+  this.d1o_1 = pitchDeg;
+  this.e1o_1 = rollDeg;
 }
 protoOf(HeadingEstimate).toString = function () {
-  return 'HeadingEstimate(deg=' + this.w1n_1 + ', source=' + this.x1n_1.toString() + ', glassesAligned=' + this.y1n_1 + ')';
+  return 'HeadingEstimate(deg=' + this.a1o_1 + ', source=' + this.b1o_1.toString() + ', glassesAligned=' + this.c1o_1 + ', pitchDeg=' + this.d1o_1 + ', rollDeg=' + this.e1o_1 + ')';
 };
 protoOf(HeadingEstimate).hashCode = function () {
-  var result = this.w1n_1 == null ? 0 : getNumberHashCode(this.w1n_1);
-  result = imul_0(result, 31) + this.x1n_1.hashCode() | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.y1n_1) | 0;
+  var result = this.a1o_1 == null ? 0 : getNumberHashCode(this.a1o_1);
+  result = imul_0(result, 31) + this.b1o_1.hashCode() | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.c1o_1) | 0;
+  result = imul_0(result, 31) + (this.d1o_1 == null ? 0 : getNumberHashCode(this.d1o_1)) | 0;
+  result = imul_0(result, 31) + (this.e1o_1 == null ? 0 : getNumberHashCode(this.e1o_1)) | 0;
   return result;
 };
 protoOf(HeadingEstimate).equals = function (other) {
@@ -25932,11 +25969,15 @@ protoOf(HeadingEstimate).equals = function (other) {
     return true;
   if (!(other instanceof HeadingEstimate))
     return false;
-  if (!equals(this.w1n_1, other.w1n_1))
+  if (!equals(this.a1o_1, other.a1o_1))
     return false;
-  if (!this.x1n_1.equals(other.x1n_1))
+  if (!this.b1o_1.equals(other.b1o_1))
     return false;
-  if (!(this.y1n_1 === other.y1n_1))
+  if (!(this.c1o_1 === other.c1o_1))
+    return false;
+  if (!equals(this.d1o_1, other.d1o_1))
+    return false;
+  if (!equals(this.e1o_1, other.e1o_1))
     return false;
   return true;
 };
@@ -25954,7 +25995,7 @@ function YawMode(name, ordinal) {
   Enum.call(this, name, ordinal);
 }
 function glassesFresh($this, wallMs) {
-  var tmp0_safe_receiver = $this.d1q_1;
+  var tmp0_safe_receiver = $this.k1q_1;
   var tmp;
   if (tmp0_safe_receiver == null) {
     tmp = null;
@@ -25965,15 +26006,35 @@ function glassesFresh($this, wallMs) {
   var tmp1_elvis_lhs = tmp;
   return tmp1_elvis_lhs == null ? false : tmp1_elvis_lhs;
 }
+function pitchNow($this, wallMs) {
+  var tmp;
+  if (glassesFresh($this, wallMs)) {
+    var tmp0_safe_receiver = $this.v1q_1;
+    var tmp_0;
+    if (tmp0_safe_receiver == null) {
+      tmp_0 = null;
+    } else {
+      // Inline function 'kotlin.let' call
+      tmp_0 = $this.h1q_1 ? -tmp0_safe_receiver : tmp0_safe_receiver;
+    }
+    tmp = tmp_0;
+  } else {
+    tmp = null;
+  }
+  return tmp;
+}
+function rollNow($this, wallMs) {
+  return glassesFresh($this, wallMs) ? $this.w1q_1 : null;
+}
 function signed($this, yaw) {
-  return $this.a1q_1 ? -yaw : yaw;
+  return $this.g1q_1 ? -yaw : yaw;
 }
 function Companion_33() {
   Companion_instance_33 = this;
-  this.o1q_1 = new Long(1500, 0);
-  this.p1q_1 = new Long(4000, 0);
-  this.q1q_1 = 0.8;
-  this.r1q_1 = 0.04;
+  this.y1q_1 = new Long(1500, 0);
+  this.z1q_1 = new Long(4000, 0);
+  this.a1r_1 = 0.8;
+  this.b1r_1 = 0.04;
 }
 var Companion_instance_33;
 function Companion_getInstance_33() {
@@ -25985,37 +26046,42 @@ function YawMode_GYRO_getInstance() {
   YawMode_initEntries();
   return YawMode_GYRO_instance;
 }
-function HeadingFusion(mode, invertYaw) {
+function HeadingFusion(mode, invertYaw, invertPitch) {
   Companion_getInstance_33();
   mode = mode === VOID ? YawMode_GYRO_getInstance() : mode;
   invertYaw = invertYaw === VOID ? false : invertYaw;
-  this.z1p_1 = mode;
-  this.a1q_1 = invertYaw;
-  this.b1q_1 = 0.0;
-  this.c1q_1 = null;
-  this.d1q_1 = null;
-  this.e1q_1 = null;
-  this.f1q_1 = Companion_getInstance_32().v1p_1;
-  this.g1q_1 = null;
-  this.h1q_1 = null;
-  this.i1q_1 = null;
-  this.j1q_1 = new Long(0, 0);
-  this.k1q_1 = false;
+  invertPitch = invertPitch === VOID ? false : invertPitch;
+  this.f1q_1 = mode;
+  this.g1q_1 = invertYaw;
+  this.h1q_1 = invertPitch;
+  this.i1q_1 = 0.0;
+  this.j1q_1 = null;
+  this.k1q_1 = null;
   this.l1q_1 = null;
-  this.m1q_1 = new Long(0, 0);
-  this.n1q_1 = 0.0;
+  this.m1q_1 = Companion_getInstance_32().b1q_1;
+  this.n1q_1 = null;
+  this.o1q_1 = null;
+  this.p1q_1 = null;
+  this.q1q_1 = new Long(0, 0);
+  this.r1q_1 = false;
+  this.s1q_1 = null;
+  this.t1q_1 = new Long(0, 0);
+  this.u1q_1 = 0.0;
+  this.v1q_1 = null;
+  this.w1q_1 = null;
+  this.x1q_1 = null;
 }
-protoOf(HeadingFusion).s1q = function () {
-  return !(this.h1q_1 == null);
+protoOf(HeadingFusion).c1r = function () {
+  return !(this.o1q_1 == null);
 };
-protoOf(HeadingFusion).t1q = function (deg, wallMs, inHand) {
-  this.i1q_1 = Geo_getInstance().u1p(deg);
-  this.j1q_1 = wallMs;
-  this.k1q_1 = inHand;
+protoOf(HeadingFusion).d1r = function (deg, wallMs, inHand) {
+  this.p1q_1 = Geo_getInstance().a1q(deg);
+  this.q1q_1 = wallMs;
+  this.r1q_1 = inHand;
 };
-protoOf(HeadingFusion).u1q = function (courseDeg, speedMps, wallMs) {
+protoOf(HeadingFusion).e1r = function (courseDeg, speedMps, wallMs) {
   var tmp = this;
-  tmp.n1q_1 = speedMps == null ? 0.0 : speedMps;
+  tmp.u1q_1 = speedMps == null ? 0.0 : speedMps;
   var tmp_0;
   if (courseDeg == null) {
     tmp_0 = true;
@@ -26024,29 +26090,29 @@ protoOf(HeadingFusion).u1q = function (courseDeg, speedMps, wallMs) {
   }
   if (tmp_0)
     return Unit_instance;
-  this.l1q_1 = Geo_getInstance().u1p(courseDeg);
-  this.m1q_1 = wallMs;
-  var offset = this.h1q_1;
+  this.s1q_1 = Geo_getInstance().a1q(courseDeg);
+  this.t1q_1 = wallMs;
+  var offset = this.o1q_1;
   if (!(offset == null) && glassesFresh(this, wallMs)) {
-    var headNow = Geo_getInstance().u1p(signed(this, this.b1q_1) + offset);
-    var err = Geo_getInstance().a1o(headNow, courseDeg);
+    var headNow = Geo_getInstance().a1q(signed(this, this.i1q_1) + offset);
+    var err = Geo_getInstance().g1o(headNow, courseDeg);
     // Inline function 'kotlin.math.abs' call
     if (Math.abs(err) < 60)
-      this.h1q_1 = Geo_getInstance().u1p(offset + err * 0.04);
+      this.o1q_1 = Geo_getInstance().a1q(offset + err * 0.04);
   }
 };
-protoOf(HeadingFusion).v1q = function (wallMs) {
-  var offset = this.h1q_1;
+protoOf(HeadingFusion).f1r = function (wallMs) {
+  var offset = this.o1q_1;
   if (!(offset == null) && glassesFresh(this, wallMs)) {
-    return new HeadingEstimate(Geo_getInstance().u1p(signed(this, this.b1q_1) + offset), HeadingSource_GLASSES_getInstance(), true);
+    return new HeadingEstimate(Geo_getInstance().a1q(signed(this, this.i1q_1) + offset), HeadingSource_GLASSES_getInstance(), true, pitchNow(this, wallMs), rollNow(this, wallMs));
   }
-  if (this.k1q_1 && compare(subtract(wallMs, this.j1q_1), new Long(1500, 0)) <= 0) {
-    return new HeadingEstimate(this.i1q_1, HeadingSource_PHONE_getInstance(), this.s1q());
+  if (this.r1q_1 && compare(subtract(wallMs, this.q1q_1), new Long(1500, 0)) <= 0) {
+    return new HeadingEstimate(this.p1q_1, HeadingSource_PHONE_getInstance(), this.c1r(), pitchNow(this, wallMs), rollNow(this, wallMs));
   }
-  if (compare(subtract(wallMs, this.m1q_1), new Long(4000, 0)) <= 0 && this.n1q_1 >= 0.8) {
-    return new HeadingEstimate(this.l1q_1, HeadingSource_COURSE_getInstance(), this.s1q());
+  if (compare(subtract(wallMs, this.t1q_1), new Long(4000, 0)) <= 0 && this.u1q_1 >= 0.8) {
+    return new HeadingEstimate(this.s1q_1, HeadingSource_COURSE_getInstance(), this.c1r(), pitchNow(this, wallMs), rollNow(this, wallMs));
   }
-  return new HeadingEstimate(null, HeadingSource_NONE_getInstance(), this.s1q());
+  return new HeadingEstimate(null, HeadingSource_NONE_getInstance(), this.c1r(), pitchNow(this, wallMs), rollNow(this, wallMs));
 };
 function HeadingSource_GLASSES_getInstance() {
   HeadingSource_initEntries();
@@ -26101,14 +26167,14 @@ function Companion_34() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.w1q_1 = [null, null, null, null, tmp_1, null, tmp_3, tmp_5, tmp_7, null, null, lazy(tmp_8, Mission$Companion$$childSerializers$_anonymous__hl2di6_3), null, null];
+  tmp.g1r_1 = [null, null, null, null, tmp_1, null, tmp_3, tmp_5, tmp_7, null, null, lazy(tmp_8, Mission$Companion$$childSerializers$_anonymous__hl2di6_3), null, null];
   var tmp_9 = this;
-  tmp_9.x1q_1 = Json_0(VOID, Mission$Companion$json$lambda);
+  tmp_9.h1r_1 = Json_0(VOID, Mission$Companion$json$lambda);
 }
 protoOf(Companion_34).fh = function (text) {
-  return this.x1q_1.q10(this.k1p(), text);
+  return this.h1r_1.q10(this.q1p(), text);
 };
-protoOf(Companion_34).k1p = function () {
+protoOf(Companion_34).q1p = function () {
   return $serializer_getInstance_1();
 };
 var Companion_instance_34;
@@ -26134,47 +26200,47 @@ function $serializer_1() {
   tmp0_serialDesc.yr('soundtracks', true);
   tmp0_serialDesc.yr('handler', true);
   tmp0_serialDesc.yr('antagonist', true);
-  this.y1q_1 = tmp0_serialDesc;
+  this.i1r_1 = tmp0_serialDesc;
 }
-protoOf($serializer_1).z1q = function (encoder, value) {
-  var tmp0_desc = this.y1q_1;
+protoOf($serializer_1).j1r = function (encoder, value) {
+  var tmp0_desc = this.i1r_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_34().w1q_1;
-  tmp1_output.mn(tmp0_desc, 0, value.x1f_1);
-  tmp1_output.mn(tmp0_desc, 1, value.y1f_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.z1f_1 === 1)) {
-    tmp1_output.hn(tmp0_desc, 2, value.z1f_1);
+  var tmp2_cached = Companion_getInstance_34().g1r_1;
+  tmp1_output.mn(tmp0_desc, 0, value.a1g_1);
+  tmp1_output.mn(tmp0_desc, 1, value.b1g_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.c1g_1 === 1)) {
+    tmp1_output.hn(tmp0_desc, 2, value.c1g_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.a1g_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 3, value.a1g_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.d1g_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 3, value.d1g_1);
   }
-  tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.b1g_1);
-  tmp1_output.on(tmp0_desc, 5, $serializer_getInstance_15(), value.c1g_1);
-  if (tmp1_output.un(tmp0_desc, 6) ? true : !equals(value.d1g_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 6, tmp2_cached[6].t1(), value.d1g_1);
+  tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.e1g_1);
+  tmp1_output.on(tmp0_desc, 5, $serializer_getInstance_15(), value.f1g_1);
+  if (tmp1_output.un(tmp0_desc, 6) ? true : !equals(value.g1g_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 6, tmp2_cached[6].t1(), value.g1g_1);
   }
-  tmp1_output.on(tmp0_desc, 7, tmp2_cached[7].t1(), value.e1g_1);
-  tmp1_output.on(tmp0_desc, 8, tmp2_cached[8].t1(), value.f1g_1);
-  tmp1_output.on(tmp0_desc, 9, $serializer_getInstance_14(), value.g1g_1);
-  if (tmp1_output.un(tmp0_desc, 10) ? true : !value.h1g_1.equals(new SystemLines())) {
-    tmp1_output.on(tmp0_desc, 10, $serializer_getInstance_20(), value.h1g_1);
+  tmp1_output.on(tmp0_desc, 7, tmp2_cached[7].t1(), value.h1g_1);
+  tmp1_output.on(tmp0_desc, 8, tmp2_cached[8].t1(), value.i1g_1);
+  tmp1_output.on(tmp0_desc, 9, $serializer_getInstance_14(), value.j1g_1);
+  if (tmp1_output.un(tmp0_desc, 10) ? true : !value.k1g_1.equals(new SystemLines())) {
+    tmp1_output.on(tmp0_desc, 10, $serializer_getInstance_20(), value.k1g_1);
   }
-  if (tmp1_output.un(tmp0_desc, 11) ? true : !equals(value.i1g_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 11, tmp2_cached[11].t1(), value.i1g_1);
+  if (tmp1_output.un(tmp0_desc, 11) ? true : !equals(value.l1g_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 11, tmp2_cached[11].t1(), value.l1g_1);
   }
-  if (tmp1_output.un(tmp0_desc, 12) ? true : !(value.j1g_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 12, value.j1g_1);
+  if (tmp1_output.un(tmp0_desc, 12) ? true : !(value.m1g_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 12, value.m1g_1);
   }
-  if (tmp1_output.un(tmp0_desc, 13) ? true : !(value.k1g_1 == null)) {
-    tmp1_output.qn(tmp0_desc, 13, $serializer_getInstance_17(), value.k1g_1);
+  if (tmp1_output.un(tmp0_desc, 13) ? true : !(value.n1g_1 == null)) {
+    tmp1_output.qn(tmp0_desc, 13, $serializer_getInstance_17(), value.n1g_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_1).dj = function (encoder, value) {
-  return this.z1q(encoder, value instanceof Mission ? value : THROW_CCE());
+  return this.j1r(encoder, value instanceof Mission ? value : THROW_CCE());
 };
 protoOf($serializer_1).ej = function (decoder) {
-  var tmp0_desc = this.y1q_1;
+  var tmp0_desc = this.i1r_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -26193,7 +26259,7 @@ protoOf($serializer_1).ej = function (decoder) {
   var tmp16_local12 = null;
   var tmp17_local13 = null;
   var tmp18_input = decoder.yl(tmp0_desc);
-  var tmp19_cached = Companion_getInstance_34().w1q_1;
+  var tmp19_cached = Companion_getInstance_34().g1r_1;
   if (tmp18_input.om()) {
     tmp4_local0 = tmp18_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -26294,10 +26360,10 @@ protoOf($serializer_1).ej = function (decoder) {
   return Mission_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, tmp11_local7, tmp12_local8, tmp13_local9, tmp14_local10, tmp15_local11, tmp16_local12, tmp17_local13, null);
 };
 protoOf($serializer_1).cj = function () {
-  return this.y1q_1;
+  return this.i1r_1;
 };
 protoOf($serializer_1).as = function () {
-  var tmp0_cached = Companion_getInstance_34().w1q_1;
+  var tmp0_cached = Companion_getInstance_34().g1r_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -26311,43 +26377,43 @@ function $serializer_getInstance_1() {
 }
 function Mission_init_$Init$(seen0, id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist, serializationConstructorMarker, $this) {
   if (!(947 === (947 & seen0))) {
-    throwMissingFieldException(seen0, 947, $serializer_getInstance_1().y1q_1);
+    throwMissingFieldException(seen0, 947, $serializer_getInstance_1().i1r_1);
   }
-  $this.x1f_1 = id;
-  $this.y1f_1 = title;
+  $this.a1g_1 = id;
+  $this.b1g_1 = title;
   if (0 === (seen0 & 4))
-    $this.z1f_1 = 1;
+    $this.c1g_1 = 1;
   else
-    $this.z1f_1 = version;
+    $this.c1g_1 = version;
   if (0 === (seen0 & 8))
-    $this.a1g_1 = '';
+    $this.d1g_1 = '';
   else
-    $this.a1g_1 = world;
-  $this.b1g_1 = characters;
-  $this.c1g_1 = music;
+    $this.d1g_1 = world;
+  $this.e1g_1 = characters;
+  $this.f1g_1 = music;
   if (0 === (seen0 & 64))
-    $this.d1g_1 = emptyList();
+    $this.g1g_1 = emptyList();
   else
-    $this.d1g_1 = prologue;
-  $this.e1g_1 = briefing;
-  $this.f1g_1 = signals;
-  $this.g1g_1 = finale;
+    $this.g1g_1 = prologue;
+  $this.h1g_1 = briefing;
+  $this.i1g_1 = signals;
+  $this.j1g_1 = finale;
   if (0 === (seen0 & 1024))
-    $this.h1g_1 = new SystemLines();
+    $this.k1g_1 = new SystemLines();
   else
-    $this.h1g_1 = system;
+    $this.k1g_1 = system;
   if (0 === (seen0 & 2048))
-    $this.i1g_1 = emptyList();
+    $this.l1g_1 = emptyList();
   else
-    $this.i1g_1 = soundtracks;
+    $this.l1g_1 = soundtracks;
   if (0 === (seen0 & 4096))
-    $this.j1g_1 = '';
+    $this.m1g_1 = '';
   else
-    $this.j1g_1 = handler;
+    $this.m1g_1 = handler;
   if (0 === (seen0 & 8192))
-    $this.k1g_1 = null;
+    $this.n1g_1 = null;
   else
-    $this.k1g_1 = antagonist;
+    $this.n1g_1 = antagonist;
   return $this;
 }
 function Mission_init_$Create$(seen0, id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist, serializationConstructorMarker) {
@@ -26355,25 +26421,25 @@ function Mission_init_$Create$(seen0, id, title, version, world, characters, mus
 }
 function withRoute$renamed(_this__u8e3s4, stemNames) {
   // Inline function 'kotlin.collections.map' call
-  var this_0 = _this__u8e3s4.f1h_1;
+  var this_0 = _this__u8e3s4.j1h_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.l();
   while (_iterator__ex2g4s.m()) {
     var item = _iterator__ex2g4s.n();
-    var tmp0_safe_receiver = stemNames.w1(item.g1h_1);
+    var tmp0_safe_receiver = stemNames.w1(item.k1h_1);
     var tmp;
     if (tmp0_safe_receiver == null) {
       tmp = null;
     } else {
       // Inline function 'kotlin.let' call
-      tmp = item.a1r(VOID, VOID, tmp0_safe_receiver);
+      tmp = item.k1r(VOID, VOID, tmp0_safe_receiver);
     }
     var tmp1_elvis_lhs = tmp;
     var tmp$ret$2 = tmp1_elvis_lhs == null ? item : tmp1_elvis_lhs;
     destination.g(tmp$ret$2);
   }
-  return _this__u8e3s4.b1r(VOID, VOID, VOID, VOID, destination);
+  return _this__u8e3s4.l1r(VOID, VOID, VOID, VOID, destination);
 }
 function Mission$withTracks$lambda(it) {
   return true;
@@ -26387,30 +26453,30 @@ function Mission(id, title, version, world, characters, music, prologue, briefin
   soundtracks = soundtracks === VOID ? emptyList() : soundtracks;
   handler = handler === VOID ? '' : handler;
   antagonist = antagonist === VOID ? null : antagonist;
-  this.x1f_1 = id;
-  this.y1f_1 = title;
-  this.z1f_1 = version;
-  this.a1g_1 = world;
-  this.b1g_1 = characters;
-  this.c1g_1 = music;
-  this.d1g_1 = prologue;
-  this.e1g_1 = briefing;
-  this.f1g_1 = signals;
-  this.g1g_1 = finale;
-  this.h1g_1 = system;
-  this.i1g_1 = soundtracks;
-  this.j1g_1 = handler;
-  this.k1g_1 = antagonist;
+  this.a1g_1 = id;
+  this.b1g_1 = title;
+  this.c1g_1 = version;
+  this.d1g_1 = world;
+  this.e1g_1 = characters;
+  this.f1g_1 = music;
+  this.g1g_1 = prologue;
+  this.h1g_1 = briefing;
+  this.i1g_1 = signals;
+  this.j1g_1 = finale;
+  this.k1g_1 = system;
+  this.l1g_1 = soundtracks;
+  this.m1g_1 = handler;
+  this.n1g_1 = antagonist;
 }
-protoOf(Mission).f1m = function (id) {
-  var tmp0 = this.b1g_1;
+protoOf(Mission).j1m = function (id) {
+  var tmp0 = this.e1g_1;
   var tmp$ret$1;
   $l$block: {
     // Inline function 'kotlin.collections.firstOrNull' call
     var _iterator__ex2g4s = tmp0.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
-      if (element.j1n_1 === id) {
+      if (element.n1n_1 === id) {
         tmp$ret$1 = element;
         break $l$block;
       }
@@ -26419,24 +26485,7 @@ protoOf(Mission).f1m = function (id) {
   }
   return tmp$ret$1;
 };
-protoOf(Mission).l1g = function (id) {
-  var tmp0 = this.f1g_1;
-  var tmp$ret$1;
-  $l$block: {
-    // Inline function 'kotlin.collections.firstOrNull' call
-    var _iterator__ex2g4s = tmp0.l();
-    while (_iterator__ex2g4s.m()) {
-      var element = _iterator__ex2g4s.n();
-      if (element.m1g_1 === id) {
-        tmp$ret$1 = element;
-        break $l$block;
-      }
-    }
-    tmp$ret$1 = null;
-  }
-  return tmp$ret$1;
-};
-protoOf(Mission).c1r = function (soundtrackId) {
+protoOf(Mission).o1g = function (id) {
   var tmp0 = this.i1g_1;
   var tmp$ret$1;
   $l$block: {
@@ -26444,7 +26493,24 @@ protoOf(Mission).c1r = function (soundtrackId) {
     var _iterator__ex2g4s = tmp0.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
-      if (element.d1r_1 === soundtrackId) {
+      if (element.p1g_1 === id) {
+        tmp$ret$1 = element;
+        break $l$block;
+      }
+    }
+    tmp$ret$1 = null;
+  }
+  return tmp$ret$1;
+};
+protoOf(Mission).m1r = function (soundtrackId) {
+  var tmp0 = this.l1g_1;
+  var tmp$ret$1;
+  $l$block: {
+    // Inline function 'kotlin.collections.firstOrNull' call
+    var _iterator__ex2g4s = tmp0.l();
+    while (_iterator__ex2g4s.m()) {
+      var element = _iterator__ex2g4s.n();
+      if (element.n1r_1 === soundtrackId) {
         tmp$ret$1 = element;
         break $l$block;
       }
@@ -26457,30 +26523,30 @@ protoOf(Mission).c1r = function (soundtrackId) {
     tmp = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp = this.j1r(VOID, VOID, VOID, VOID, VOID, tmp0_safe_receiver.i1r_1);
+    tmp = this.t1r(VOID, VOID, VOID, VOID, VOID, tmp0_safe_receiver.s1r_1);
   }
   var tmp1_elvis_lhs = tmp;
   return tmp1_elvis_lhs == null ? this : tmp1_elvis_lhs;
 };
-protoOf(Mission).k1r = function (route) {
-  if (route == null || !(route.l1r_1 === this.x1f_1))
+protoOf(Mission).u1r = function (route) {
+  if (route == null || !(route.v1r_1 === this.a1g_1))
     return this;
   // Inline function 'kotlin.collections.map' call
-  var this_0 = this.f1g_1;
+  var this_0 = this.i1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.l();
   while (_iterator__ex2g4s.m()) {
     var item = _iterator__ex2g4s.n();
-    var p = route.n1r_1.w1(item.m1g_1);
-    var label = route.p1r_1.w1(item.m1g_1);
-    var tmp1_elvis_lhs = p == null ? null : p.q1r_1;
-    var tmp14_location = tmp1_elvis_lhs == null ? item.p1g_1 : tmp1_elvis_lhs;
-    var tmp3_elvis_lhs = p == null ? null : p.r1r_1;
-    var tmp15_radiusM = tmp3_elvis_lhs == null ? item.q1g_1 : tmp3_elvis_lhs;
-    var tmp5_elvis_lhs = p == null ? null : p.s1r_1;
-    var tmp16_lockRadiusM = tmp5_elvis_lhs == null ? item.r1g_1 : tmp5_elvis_lhs;
-    var tmp7_safe_receiver = label == null ? null : label.t1r_1;
+    var p = route.x1r_1.w1(item.p1g_1);
+    var label = route.z1r_1.w1(item.p1g_1);
+    var tmp1_elvis_lhs = p == null ? null : p.a1s_1;
+    var tmp14_location = tmp1_elvis_lhs == null ? item.s1g_1 : tmp1_elvis_lhs;
+    var tmp3_elvis_lhs = p == null ? null : p.b1s_1;
+    var tmp15_radiusM = tmp3_elvis_lhs == null ? item.t1g_1 : tmp3_elvis_lhs;
+    var tmp5_elvis_lhs = p == null ? null : p.c1s_1;
+    var tmp16_lockRadiusM = tmp5_elvis_lhs == null ? item.u1g_1 : tmp5_elvis_lhs;
+    var tmp7_safe_receiver = label == null ? null : label.d1s_1;
     var tmp;
     if (tmp7_safe_receiver == null) {
       tmp = null;
@@ -26503,8 +26569,8 @@ protoOf(Mission).k1r = function (route) {
       tmp_0 = tmp_1;
     }
     var tmp9_elvis_lhs = tmp_0;
-    var tmp17_name = tmp9_elvis_lhs == null ? item.n1g_1 : tmp9_elvis_lhs;
-    var tmp11_safe_receiver = label == null ? null : label.u1r_1;
+    var tmp17_name = tmp9_elvis_lhs == null ? item.q1g_1 : tmp9_elvis_lhs;
+    var tmp11_safe_receiver = label == null ? null : label.e1s_1;
     var tmp_2;
     if (tmp11_safe_receiver == null) {
       tmp_2 = null;
@@ -26527,21 +26593,21 @@ protoOf(Mission).k1r = function (route) {
       tmp_3 = tmp_4;
     }
     var tmp13_elvis_lhs = tmp_3;
-    var tmp18_place = tmp13_elvis_lhs == null ? item.o1g_1 : tmp13_elvis_lhs;
-    var tmp$ret$6 = item.v1r(VOID, tmp17_name, tmp18_place, tmp14_location, tmp15_radiusM, tmp16_lockRadiusM);
+    var tmp18_place = tmp13_elvis_lhs == null ? item.r1g_1 : tmp13_elvis_lhs;
+    var tmp$ret$6 = item.f1s(VOID, tmp17_name, tmp18_place, tmp14_location, tmp15_radiusM, tmp16_lockRadiusM);
     destination.g(tmp$ret$6);
   }
   var placed = destination;
   // Inline function 'kotlin.collections.mapNotNull' call
-  var tmp0 = this.f1g_1;
+  var tmp0 = this.i1g_1;
   // Inline function 'kotlin.collections.mapNotNullTo' call
   var destination_0 = ArrayList_init_$Create$();
   // Inline function 'kotlin.collections.forEach' call
   var _iterator__ex2g4s_0 = tmp0.l();
   while (_iterator__ex2g4s_0.m()) {
     var element = _iterator__ex2g4s_0.n();
-    var tmp0_safe_receiver = route.p1r_1.w1(element.m1g_1);
-    var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.t1r_1;
+    var tmp0_safe_receiver = route.z1r_1.w1(element.p1g_1);
+    var tmp1_safe_receiver = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.d1s_1;
     var tmp_5;
     if (tmp1_safe_receiver == null) {
       tmp_5 = null;
@@ -26569,7 +26635,7 @@ protoOf(Mission).k1r = function (route) {
       tmp_8 = null;
     } else {
       // Inline function 'kotlin.let' call
-      tmp_8 = to(element.s1g_1, tmp3_safe_receiver);
+      tmp_8 = to(element.w1g_1, tmp3_safe_receiver);
     }
     var tmp0_safe_receiver_0 = tmp_8;
     if (tmp0_safe_receiver_0 == null)
@@ -26581,47 +26647,47 @@ protoOf(Mission).k1r = function (route) {
   }
   var stemNames = toMap(destination_0);
   if (stemNames.q())
-    return this.j1r(VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, placed);
-  var tmp0_music = withRoute$renamed(this.c1g_1, stemNames);
+    return this.t1r(VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, placed);
+  var tmp0_music = withRoute$renamed(this.f1g_1, stemNames);
   // Inline function 'kotlin.collections.map' call
-  var this_1 = this.i1g_1;
+  var this_1 = this.l1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_1 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_1, 10));
   var _iterator__ex2g4s_1 = this_1.l();
   while (_iterator__ex2g4s_1.m()) {
     var item_0 = _iterator__ex2g4s_1.n();
-    var tmp$ret$21 = item_0.w1r(VOID, VOID, VOID, VOID, VOID, withRoute$renamed(item_0.i1r_1, stemNames));
+    var tmp$ret$21 = item_0.g1s(VOID, VOID, VOID, VOID, VOID, withRoute$renamed(item_0.s1r_1, stemNames));
     destination_1.g(tmp$ret$21);
   }
-  return this.j1r(VOID, VOID, VOID, VOID, VOID, tmp0_music, VOID, VOID, placed, VOID, VOID, destination_1);
+  return this.t1r(VOID, VOID, VOID, VOID, VOID, tmp0_music, VOID, VOID, placed, VOID, VOID, destination_1);
 };
-protoOf(Mission).x1r = function (catalog, ready) {
-  if (catalog == null || !(catalog.y1r_1 === this.x1f_1))
+protoOf(Mission).h1s = function (catalog, ready) {
+  if (catalog == null || !(catalog.i1s_1 === this.a1g_1))
     return this;
   // Inline function 'kotlin.collections.map' call
-  var this_0 = this.i1g_1;
+  var this_0 = this.l1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.l();
   while (_iterator__ex2g4s.m()) {
     var item = _iterator__ex2g4s.n();
-    var tmp$ret$0 = item.d1r_1;
+    var tmp$ret$0 = item.n1r_1;
     destination.g(tmp$ret$0);
   }
   var taken = plus_0(toSet_0(destination), 'original');
   // Inline function 'kotlin.collections.map' call
-  var this_1 = this.f1g_1;
+  var this_1 = this.i1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_0 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_1, 10));
   var _iterator__ex2g4s_0 = this_1.l();
   while (_iterator__ex2g4s_0.m()) {
     var item_0 = _iterator__ex2g4s_0.n();
-    var tmp$ret$3 = item_0.s1g_1;
+    var tmp$ret$3 = item_0.w1g_1;
     destination_0.g(tmp$ret$3);
   }
   var slots = toSet_0(destination_0);
   // Inline function 'kotlin.collections.filter' call
-  var tmp0 = catalog.z1r_1;
+  var tmp0 = catalog.j1s_1;
   // Inline function 'kotlin.collections.filterTo' call
   var destination_1 = ArrayList_init_$Create$();
   var _iterator__ex2g4s_1 = tmp0.l();
@@ -26629,7 +26695,7 @@ protoOf(Mission).x1r = function (catalog, ready) {
     var element = _iterator__ex2g4s_1.n();
     var tmp;
     var tmp_0;
-    if (!taken.c1(element.d1r_1)) {
+    if (!taken.c1(element.n1r_1)) {
       var tmp$ret$6;
       $l$block_2: {
         // Inline function 'kotlin.collections.all' call
@@ -26646,7 +26712,7 @@ protoOf(Mission).x1r = function (catalog, ready) {
         var _iterator__ex2g4s_2 = slots.l();
         while (_iterator__ex2g4s_2.m()) {
           var element_0 = _iterator__ex2g4s_2.n();
-          var tmp0_0 = element.i1r_1.f1h_1;
+          var tmp0_0 = element.s1r_1.j1h_1;
           var tmp$ret$7;
           $l$block_1: {
             // Inline function 'kotlin.collections.any' call
@@ -26663,7 +26729,7 @@ protoOf(Mission).x1r = function (catalog, ready) {
             var _iterator__ex2g4s_3 = tmp0_0.l();
             while (_iterator__ex2g4s_3.m()) {
               var element_1 = _iterator__ex2g4s_3.n();
-              if (element_1.g1h_1 === element_0) {
+              if (element_1.k1h_1 === element_0) {
                 tmp$ret$7 = true;
                 break $l$block_1;
               }
@@ -26682,7 +26748,7 @@ protoOf(Mission).x1r = function (catalog, ready) {
       tmp_0 = false;
     }
     if (tmp_0) {
-      var tmp0_1 = element.i1r_1.f1h_1;
+      var tmp0_1 = element.s1r_1.j1h_1;
       var tmp$ret$10;
       $l$block_4: {
         // Inline function 'kotlin.collections.all' call
@@ -26720,15 +26786,15 @@ protoOf(Mission).x1r = function (catalog, ready) {
   var _iterator__ex2g4s_5 = destination_1.l();
   while (_iterator__ex2g4s_5.m()) {
     var e = _iterator__ex2g4s_5.n();
-    var key = e.d1r_1;
+    var key = e.n1r_1;
     if (set.g(key)) {
       list.g(e);
     }
   }
   var added = list;
-  return added.q() ? this : this.j1r(VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, plus(this.i1g_1, added));
+  return added.q() ? this : this.t1r(VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, VOID, plus(this.l1g_1, added));
 };
-protoOf(Mission).c1s = function (catalog, ready, $super) {
+protoOf(Mission).m1s = function (catalog, ready, $super) {
   var tmp;
   if (ready === VOID) {
     tmp = Mission$withTracks$lambda;
@@ -26736,46 +26802,46 @@ protoOf(Mission).c1s = function (catalog, ready, $super) {
     tmp = ready;
   }
   ready = tmp;
-  return $super === VOID ? this.x1r(catalog, ready) : $super.x1r.call(this, catalog, ready);
+  return $super === VOID ? this.h1s(catalog, ready) : $super.h1s.call(this, catalog, ready);
 };
-protoOf(Mission).d1s = function (id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist) {
+protoOf(Mission).n1s = function (id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist) {
   return new Mission(id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist);
 };
-protoOf(Mission).j1r = function (id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist, $super) {
-  id = id === VOID ? this.x1f_1 : id;
-  title = title === VOID ? this.y1f_1 : title;
-  version = version === VOID ? this.z1f_1 : version;
-  world = world === VOID ? this.a1g_1 : world;
-  characters = characters === VOID ? this.b1g_1 : characters;
-  music = music === VOID ? this.c1g_1 : music;
-  prologue = prologue === VOID ? this.d1g_1 : prologue;
-  briefing = briefing === VOID ? this.e1g_1 : briefing;
-  signals = signals === VOID ? this.f1g_1 : signals;
-  finale = finale === VOID ? this.g1g_1 : finale;
-  system = system === VOID ? this.h1g_1 : system;
-  soundtracks = soundtracks === VOID ? this.i1g_1 : soundtracks;
-  handler = handler === VOID ? this.j1g_1 : handler;
-  antagonist = antagonist === VOID ? this.k1g_1 : antagonist;
-  return $super === VOID ? this.d1s(id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist) : $super.d1s.call(this, id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist);
+protoOf(Mission).t1r = function (id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist, $super) {
+  id = id === VOID ? this.a1g_1 : id;
+  title = title === VOID ? this.b1g_1 : title;
+  version = version === VOID ? this.c1g_1 : version;
+  world = world === VOID ? this.d1g_1 : world;
+  characters = characters === VOID ? this.e1g_1 : characters;
+  music = music === VOID ? this.f1g_1 : music;
+  prologue = prologue === VOID ? this.g1g_1 : prologue;
+  briefing = briefing === VOID ? this.h1g_1 : briefing;
+  signals = signals === VOID ? this.i1g_1 : signals;
+  finale = finale === VOID ? this.j1g_1 : finale;
+  system = system === VOID ? this.k1g_1 : system;
+  soundtracks = soundtracks === VOID ? this.l1g_1 : soundtracks;
+  handler = handler === VOID ? this.m1g_1 : handler;
+  antagonist = antagonist === VOID ? this.n1g_1 : antagonist;
+  return $super === VOID ? this.n1s(id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist) : $super.n1s.call(this, id, title, version, world, characters, music, prologue, briefing, signals, finale, system, soundtracks, handler, antagonist);
 };
 protoOf(Mission).toString = function () {
-  return 'Mission(id=' + this.x1f_1 + ', title=' + this.y1f_1 + ', version=' + this.z1f_1 + ', world=' + this.a1g_1 + ', characters=' + toString_1(this.b1g_1) + ', music=' + this.c1g_1.toString() + ', prologue=' + toString_1(this.d1g_1) + ', briefing=' + toString_1(this.e1g_1) + ', signals=' + toString_1(this.f1g_1) + ', finale=' + this.g1g_1.toString() + ', system=' + this.h1g_1.toString() + ', soundtracks=' + toString_1(this.i1g_1) + ', handler=' + this.j1g_1 + ', antagonist=' + toString_0(this.k1g_1) + ')';
+  return 'Mission(id=' + this.a1g_1 + ', title=' + this.b1g_1 + ', version=' + this.c1g_1 + ', world=' + this.d1g_1 + ', characters=' + toString_1(this.e1g_1) + ', music=' + this.f1g_1.toString() + ', prologue=' + toString_1(this.g1g_1) + ', briefing=' + toString_1(this.h1g_1) + ', signals=' + toString_1(this.i1g_1) + ', finale=' + this.j1g_1.toString() + ', system=' + this.k1g_1.toString() + ', soundtracks=' + toString_1(this.l1g_1) + ', handler=' + this.m1g_1 + ', antagonist=' + toString_0(this.n1g_1) + ')';
 };
 protoOf(Mission).hashCode = function () {
-  var result = getStringHashCode(this.x1f_1);
-  result = imul_0(result, 31) + getStringHashCode(this.y1f_1) | 0;
-  result = imul_0(result, 31) + this.z1f_1 | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.a1g_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.b1g_1) | 0;
-  result = imul_0(result, 31) + this.c1g_1.hashCode() | 0;
-  result = imul_0(result, 31) + hashCode_0(this.d1g_1) | 0;
+  var result = getStringHashCode(this.a1g_1);
+  result = imul_0(result, 31) + getStringHashCode(this.b1g_1) | 0;
+  result = imul_0(result, 31) + this.c1g_1 | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.d1g_1) | 0;
   result = imul_0(result, 31) + hashCode_0(this.e1g_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.f1g_1) | 0;
-  result = imul_0(result, 31) + this.g1g_1.hashCode() | 0;
-  result = imul_0(result, 31) + this.h1g_1.hashCode() | 0;
+  result = imul_0(result, 31) + this.f1g_1.hashCode() | 0;
+  result = imul_0(result, 31) + hashCode_0(this.g1g_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.h1g_1) | 0;
   result = imul_0(result, 31) + hashCode_0(this.i1g_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.j1g_1) | 0;
-  result = imul_0(result, 31) + (this.k1g_1 == null ? 0 : this.k1g_1.hashCode()) | 0;
+  result = imul_0(result, 31) + this.j1g_1.hashCode() | 0;
+  result = imul_0(result, 31) + this.k1g_1.hashCode() | 0;
+  result = imul_0(result, 31) + hashCode_0(this.l1g_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.m1g_1) | 0;
+  result = imul_0(result, 31) + (this.n1g_1 == null ? 0 : this.n1g_1.hashCode()) | 0;
   return result;
 };
 protoOf(Mission).equals = function (other) {
@@ -26783,33 +26849,33 @@ protoOf(Mission).equals = function (other) {
     return true;
   if (!(other instanceof Mission))
     return false;
-  if (!(this.x1f_1 === other.x1f_1))
-    return false;
-  if (!(this.y1f_1 === other.y1f_1))
-    return false;
-  if (!(this.z1f_1 === other.z1f_1))
-    return false;
   if (!(this.a1g_1 === other.a1g_1))
     return false;
-  if (!equals(this.b1g_1, other.b1g_1))
+  if (!(this.b1g_1 === other.b1g_1))
     return false;
-  if (!this.c1g_1.equals(other.c1g_1))
+  if (!(this.c1g_1 === other.c1g_1))
     return false;
-  if (!equals(this.d1g_1, other.d1g_1))
+  if (!(this.d1g_1 === other.d1g_1))
     return false;
   if (!equals(this.e1g_1, other.e1g_1))
     return false;
-  if (!equals(this.f1g_1, other.f1g_1))
+  if (!this.f1g_1.equals(other.f1g_1))
     return false;
-  if (!this.g1g_1.equals(other.g1g_1))
+  if (!equals(this.g1g_1, other.g1g_1))
     return false;
-  if (!this.h1g_1.equals(other.h1g_1))
+  if (!equals(this.h1g_1, other.h1g_1))
     return false;
   if (!equals(this.i1g_1, other.i1g_1))
     return false;
-  if (!(this.j1g_1 === other.j1g_1))
+  if (!this.j1g_1.equals(other.j1g_1))
     return false;
-  if (!equals(this.k1g_1, other.k1g_1))
+  if (!this.k1g_1.equals(other.k1g_1))
+    return false;
+  if (!equals(this.l1g_1, other.l1g_1))
+    return false;
+  if (!(this.m1g_1 === other.m1g_1))
+    return false;
+  if (!equals(this.n1g_1, other.n1g_1))
     return false;
   return true;
 };
@@ -26822,32 +26888,32 @@ function $serializer_2() {
   tmp0_serialDesc.yr('persona', true);
   tmp0_serialDesc.yr('voice', true);
   tmp0_serialDesc.yr('radio', true);
-  this.e1s_1 = tmp0_serialDesc;
+  this.o1s_1 = tmp0_serialDesc;
 }
-protoOf($serializer_2).f1s = function (encoder, value) {
-  var tmp0_desc = this.e1s_1;
+protoOf($serializer_2).p1s = function (encoder, value) {
+  var tmp0_desc = this.o1s_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  tmp1_output.mn(tmp0_desc, 0, value.j1n_1);
-  tmp1_output.mn(tmp0_desc, 1, value.k1n_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.l1n_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 2, value.l1n_1);
+  tmp1_output.mn(tmp0_desc, 0, value.n1n_1);
+  tmp1_output.mn(tmp0_desc, 1, value.o1n_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.p1n_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 2, value.p1n_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.m1n_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 3, value.m1n_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.q1n_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 3, value.q1n_1);
   }
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !value.n1n_1.equals(new VoiceSpec())) {
-    tmp1_output.on(tmp0_desc, 4, $serializer_getInstance_3(), value.n1n_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !value.r1n_1.equals(new VoiceSpec())) {
+    tmp1_output.on(tmp0_desc, 4, $serializer_getInstance_3(), value.r1n_1);
   }
-  if (tmp1_output.un(tmp0_desc, 5) ? true : !equals(value.o1n_1, 0.5)) {
-    tmp1_output.kn(tmp0_desc, 5, value.o1n_1);
+  if (tmp1_output.un(tmp0_desc, 5) ? true : !equals(value.s1n_1, 0.5)) {
+    tmp1_output.kn(tmp0_desc, 5, value.s1n_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_2).dj = function (encoder, value) {
-  return this.f1s(encoder, value instanceof Character ? value : THROW_CCE());
+  return this.p1s(encoder, value instanceof Character ? value : THROW_CCE());
 };
 protoOf($serializer_2).ej = function (decoder) {
-  var tmp0_desc = this.e1s_1;
+  var tmp0_desc = this.o1s_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -26910,7 +26976,7 @@ protoOf($serializer_2).ej = function (decoder) {
   return Character_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, null);
 };
 protoOf($serializer_2).cj = function () {
-  return this.e1s_1;
+  return this.o1s_1;
 };
 protoOf($serializer_2).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -26926,26 +26992,26 @@ function $serializer_getInstance_2() {
 }
 function Character_init_$Init$(seen0, id, name, role, persona, voice, radio, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_2().e1s_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_2().o1s_1);
   }
-  $this.j1n_1 = id;
-  $this.k1n_1 = name;
+  $this.n1n_1 = id;
+  $this.o1n_1 = name;
   if (0 === (seen0 & 4))
-    $this.l1n_1 = '';
+    $this.p1n_1 = '';
   else
-    $this.l1n_1 = role;
+    $this.p1n_1 = role;
   if (0 === (seen0 & 8))
-    $this.m1n_1 = '';
+    $this.q1n_1 = '';
   else
-    $this.m1n_1 = persona;
+    $this.q1n_1 = persona;
   if (0 === (seen0 & 16))
-    $this.n1n_1 = new VoiceSpec();
+    $this.r1n_1 = new VoiceSpec();
   else
-    $this.n1n_1 = voice;
+    $this.r1n_1 = voice;
   if (0 === (seen0 & 32))
-    $this.o1n_1 = 0.5;
+    $this.s1n_1 = 0.5;
   else
-    $this.o1n_1 = radio;
+    $this.s1n_1 = radio;
   return $this;
 }
 function Character_init_$Create$(seen0, id, name, role, persona, voice, radio, serializationConstructorMarker) {
@@ -26954,15 +27020,15 @@ function Character_init_$Create$(seen0, id, name, role, persona, voice, radio, s
 function Character() {
 }
 protoOf(Character).toString = function () {
-  return 'Character(id=' + this.j1n_1 + ', name=' + this.k1n_1 + ', role=' + this.l1n_1 + ', persona=' + this.m1n_1 + ', voice=' + this.n1n_1.toString() + ', radio=' + this.o1n_1 + ')';
+  return 'Character(id=' + this.n1n_1 + ', name=' + this.o1n_1 + ', role=' + this.p1n_1 + ', persona=' + this.q1n_1 + ', voice=' + this.r1n_1.toString() + ', radio=' + this.s1n_1 + ')';
 };
 protoOf(Character).hashCode = function () {
-  var result = getStringHashCode(this.j1n_1);
-  result = imul_0(result, 31) + getStringHashCode(this.k1n_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.l1n_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.m1n_1) | 0;
-  result = imul_0(result, 31) + this.n1n_1.hashCode() | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.o1n_1) | 0;
+  var result = getStringHashCode(this.n1n_1);
+  result = imul_0(result, 31) + getStringHashCode(this.o1n_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.p1n_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.q1n_1) | 0;
+  result = imul_0(result, 31) + this.r1n_1.hashCode() | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.s1n_1) | 0;
   return result;
 };
 protoOf(Character).equals = function (other) {
@@ -26970,17 +27036,17 @@ protoOf(Character).equals = function (other) {
     return true;
   if (!(other instanceof Character))
     return false;
-  if (!(this.j1n_1 === other.j1n_1))
+  if (!(this.n1n_1 === other.n1n_1))
     return false;
-  if (!(this.k1n_1 === other.k1n_1))
+  if (!(this.o1n_1 === other.o1n_1))
     return false;
-  if (!(this.l1n_1 === other.l1n_1))
+  if (!(this.p1n_1 === other.p1n_1))
     return false;
-  if (!(this.m1n_1 === other.m1n_1))
+  if (!(this.q1n_1 === other.q1n_1))
     return false;
-  if (!this.n1n_1.equals(other.n1n_1))
+  if (!this.r1n_1.equals(other.r1n_1))
     return false;
-  if (!equals(this.o1n_1, other.o1n_1))
+  if (!equals(this.s1n_1, other.s1n_1))
     return false;
   return true;
 };
@@ -26996,27 +27062,27 @@ function $serializer_3() {
   tmp0_serialDesc.yr('ttsVoice', true);
   tmp0_serialDesc.yr('pitch', true);
   tmp0_serialDesc.yr('rate', true);
-  this.g1s_1 = tmp0_serialDesc;
+  this.q1s_1 = tmp0_serialDesc;
 }
-protoOf($serializer_3).h1s = function (encoder, value) {
-  var tmp0_desc = this.g1s_1;
+protoOf($serializer_3).r1s = function (encoder, value) {
+  var tmp0_desc = this.q1s_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.i1s_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 0, value.i1s_1);
+  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.s1s_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 0, value.s1s_1);
   }
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !equals(value.j1s_1, 1.0)) {
-    tmp1_output.kn(tmp0_desc, 1, value.j1s_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !equals(value.t1s_1, 1.0)) {
+    tmp1_output.kn(tmp0_desc, 1, value.t1s_1);
   }
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.k1s_1, 1.0)) {
-    tmp1_output.kn(tmp0_desc, 2, value.k1s_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.u1s_1, 1.0)) {
+    tmp1_output.kn(tmp0_desc, 2, value.u1s_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_3).dj = function (encoder, value) {
-  return this.h1s(encoder, value instanceof VoiceSpec ? value : THROW_CCE());
+  return this.r1s(encoder, value instanceof VoiceSpec ? value : THROW_CCE());
 };
 protoOf($serializer_3).ej = function (decoder) {
-  var tmp0_desc = this.g1s_1;
+  var tmp0_desc = this.q1s_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -27058,7 +27124,7 @@ protoOf($serializer_3).ej = function (decoder) {
   return VoiceSpec_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
 };
 protoOf($serializer_3).cj = function () {
-  return this.g1s_1;
+  return this.q1s_1;
 };
 protoOf($serializer_3).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -27074,20 +27140,20 @@ function $serializer_getInstance_3() {
 }
 function VoiceSpec_init_$Init$(seen0, ttsVoice, pitch, rate, serializationConstructorMarker, $this) {
   if (!(0 === (0 & seen0))) {
-    throwMissingFieldException(seen0, 0, $serializer_getInstance_3().g1s_1);
+    throwMissingFieldException(seen0, 0, $serializer_getInstance_3().q1s_1);
   }
   if (0 === (seen0 & 1))
-    $this.i1s_1 = '';
+    $this.s1s_1 = '';
   else
-    $this.i1s_1 = ttsVoice;
+    $this.s1s_1 = ttsVoice;
   if (0 === (seen0 & 2))
-    $this.j1s_1 = 1.0;
+    $this.t1s_1 = 1.0;
   else
-    $this.j1s_1 = pitch;
+    $this.t1s_1 = pitch;
   if (0 === (seen0 & 4))
-    $this.k1s_1 = 1.0;
+    $this.u1s_1 = 1.0;
   else
-    $this.k1s_1 = rate;
+    $this.u1s_1 = rate;
   return $this;
 }
 function VoiceSpec_init_$Create$(seen0, ttsVoice, pitch, rate, serializationConstructorMarker) {
@@ -27097,17 +27163,17 @@ function VoiceSpec(ttsVoice, pitch, rate) {
   ttsVoice = ttsVoice === VOID ? '' : ttsVoice;
   pitch = pitch === VOID ? 1.0 : pitch;
   rate = rate === VOID ? 1.0 : rate;
-  this.i1s_1 = ttsVoice;
-  this.j1s_1 = pitch;
-  this.k1s_1 = rate;
+  this.s1s_1 = ttsVoice;
+  this.t1s_1 = pitch;
+  this.u1s_1 = rate;
 }
 protoOf(VoiceSpec).toString = function () {
-  return 'VoiceSpec(ttsVoice=' + this.i1s_1 + ', pitch=' + this.j1s_1 + ', rate=' + this.k1s_1 + ')';
+  return 'VoiceSpec(ttsVoice=' + this.s1s_1 + ', pitch=' + this.t1s_1 + ', rate=' + this.u1s_1 + ')';
 };
 protoOf(VoiceSpec).hashCode = function () {
-  var result = getStringHashCode(this.i1s_1);
-  result = imul_0(result, 31) + getNumberHashCode(this.j1s_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.k1s_1) | 0;
+  var result = getStringHashCode(this.s1s_1);
+  result = imul_0(result, 31) + getNumberHashCode(this.t1s_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.u1s_1) | 0;
   return result;
 };
 protoOf(VoiceSpec).equals = function (other) {
@@ -27115,11 +27181,11 @@ protoOf(VoiceSpec).equals = function (other) {
     return true;
   if (!(other instanceof VoiceSpec))
     return false;
-  if (!(this.i1s_1 === other.i1s_1))
+  if (!(this.s1s_1 === other.s1s_1))
     return false;
-  if (!equals(this.j1s_1, other.j1s_1))
+  if (!equals(this.t1s_1, other.t1s_1))
     return false;
-  if (!equals(this.k1s_1, other.k1s_1))
+  if (!equals(this.u1s_1, other.u1s_1))
     return false;
   return true;
 };
@@ -27133,7 +27199,7 @@ function Companion_36() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.l1s_1 = [null, null, null, lazy(tmp_0, Line$Companion$$childSerializers$_anonymous__ff913e)];
+  tmp.v1s_1 = [null, null, null, lazy(tmp_0, Line$Companion$$childSerializers$_anonymous__ff913e)];
 }
 var Companion_instance_36;
 function Companion_getInstance_36() {
@@ -27148,25 +27214,25 @@ function $serializer_4() {
   tmp0_serialDesc.yr('speaker', false);
   tmp0_serialDesc.yr('text', false);
   tmp0_serialDesc.yr('requires', true);
-  this.m1s_1 = tmp0_serialDesc;
+  this.w1s_1 = tmp0_serialDesc;
 }
-protoOf($serializer_4).n1s = function (encoder, value) {
-  var tmp0_desc = this.m1s_1;
+protoOf($serializer_4).x1s = function (encoder, value) {
+  var tmp0_desc = this.w1s_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_36().l1s_1;
-  tmp1_output.mn(tmp0_desc, 0, value.l1m_1);
-  tmp1_output.mn(tmp0_desc, 1, value.m1m_1);
-  tmp1_output.mn(tmp0_desc, 2, value.n1m_1);
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.o1m_1, emptyMap())) {
-    tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.o1m_1);
+  var tmp2_cached = Companion_getInstance_36().v1s_1;
+  tmp1_output.mn(tmp0_desc, 0, value.p1m_1);
+  tmp1_output.mn(tmp0_desc, 1, value.q1m_1);
+  tmp1_output.mn(tmp0_desc, 2, value.r1m_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.s1m_1, emptyMap())) {
+    tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.s1m_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_4).dj = function (encoder, value) {
-  return this.n1s(encoder, value instanceof Line ? value : THROW_CCE());
+  return this.x1s(encoder, value instanceof Line ? value : THROW_CCE());
 };
 protoOf($serializer_4).ej = function (decoder) {
-  var tmp0_desc = this.m1s_1;
+  var tmp0_desc = this.w1s_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -27175,7 +27241,7 @@ protoOf($serializer_4).ej = function (decoder) {
   var tmp6_local2 = null;
   var tmp7_local3 = null;
   var tmp8_input = decoder.yl(tmp0_desc);
-  var tmp9_cached = Companion_getInstance_36().l1s_1;
+  var tmp9_cached = Companion_getInstance_36().v1s_1;
   if (tmp8_input.om()) {
     tmp4_local0 = tmp8_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -27216,10 +27282,10 @@ protoOf($serializer_4).ej = function (decoder) {
   return Line_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
 };
 protoOf($serializer_4).cj = function () {
-  return this.m1s_1;
+  return this.w1s_1;
 };
 protoOf($serializer_4).as = function () {
-  var tmp0_cached = Companion_getInstance_36().l1s_1;
+  var tmp0_cached = Companion_getInstance_36().v1s_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -27233,15 +27299,15 @@ function $serializer_getInstance_4() {
 }
 function Line_init_$Init$(seen0, id, speaker, text, requires, serializationConstructorMarker, $this) {
   if (!(7 === (7 & seen0))) {
-    throwMissingFieldException(seen0, 7, $serializer_getInstance_4().m1s_1);
+    throwMissingFieldException(seen0, 7, $serializer_getInstance_4().w1s_1);
   }
-  $this.l1m_1 = id;
-  $this.m1m_1 = speaker;
-  $this.n1m_1 = text;
+  $this.p1m_1 = id;
+  $this.q1m_1 = speaker;
+  $this.r1m_1 = text;
   if (0 === (seen0 & 8))
-    $this.o1m_1 = emptyMap();
+    $this.s1m_1 = emptyMap();
   else
-    $this.o1m_1 = requires;
+    $this.s1m_1 = requires;
   return $this;
 }
 function Line_init_$Create$(seen0, id, speaker, text, requires, serializationConstructorMarker) {
@@ -27250,13 +27316,13 @@ function Line_init_$Create$(seen0, id, speaker, text, requires, serializationCon
 function Line() {
 }
 protoOf(Line).toString = function () {
-  return 'Line(id=' + this.l1m_1 + ', speaker=' + this.m1m_1 + ', text=' + this.n1m_1 + ', requires=' + toString_1(this.o1m_1) + ')';
+  return 'Line(id=' + this.p1m_1 + ', speaker=' + this.q1m_1 + ', text=' + this.r1m_1 + ', requires=' + toString_1(this.s1m_1) + ')';
 };
 protoOf(Line).hashCode = function () {
-  var result = getStringHashCode(this.l1m_1);
-  result = imul_0(result, 31) + getStringHashCode(this.m1m_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.n1m_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.o1m_1) | 0;
+  var result = getStringHashCode(this.p1m_1);
+  result = imul_0(result, 31) + getStringHashCode(this.q1m_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.r1m_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.s1m_1) | 0;
   return result;
 };
 protoOf(Line).equals = function (other) {
@@ -27264,13 +27330,13 @@ protoOf(Line).equals = function (other) {
     return true;
   if (!(other instanceof Line))
     return false;
-  if (!(this.l1m_1 === other.l1m_1))
+  if (!(this.p1m_1 === other.p1m_1))
     return false;
-  if (!(this.m1m_1 === other.m1m_1))
+  if (!(this.q1m_1 === other.q1m_1))
     return false;
-  if (!(this.n1m_1 === other.n1m_1))
+  if (!(this.r1m_1 === other.r1m_1))
     return false;
-  if (!equals(this.o1m_1, other.o1m_1))
+  if (!equals(this.s1m_1, other.s1m_1))
     return false;
   return true;
 };
@@ -27284,7 +27350,7 @@ function Signal$Companion$$childSerializers$_anonymous__jmky2m_1() {
   return new ArrayListSerializer($serializer_getInstance_4());
 }
 function Signal$Companion$$childSerializers$_anonymous__jmky2m_2() {
-  return Companion_getInstance_45().k1p();
+  return Companion_getInstance_45().q1p();
 }
 function Signal$Companion$$childSerializers$_anonymous__jmky2m_3() {
   return new ArrayListSerializer($serializer_getInstance_4());
@@ -27314,7 +27380,7 @@ function Companion_37() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.p1s_1 = [null, null, null, null, null, null, null, null, tmp_1, tmp_3, tmp_5, tmp_7, tmp_9, tmp_11, lazy(tmp_12, Signal$Companion$$childSerializers$_anonymous__jmky2m_5)];
+  tmp.z1s_1 = [null, null, null, null, null, null, null, null, null, tmp_1, tmp_3, tmp_5, tmp_7, tmp_9, tmp_11, lazy(tmp_12, Signal$Companion$$childSerializers$_anonymous__jmky2m_5)];
 }
 var Companion_instance_37;
 function Companion_getInstance_37() {
@@ -27324,13 +27390,14 @@ function Companion_getInstance_37() {
 }
 function $serializer_5() {
   $serializer_instance_5 = this;
-  var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('com.ghostsignal.core.model.Signal', this, 15);
+  var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('com.ghostsignal.core.model.Signal', this, 16);
   tmp0_serialDesc.yr('id', false);
   tmp0_serialDesc.yr('name', false);
   tmp0_serialDesc.yr('place', true);
   tmp0_serialDesc.yr('location', false);
   tmp0_serialDesc.yr('radiusM', true);
   tmp0_serialDesc.yr('lockRadiusM', true);
+  tmp0_serialDesc.yr('elevationDeg', true);
   tmp0_serialDesc.yr('stem', false);
   tmp0_serialDesc.yr('speaker', false);
   tmp0_serialDesc.yr('teaser', true);
@@ -27340,52 +27407,55 @@ function $serializer_5() {
   tmp0_serialDesc.yr('success', true);
   tmp0_serialDesc.yr('retry', true);
   tmp0_serialDesc.yr('hint', true);
-  this.q1s_1 = tmp0_serialDesc;
+  this.a1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_5).r1s = function (encoder, value) {
-  var tmp0_desc = this.q1s_1;
+protoOf($serializer_5).b1t = function (encoder, value) {
+  var tmp0_desc = this.a1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_37().p1s_1;
-  tmp1_output.mn(tmp0_desc, 0, value.m1g_1);
-  tmp1_output.mn(tmp0_desc, 1, value.n1g_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.o1g_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 2, value.o1g_1);
+  var tmp2_cached = Companion_getInstance_37().z1s_1;
+  tmp1_output.mn(tmp0_desc, 0, value.p1g_1);
+  tmp1_output.mn(tmp0_desc, 1, value.q1g_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.r1g_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 2, value.r1g_1);
   }
-  tmp1_output.on(tmp0_desc, 3, $serializer_getInstance_0(), value.p1g_1);
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.q1g_1, 45.0)) {
-    tmp1_output.kn(tmp0_desc, 4, value.q1g_1);
+  tmp1_output.on(tmp0_desc, 3, $serializer_getInstance_0(), value.s1g_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.t1g_1, 45.0)) {
+    tmp1_output.kn(tmp0_desc, 4, value.t1g_1);
   }
-  if (tmp1_output.un(tmp0_desc, 5) ? true : !equals(value.r1g_1, 28.0)) {
-    tmp1_output.kn(tmp0_desc, 5, value.r1g_1);
+  if (tmp1_output.un(tmp0_desc, 5) ? true : !equals(value.u1g_1, 28.0)) {
+    tmp1_output.kn(tmp0_desc, 5, value.u1g_1);
   }
-  tmp1_output.mn(tmp0_desc, 6, value.s1g_1);
-  tmp1_output.mn(tmp0_desc, 7, value.t1g_1);
-  if (tmp1_output.un(tmp0_desc, 8) ? true : !equals(value.u1g_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 8, tmp2_cached[8].t1(), value.u1g_1);
+  if (tmp1_output.un(tmp0_desc, 6) ? true : !equals(value.v1g_1, 0.0)) {
+    tmp1_output.kn(tmp0_desc, 6, value.v1g_1);
   }
-  if (tmp1_output.un(tmp0_desc, 9) ? true : !equals(value.v1g_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 9, tmp2_cached[9].t1(), value.v1g_1);
+  tmp1_output.mn(tmp0_desc, 7, value.w1g_1);
+  tmp1_output.mn(tmp0_desc, 8, value.x1g_1);
+  if (tmp1_output.un(tmp0_desc, 9) ? true : !equals(value.y1g_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 9, tmp2_cached[9].t1(), value.y1g_1);
   }
-  if (tmp1_output.un(tmp0_desc, 10) ? true : !equals(value.w1g_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 10, tmp2_cached[10].t1(), value.w1g_1);
+  if (tmp1_output.un(tmp0_desc, 10) ? true : !equals(value.z1g_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 10, tmp2_cached[10].t1(), value.z1g_1);
   }
-  tmp1_output.on(tmp0_desc, 11, tmp2_cached[11].t1(), value.x1g_1);
-  if (tmp1_output.un(tmp0_desc, 12) ? true : !equals(value.y1g_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 12, tmp2_cached[12].t1(), value.y1g_1);
+  if (tmp1_output.un(tmp0_desc, 11) ? true : !equals(value.a1h_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 11, tmp2_cached[11].t1(), value.a1h_1);
   }
-  if (tmp1_output.un(tmp0_desc, 13) ? true : !equals(value.z1g_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 13, tmp2_cached[13].t1(), value.z1g_1);
+  tmp1_output.on(tmp0_desc, 12, tmp2_cached[12].t1(), value.b1h_1);
+  if (tmp1_output.un(tmp0_desc, 13) ? true : !equals(value.c1h_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 13, tmp2_cached[13].t1(), value.c1h_1);
   }
-  if (tmp1_output.un(tmp0_desc, 14) ? true : !equals(value.a1h_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 14, tmp2_cached[14].t1(), value.a1h_1);
+  if (tmp1_output.un(tmp0_desc, 14) ? true : !equals(value.d1h_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 14, tmp2_cached[14].t1(), value.d1h_1);
+  }
+  if (tmp1_output.un(tmp0_desc, 15) ? true : !equals(value.e1h_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 15, tmp2_cached[15].t1(), value.e1h_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_5).dj = function (encoder, value) {
-  return this.r1s(encoder, value instanceof Signal ? value : THROW_CCE());
+  return this.b1t(encoder, value instanceof Signal ? value : THROW_CCE());
 };
 protoOf($serializer_5).ej = function (decoder) {
-  var tmp0_desc = this.q1s_1;
+  var tmp0_desc = this.a1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -27395,7 +27465,7 @@ protoOf($serializer_5).ej = function (decoder) {
   var tmp7_local3 = null;
   var tmp8_local4 = 0.0;
   var tmp9_local5 = 0.0;
-  var tmp10_local6 = null;
+  var tmp10_local6 = 0.0;
   var tmp11_local7 = null;
   var tmp12_local8 = null;
   var tmp13_local9 = null;
@@ -27404,122 +27474,129 @@ protoOf($serializer_5).ej = function (decoder) {
   var tmp16_local12 = null;
   var tmp17_local13 = null;
   var tmp18_local14 = null;
-  var tmp19_input = decoder.yl(tmp0_desc);
-  var tmp20_cached = Companion_getInstance_37().p1s_1;
-  if (tmp19_input.om()) {
-    tmp4_local0 = tmp19_input.im(tmp0_desc, 0);
+  var tmp19_local15 = null;
+  var tmp20_input = decoder.yl(tmp0_desc);
+  var tmp21_cached = Companion_getInstance_37().z1s_1;
+  if (tmp20_input.om()) {
+    tmp4_local0 = tmp20_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
-    tmp5_local1 = tmp19_input.im(tmp0_desc, 1);
+    tmp5_local1 = tmp20_input.im(tmp0_desc, 1);
     tmp3_bitMask0 = tmp3_bitMask0 | 2;
-    tmp6_local2 = tmp19_input.im(tmp0_desc, 2);
+    tmp6_local2 = tmp20_input.im(tmp0_desc, 2);
     tmp3_bitMask0 = tmp3_bitMask0 | 4;
-    tmp7_local3 = tmp19_input.km(tmp0_desc, 3, $serializer_getInstance_0(), tmp7_local3);
+    tmp7_local3 = tmp20_input.km(tmp0_desc, 3, $serializer_getInstance_0(), tmp7_local3);
     tmp3_bitMask0 = tmp3_bitMask0 | 8;
-    tmp8_local4 = tmp19_input.gm(tmp0_desc, 4);
+    tmp8_local4 = tmp20_input.gm(tmp0_desc, 4);
     tmp3_bitMask0 = tmp3_bitMask0 | 16;
-    tmp9_local5 = tmp19_input.gm(tmp0_desc, 5);
+    tmp9_local5 = tmp20_input.gm(tmp0_desc, 5);
     tmp3_bitMask0 = tmp3_bitMask0 | 32;
-    tmp10_local6 = tmp19_input.im(tmp0_desc, 6);
+    tmp10_local6 = tmp20_input.gm(tmp0_desc, 6);
     tmp3_bitMask0 = tmp3_bitMask0 | 64;
-    tmp11_local7 = tmp19_input.im(tmp0_desc, 7);
+    tmp11_local7 = tmp20_input.im(tmp0_desc, 7);
     tmp3_bitMask0 = tmp3_bitMask0 | 128;
-    tmp12_local8 = tmp19_input.km(tmp0_desc, 8, tmp20_cached[8].t1(), tmp12_local8);
+    tmp12_local8 = tmp20_input.im(tmp0_desc, 8);
     tmp3_bitMask0 = tmp3_bitMask0 | 256;
-    tmp13_local9 = tmp19_input.km(tmp0_desc, 9, tmp20_cached[9].t1(), tmp13_local9);
+    tmp13_local9 = tmp20_input.km(tmp0_desc, 9, tmp21_cached[9].t1(), tmp13_local9);
     tmp3_bitMask0 = tmp3_bitMask0 | 512;
-    tmp14_local10 = tmp19_input.km(tmp0_desc, 10, tmp20_cached[10].t1(), tmp14_local10);
+    tmp14_local10 = tmp20_input.km(tmp0_desc, 10, tmp21_cached[10].t1(), tmp14_local10);
     tmp3_bitMask0 = tmp3_bitMask0 | 1024;
-    tmp15_local11 = tmp19_input.km(tmp0_desc, 11, tmp20_cached[11].t1(), tmp15_local11);
+    tmp15_local11 = tmp20_input.km(tmp0_desc, 11, tmp21_cached[11].t1(), tmp15_local11);
     tmp3_bitMask0 = tmp3_bitMask0 | 2048;
-    tmp16_local12 = tmp19_input.km(tmp0_desc, 12, tmp20_cached[12].t1(), tmp16_local12);
+    tmp16_local12 = tmp20_input.km(tmp0_desc, 12, tmp21_cached[12].t1(), tmp16_local12);
     tmp3_bitMask0 = tmp3_bitMask0 | 4096;
-    tmp17_local13 = tmp19_input.km(tmp0_desc, 13, tmp20_cached[13].t1(), tmp17_local13);
+    tmp17_local13 = tmp20_input.km(tmp0_desc, 13, tmp21_cached[13].t1(), tmp17_local13);
     tmp3_bitMask0 = tmp3_bitMask0 | 8192;
-    tmp18_local14 = tmp19_input.km(tmp0_desc, 14, tmp20_cached[14].t1(), tmp18_local14);
+    tmp18_local14 = tmp20_input.km(tmp0_desc, 14, tmp21_cached[14].t1(), tmp18_local14);
     tmp3_bitMask0 = tmp3_bitMask0 | 16384;
+    tmp19_local15 = tmp20_input.km(tmp0_desc, 15, tmp21_cached[15].t1(), tmp19_local15);
+    tmp3_bitMask0 = tmp3_bitMask0 | 32768;
   } else
     while (tmp1_flag) {
-      tmp2_index = tmp19_input.pm(tmp0_desc);
+      tmp2_index = tmp20_input.pm(tmp0_desc);
       switch (tmp2_index) {
         case -1:
           tmp1_flag = false;
           break;
         case 0:
-          tmp4_local0 = tmp19_input.im(tmp0_desc, 0);
+          tmp4_local0 = tmp20_input.im(tmp0_desc, 0);
           tmp3_bitMask0 = tmp3_bitMask0 | 1;
           break;
         case 1:
-          tmp5_local1 = tmp19_input.im(tmp0_desc, 1);
+          tmp5_local1 = tmp20_input.im(tmp0_desc, 1);
           tmp3_bitMask0 = tmp3_bitMask0 | 2;
           break;
         case 2:
-          tmp6_local2 = tmp19_input.im(tmp0_desc, 2);
+          tmp6_local2 = tmp20_input.im(tmp0_desc, 2);
           tmp3_bitMask0 = tmp3_bitMask0 | 4;
           break;
         case 3:
-          tmp7_local3 = tmp19_input.km(tmp0_desc, 3, $serializer_getInstance_0(), tmp7_local3);
+          tmp7_local3 = tmp20_input.km(tmp0_desc, 3, $serializer_getInstance_0(), tmp7_local3);
           tmp3_bitMask0 = tmp3_bitMask0 | 8;
           break;
         case 4:
-          tmp8_local4 = tmp19_input.gm(tmp0_desc, 4);
+          tmp8_local4 = tmp20_input.gm(tmp0_desc, 4);
           tmp3_bitMask0 = tmp3_bitMask0 | 16;
           break;
         case 5:
-          tmp9_local5 = tmp19_input.gm(tmp0_desc, 5);
+          tmp9_local5 = tmp20_input.gm(tmp0_desc, 5);
           tmp3_bitMask0 = tmp3_bitMask0 | 32;
           break;
         case 6:
-          tmp10_local6 = tmp19_input.im(tmp0_desc, 6);
+          tmp10_local6 = tmp20_input.gm(tmp0_desc, 6);
           tmp3_bitMask0 = tmp3_bitMask0 | 64;
           break;
         case 7:
-          tmp11_local7 = tmp19_input.im(tmp0_desc, 7);
+          tmp11_local7 = tmp20_input.im(tmp0_desc, 7);
           tmp3_bitMask0 = tmp3_bitMask0 | 128;
           break;
         case 8:
-          tmp12_local8 = tmp19_input.km(tmp0_desc, 8, tmp20_cached[8].t1(), tmp12_local8);
+          tmp12_local8 = tmp20_input.im(tmp0_desc, 8);
           tmp3_bitMask0 = tmp3_bitMask0 | 256;
           break;
         case 9:
-          tmp13_local9 = tmp19_input.km(tmp0_desc, 9, tmp20_cached[9].t1(), tmp13_local9);
+          tmp13_local9 = tmp20_input.km(tmp0_desc, 9, tmp21_cached[9].t1(), tmp13_local9);
           tmp3_bitMask0 = tmp3_bitMask0 | 512;
           break;
         case 10:
-          tmp14_local10 = tmp19_input.km(tmp0_desc, 10, tmp20_cached[10].t1(), tmp14_local10);
+          tmp14_local10 = tmp20_input.km(tmp0_desc, 10, tmp21_cached[10].t1(), tmp14_local10);
           tmp3_bitMask0 = tmp3_bitMask0 | 1024;
           break;
         case 11:
-          tmp15_local11 = tmp19_input.km(tmp0_desc, 11, tmp20_cached[11].t1(), tmp15_local11);
+          tmp15_local11 = tmp20_input.km(tmp0_desc, 11, tmp21_cached[11].t1(), tmp15_local11);
           tmp3_bitMask0 = tmp3_bitMask0 | 2048;
           break;
         case 12:
-          tmp16_local12 = tmp19_input.km(tmp0_desc, 12, tmp20_cached[12].t1(), tmp16_local12);
+          tmp16_local12 = tmp20_input.km(tmp0_desc, 12, tmp21_cached[12].t1(), tmp16_local12);
           tmp3_bitMask0 = tmp3_bitMask0 | 4096;
           break;
         case 13:
-          tmp17_local13 = tmp19_input.km(tmp0_desc, 13, tmp20_cached[13].t1(), tmp17_local13);
+          tmp17_local13 = tmp20_input.km(tmp0_desc, 13, tmp21_cached[13].t1(), tmp17_local13);
           tmp3_bitMask0 = tmp3_bitMask0 | 8192;
           break;
         case 14:
-          tmp18_local14 = tmp19_input.km(tmp0_desc, 14, tmp20_cached[14].t1(), tmp18_local14);
+          tmp18_local14 = tmp20_input.km(tmp0_desc, 14, tmp21_cached[14].t1(), tmp18_local14);
           tmp3_bitMask0 = tmp3_bitMask0 | 16384;
+          break;
+        case 15:
+          tmp19_local15 = tmp20_input.km(tmp0_desc, 15, tmp21_cached[15].t1(), tmp19_local15);
+          tmp3_bitMask0 = tmp3_bitMask0 | 32768;
           break;
         default:
           throw UnknownFieldException_init_$Create$(tmp2_index);
       }
     }
-  tmp19_input.zl(tmp0_desc);
-  return Signal_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, tmp11_local7, tmp12_local8, tmp13_local9, tmp14_local10, tmp15_local11, tmp16_local12, tmp17_local13, tmp18_local14, null);
+  tmp20_input.zl(tmp0_desc);
+  return Signal_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, tmp11_local7, tmp12_local8, tmp13_local9, tmp14_local10, tmp15_local11, tmp16_local12, tmp17_local13, tmp18_local14, tmp19_local15, null);
 };
 protoOf($serializer_5).cj = function () {
-  return this.q1s_1;
+  return this.a1t_1;
 };
 protoOf($serializer_5).as = function () {
-  var tmp0_cached = Companion_getInstance_37().p1s_1;
+  var tmp0_cached = Companion_getInstance_37().z1s_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  return [StringSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance(), $serializer_getInstance_0(), DoubleSerializer_getInstance(), DoubleSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance(), tmp0_cached[8].t1(), tmp0_cached[9].t1(), tmp0_cached[10].t1(), tmp0_cached[11].t1(), tmp0_cached[12].t1(), tmp0_cached[13].t1(), tmp0_cached[14].t1()];
+  return [StringSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance(), $serializer_getInstance_0(), DoubleSerializer_getInstance(), DoubleSerializer_getInstance(), DoubleSerializer_getInstance(), StringSerializer_getInstance(), StringSerializer_getInstance(), tmp0_cached[9].t1(), tmp0_cached[10].t1(), tmp0_cached[11].t1(), tmp0_cached[12].t1(), tmp0_cached[13].t1(), tmp0_cached[14].t1(), tmp0_cached[15].t1()];
 };
 var $serializer_instance_5;
 function $serializer_getInstance_5() {
@@ -27527,124 +27604,132 @@ function $serializer_getInstance_5() {
     new $serializer_5();
   return $serializer_instance_5;
 }
-function Signal_init_$Init$(seen0, id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, serializationConstructorMarker, $this) {
-  if (!(2251 === (2251 & seen0))) {
-    throwMissingFieldException(seen0, 2251, $serializer_getInstance_5().q1s_1);
+function Signal_init_$Init$(seen0, id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, serializationConstructorMarker, $this) {
+  if (!(4491 === (4491 & seen0))) {
+    throwMissingFieldException(seen0, 4491, $serializer_getInstance_5().a1t_1);
   }
-  $this.m1g_1 = id;
-  $this.n1g_1 = name;
+  $this.p1g_1 = id;
+  $this.q1g_1 = name;
   if (0 === (seen0 & 4))
-    $this.o1g_1 = '';
+    $this.r1g_1 = '';
   else
-    $this.o1g_1 = place;
-  $this.p1g_1 = location;
+    $this.r1g_1 = place;
+  $this.s1g_1 = location;
   if (0 === (seen0 & 16))
-    $this.q1g_1 = 45.0;
+    $this.t1g_1 = 45.0;
   else
-    $this.q1g_1 = radiusM;
+    $this.t1g_1 = radiusM;
   if (0 === (seen0 & 32))
-    $this.r1g_1 = 28.0;
+    $this.u1g_1 = 28.0;
   else
-    $this.r1g_1 = lockRadiusM;
-  $this.s1g_1 = stem;
-  $this.t1g_1 = speaker;
-  if (0 === (seen0 & 256))
-    $this.u1g_1 = emptyList();
+    $this.u1g_1 = lockRadiusM;
+  if (0 === (seen0 & 64))
+    $this.v1g_1 = 0.0;
   else
-    $this.u1g_1 = teaser;
+    $this.v1g_1 = elevationDeg;
+  $this.w1g_1 = stem;
+  $this.x1g_1 = speaker;
   if (0 === (seen0 & 512))
-    $this.v1g_1 = emptyList();
-  else
-    $this.v1g_1 = approach;
-  if (0 === (seen0 & 1024))
-    $this.w1g_1 = emptyList();
-  else
-    $this.w1g_1 = arrival;
-  $this.x1g_1 = challenge;
-  if (0 === (seen0 & 4096))
     $this.y1g_1 = emptyList();
   else
-    $this.y1g_1 = success;
-  if (0 === (seen0 & 8192))
+    $this.y1g_1 = teaser;
+  if (0 === (seen0 & 1024))
     $this.z1g_1 = emptyList();
   else
-    $this.z1g_1 = retry;
-  if (0 === (seen0 & 16384))
+    $this.z1g_1 = approach;
+  if (0 === (seen0 & 2048))
     $this.a1h_1 = emptyList();
   else
-    $this.a1h_1 = hint;
+    $this.a1h_1 = arrival;
+  $this.b1h_1 = challenge;
+  if (0 === (seen0 & 8192))
+    $this.c1h_1 = emptyList();
+  else
+    $this.c1h_1 = success;
+  if (0 === (seen0 & 16384))
+    $this.d1h_1 = emptyList();
+  else
+    $this.d1h_1 = retry;
+  if (0 === (seen0 & 32768))
+    $this.e1h_1 = emptyList();
+  else
+    $this.e1h_1 = hint;
   return $this;
 }
-function Signal_init_$Create$(seen0, id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, serializationConstructorMarker) {
-  return Signal_init_$Init$(seen0, id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, serializationConstructorMarker, objectCreate(protoOf(Signal)));
+function Signal_init_$Create$(seen0, id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, serializationConstructorMarker) {
+  return Signal_init_$Init$(seen0, id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, serializationConstructorMarker, objectCreate(protoOf(Signal)));
 }
-function Signal(id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint) {
+function Signal(id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint) {
   Companion_getInstance_37();
   place = place === VOID ? '' : place;
   radiusM = radiusM === VOID ? 45.0 : radiusM;
   lockRadiusM = lockRadiusM === VOID ? 28.0 : lockRadiusM;
+  elevationDeg = elevationDeg === VOID ? 0.0 : elevationDeg;
   teaser = teaser === VOID ? emptyList() : teaser;
   approach = approach === VOID ? emptyList() : approach;
   arrival = arrival === VOID ? emptyList() : arrival;
   success = success === VOID ? emptyList() : success;
   retry = retry === VOID ? emptyList() : retry;
   hint = hint === VOID ? emptyList() : hint;
-  this.m1g_1 = id;
-  this.n1g_1 = name;
-  this.o1g_1 = place;
-  this.p1g_1 = location;
-  this.q1g_1 = radiusM;
-  this.r1g_1 = lockRadiusM;
-  this.s1g_1 = stem;
-  this.t1g_1 = speaker;
-  this.u1g_1 = teaser;
-  this.v1g_1 = approach;
-  this.w1g_1 = arrival;
-  this.x1g_1 = challenge;
-  this.y1g_1 = success;
-  this.z1g_1 = retry;
-  this.a1h_1 = hint;
+  this.p1g_1 = id;
+  this.q1g_1 = name;
+  this.r1g_1 = place;
+  this.s1g_1 = location;
+  this.t1g_1 = radiusM;
+  this.u1g_1 = lockRadiusM;
+  this.v1g_1 = elevationDeg;
+  this.w1g_1 = stem;
+  this.x1g_1 = speaker;
+  this.y1g_1 = teaser;
+  this.z1g_1 = approach;
+  this.a1h_1 = arrival;
+  this.b1h_1 = challenge;
+  this.c1h_1 = success;
+  this.d1h_1 = retry;
+  this.e1h_1 = hint;
 }
-protoOf(Signal).s1s = function (id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint) {
-  return new Signal(id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint);
+protoOf(Signal).c1t = function (id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint) {
+  return new Signal(id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint);
 };
-protoOf(Signal).v1r = function (id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, $super) {
-  id = id === VOID ? this.m1g_1 : id;
-  name = name === VOID ? this.n1g_1 : name;
-  place = place === VOID ? this.o1g_1 : place;
-  location = location === VOID ? this.p1g_1 : location;
-  radiusM = radiusM === VOID ? this.q1g_1 : radiusM;
-  lockRadiusM = lockRadiusM === VOID ? this.r1g_1 : lockRadiusM;
-  stem = stem === VOID ? this.s1g_1 : stem;
-  speaker = speaker === VOID ? this.t1g_1 : speaker;
-  teaser = teaser === VOID ? this.u1g_1 : teaser;
-  approach = approach === VOID ? this.v1g_1 : approach;
-  arrival = arrival === VOID ? this.w1g_1 : arrival;
-  challenge = challenge === VOID ? this.x1g_1 : challenge;
-  success = success === VOID ? this.y1g_1 : success;
-  retry = retry === VOID ? this.z1g_1 : retry;
-  hint = hint === VOID ? this.a1h_1 : hint;
-  return $super === VOID ? this.s1s(id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint) : $super.s1s.call(this, id, name, place, location, radiusM, lockRadiusM, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint);
+protoOf(Signal).f1s = function (id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint, $super) {
+  id = id === VOID ? this.p1g_1 : id;
+  name = name === VOID ? this.q1g_1 : name;
+  place = place === VOID ? this.r1g_1 : place;
+  location = location === VOID ? this.s1g_1 : location;
+  radiusM = radiusM === VOID ? this.t1g_1 : radiusM;
+  lockRadiusM = lockRadiusM === VOID ? this.u1g_1 : lockRadiusM;
+  elevationDeg = elevationDeg === VOID ? this.v1g_1 : elevationDeg;
+  stem = stem === VOID ? this.w1g_1 : stem;
+  speaker = speaker === VOID ? this.x1g_1 : speaker;
+  teaser = teaser === VOID ? this.y1g_1 : teaser;
+  approach = approach === VOID ? this.z1g_1 : approach;
+  arrival = arrival === VOID ? this.a1h_1 : arrival;
+  challenge = challenge === VOID ? this.b1h_1 : challenge;
+  success = success === VOID ? this.c1h_1 : success;
+  retry = retry === VOID ? this.d1h_1 : retry;
+  hint = hint === VOID ? this.e1h_1 : hint;
+  return $super === VOID ? this.c1t(id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint) : $super.c1t.call(this, id, name, place, location, radiusM, lockRadiusM, elevationDeg, stem, speaker, teaser, approach, arrival, challenge, success, retry, hint);
 };
 protoOf(Signal).toString = function () {
-  return 'Signal(id=' + this.m1g_1 + ', name=' + this.n1g_1 + ', place=' + this.o1g_1 + ', location=' + this.p1g_1.toString() + ', radiusM=' + this.q1g_1 + ', lockRadiusM=' + this.r1g_1 + ', stem=' + this.s1g_1 + ', speaker=' + this.t1g_1 + ', teaser=' + toString_1(this.u1g_1) + ', approach=' + toString_1(this.v1g_1) + ', arrival=' + toString_1(this.w1g_1) + ', challenge=' + toString_1(this.x1g_1) + ', success=' + toString_1(this.y1g_1) + ', retry=' + toString_1(this.z1g_1) + ', hint=' + toString_1(this.a1h_1) + ')';
+  return 'Signal(id=' + this.p1g_1 + ', name=' + this.q1g_1 + ', place=' + this.r1g_1 + ', location=' + this.s1g_1.toString() + ', radiusM=' + this.t1g_1 + ', lockRadiusM=' + this.u1g_1 + ', elevationDeg=' + this.v1g_1 + ', stem=' + this.w1g_1 + ', speaker=' + this.x1g_1 + ', teaser=' + toString_1(this.y1g_1) + ', approach=' + toString_1(this.z1g_1) + ', arrival=' + toString_1(this.a1h_1) + ', challenge=' + toString_1(this.b1h_1) + ', success=' + toString_1(this.c1h_1) + ', retry=' + toString_1(this.d1h_1) + ', hint=' + toString_1(this.e1h_1) + ')';
 };
 protoOf(Signal).hashCode = function () {
-  var result = getStringHashCode(this.m1g_1);
-  result = imul_0(result, 31) + getStringHashCode(this.n1g_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.o1g_1) | 0;
-  result = imul_0(result, 31) + this.p1g_1.hashCode() | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.q1g_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.r1g_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.s1g_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.t1g_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.u1g_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.v1g_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.w1g_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.x1g_1) | 0;
+  var result = getStringHashCode(this.p1g_1);
+  result = imul_0(result, 31) + getStringHashCode(this.q1g_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.r1g_1) | 0;
+  result = imul_0(result, 31) + this.s1g_1.hashCode() | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.t1g_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.u1g_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.v1g_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.w1g_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.x1g_1) | 0;
   result = imul_0(result, 31) + hashCode_0(this.y1g_1) | 0;
   result = imul_0(result, 31) + hashCode_0(this.z1g_1) | 0;
   result = imul_0(result, 31) + hashCode_0(this.a1h_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.b1h_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.c1h_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.d1h_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.e1h_1) | 0;
   return result;
 };
 protoOf(Signal).equals = function (other) {
@@ -27652,35 +27737,37 @@ protoOf(Signal).equals = function (other) {
     return true;
   if (!(other instanceof Signal))
     return false;
-  if (!(this.m1g_1 === other.m1g_1))
+  if (!(this.p1g_1 === other.p1g_1))
     return false;
-  if (!(this.n1g_1 === other.n1g_1))
+  if (!(this.q1g_1 === other.q1g_1))
     return false;
-  if (!(this.o1g_1 === other.o1g_1))
+  if (!(this.r1g_1 === other.r1g_1))
     return false;
-  if (!this.p1g_1.equals(other.p1g_1))
+  if (!this.s1g_1.equals(other.s1g_1))
     return false;
-  if (!equals(this.q1g_1, other.q1g_1))
-    return false;
-  if (!equals(this.r1g_1, other.r1g_1))
-    return false;
-  if (!(this.s1g_1 === other.s1g_1))
-    return false;
-  if (!(this.t1g_1 === other.t1g_1))
+  if (!equals(this.t1g_1, other.t1g_1))
     return false;
   if (!equals(this.u1g_1, other.u1g_1))
     return false;
   if (!equals(this.v1g_1, other.v1g_1))
     return false;
-  if (!equals(this.w1g_1, other.w1g_1))
+  if (!(this.w1g_1 === other.w1g_1))
     return false;
-  if (!equals(this.x1g_1, other.x1g_1))
+  if (!(this.x1g_1 === other.x1g_1))
     return false;
   if (!equals(this.y1g_1, other.y1g_1))
     return false;
   if (!equals(this.z1g_1, other.z1g_1))
     return false;
   if (!equals(this.a1h_1, other.a1h_1))
+    return false;
+  if (!equals(this.b1h_1, other.b1h_1))
+    return false;
+  if (!equals(this.c1h_1, other.c1h_1))
+    return false;
+  if (!equals(this.d1h_1, other.d1h_1))
+    return false;
+  if (!equals(this.e1h_1, other.e1h_1))
     return false;
   return true;
 };
@@ -27699,7 +27786,7 @@ function Companion_38() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.t1s_1 = [tmp_1, lazy(tmp_2, Challenge$Command$Companion$$childSerializers$_anonymous__zi2p34_0)];
+  tmp.d1t_1 = [tmp_1, lazy(tmp_2, Challenge$Command$Companion$$childSerializers$_anonymous__zi2p34_0)];
 }
 var Companion_instance_38;
 function Companion_getInstance_38() {
@@ -27712,28 +27799,28 @@ function $serializer_6() {
   var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('command', this, 2);
   tmp0_serialDesc.yr('prompt', false);
   tmp0_serialDesc.yr('phrases', false);
-  this.u1s_1 = tmp0_serialDesc;
+  this.e1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_6).v1s = function (encoder, value) {
-  var tmp0_desc = this.u1s_1;
+protoOf($serializer_6).f1t = function (encoder, value) {
+  var tmp0_desc = this.e1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_38().t1s_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.l1j_1);
-  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.m1j_1);
+  var tmp2_cached = Companion_getInstance_38().d1t_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.p1j_1);
+  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.q1j_1);
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_6).dj = function (encoder, value) {
-  return this.v1s(encoder, value instanceof Command ? value : THROW_CCE());
+  return this.f1t(encoder, value instanceof Command ? value : THROW_CCE());
 };
 protoOf($serializer_6).ej = function (decoder) {
-  var tmp0_desc = this.u1s_1;
+  var tmp0_desc = this.e1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
   var tmp4_local0 = null;
   var tmp5_local1 = null;
   var tmp6_input = decoder.yl(tmp0_desc);
-  var tmp7_cached = Companion_getInstance_38().t1s_1;
+  var tmp7_cached = Companion_getInstance_38().d1t_1;
   if (tmp6_input.om()) {
     tmp4_local0 = tmp6_input.km(tmp0_desc, 0, tmp7_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -27762,10 +27849,10 @@ protoOf($serializer_6).ej = function (decoder) {
   return Command_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
 };
 protoOf($serializer_6).cj = function () {
-  return this.u1s_1;
+  return this.e1t_1;
 };
 protoOf($serializer_6).as = function () {
-  var tmp0_cached = Companion_getInstance_38().t1s_1;
+  var tmp0_cached = Companion_getInstance_38().d1t_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -27779,11 +27866,11 @@ function $serializer_getInstance_6() {
 }
 function Command_init_$Init$(seen0, prompt, phrases, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_6().u1s_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_6().e1t_1);
   }
   Challenge_init_$Init$(seen0, serializationConstructorMarker, $this);
-  $this.l1j_1 = prompt;
-  $this.m1j_1 = phrases;
+  $this.p1j_1 = prompt;
+  $this.q1j_1 = phrases;
   return $this;
 }
 function Command_init_$Create$(seen0, prompt, phrases, serializationConstructorMarker) {
@@ -27804,7 +27891,7 @@ function Companion_39() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.w1s_1 = [tmp_1, lazy(tmp_2, Challenge$Passphrase$Companion$$childSerializers$_anonymous__g3v55t_0), null];
+  tmp.g1t_1 = [tmp_1, lazy(tmp_2, Challenge$Passphrase$Companion$$childSerializers$_anonymous__g3v55t_0), null];
 }
 var Companion_instance_39;
 function Companion_getInstance_39() {
@@ -27818,24 +27905,24 @@ function $serializer_7() {
   tmp0_serialDesc.yr('prompt', false);
   tmp0_serialDesc.yr('phrases', false);
   tmp0_serialDesc.yr('hintAfterAttempts', true);
-  this.x1s_1 = tmp0_serialDesc;
+  this.h1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_7).y1s = function (encoder, value) {
-  var tmp0_desc = this.x1s_1;
+protoOf($serializer_7).i1t = function (encoder, value) {
+  var tmp0_desc = this.h1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_39().w1s_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.i1j_1);
-  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.j1j_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.k1j_1 === 2)) {
-    tmp1_output.hn(tmp0_desc, 2, value.k1j_1);
+  var tmp2_cached = Companion_getInstance_39().g1t_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.m1j_1);
+  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.n1j_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.o1j_1 === 2)) {
+    tmp1_output.hn(tmp0_desc, 2, value.o1j_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_7).dj = function (encoder, value) {
-  return this.y1s(encoder, value instanceof Passphrase ? value : THROW_CCE());
+  return this.i1t(encoder, value instanceof Passphrase ? value : THROW_CCE());
 };
 protoOf($serializer_7).ej = function (decoder) {
-  var tmp0_desc = this.x1s_1;
+  var tmp0_desc = this.h1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -27843,7 +27930,7 @@ protoOf($serializer_7).ej = function (decoder) {
   var tmp5_local1 = null;
   var tmp6_local2 = 0;
   var tmp7_input = decoder.yl(tmp0_desc);
-  var tmp8_cached = Companion_getInstance_39().w1s_1;
+  var tmp8_cached = Companion_getInstance_39().g1t_1;
   if (tmp7_input.om()) {
     tmp4_local0 = tmp7_input.km(tmp0_desc, 0, tmp8_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -27878,10 +27965,10 @@ protoOf($serializer_7).ej = function (decoder) {
   return Passphrase_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
 };
 protoOf($serializer_7).cj = function () {
-  return this.x1s_1;
+  return this.h1t_1;
 };
 protoOf($serializer_7).as = function () {
-  var tmp0_cached = Companion_getInstance_39().w1s_1;
+  var tmp0_cached = Companion_getInstance_39().g1t_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -27895,15 +27982,15 @@ function $serializer_getInstance_7() {
 }
 function Passphrase_init_$Init$(seen0, prompt, phrases, hintAfterAttempts, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_7().x1s_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_7().h1t_1);
   }
   Challenge_init_$Init$(seen0, serializationConstructorMarker, $this);
-  $this.i1j_1 = prompt;
-  $this.j1j_1 = phrases;
+  $this.m1j_1 = prompt;
+  $this.n1j_1 = phrases;
   if (0 === (seen0 & 4))
-    $this.k1j_1 = 2;
+    $this.o1j_1 = 2;
   else
-    $this.k1j_1 = hintAfterAttempts;
+    $this.o1j_1 = hintAfterAttempts;
   return $this;
 }
 function Passphrase_init_$Create$(seen0, prompt, phrases, hintAfterAttempts, serializationConstructorMarker) {
@@ -27924,7 +28011,7 @@ function Companion_40() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.z1s_1 = [tmp_1, lazy(tmp_2, Challenge$Choice$Companion$$childSerializers$_anonymous__w1bhtk_0)];
+  tmp.j1t_1 = [tmp_1, lazy(tmp_2, Challenge$Choice$Companion$$childSerializers$_anonymous__w1bhtk_0)];
 }
 var Companion_instance_40;
 function Companion_getInstance_40() {
@@ -27937,28 +28024,28 @@ function $serializer_8() {
   var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('choice', this, 2);
   tmp0_serialDesc.yr('prompt', false);
   tmp0_serialDesc.yr('options', false);
-  this.a1t_1 = tmp0_serialDesc;
+  this.k1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_8).b1t = function (encoder, value) {
-  var tmp0_desc = this.a1t_1;
+protoOf($serializer_8).l1t = function (encoder, value) {
+  var tmp0_desc = this.k1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_40().z1s_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.d1j_1);
-  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.e1j_1);
+  var tmp2_cached = Companion_getInstance_40().j1t_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.h1j_1);
+  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.i1j_1);
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_8).dj = function (encoder, value) {
-  return this.b1t(encoder, value instanceof Choice ? value : THROW_CCE());
+  return this.l1t(encoder, value instanceof Choice ? value : THROW_CCE());
 };
 protoOf($serializer_8).ej = function (decoder) {
-  var tmp0_desc = this.a1t_1;
+  var tmp0_desc = this.k1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
   var tmp4_local0 = null;
   var tmp5_local1 = null;
   var tmp6_input = decoder.yl(tmp0_desc);
-  var tmp7_cached = Companion_getInstance_40().z1s_1;
+  var tmp7_cached = Companion_getInstance_40().j1t_1;
   if (tmp6_input.om()) {
     tmp4_local0 = tmp6_input.km(tmp0_desc, 0, tmp7_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -27987,10 +28074,10 @@ protoOf($serializer_8).ej = function (decoder) {
   return Choice_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
 };
 protoOf($serializer_8).cj = function () {
-  return this.a1t_1;
+  return this.k1t_1;
 };
 protoOf($serializer_8).as = function () {
-  var tmp0_cached = Companion_getInstance_40().z1s_1;
+  var tmp0_cached = Companion_getInstance_40().j1t_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -28004,11 +28091,11 @@ function $serializer_getInstance_8() {
 }
 function Choice_init_$Init$(seen0, prompt, options, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_8().a1t_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_8().k1t_1);
   }
   Challenge_init_$Init$(seen0, serializationConstructorMarker, $this);
-  $this.d1j_1 = prompt;
-  $this.e1j_1 = options;
+  $this.h1j_1 = prompt;
+  $this.i1j_1 = options;
   return $this;
 }
 function Choice_init_$Create$(seen0, prompt, options, serializationConstructorMarker) {
@@ -28039,7 +28126,7 @@ function Companion_41() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.c1t_1 = [tmp_1, null, tmp_3, tmp_5, lazy(tmp_6, Challenge$Ask$Companion$$childSerializers$_anonymous__frdl4e_2)];
+  tmp.m1t_1 = [tmp_1, null, tmp_3, tmp_5, lazy(tmp_6, Challenge$Ask$Companion$$childSerializers$_anonymous__frdl4e_2)];
 }
 var Companion_instance_41;
 function Companion_getInstance_41() {
@@ -28055,32 +28142,32 @@ function $serializer_9() {
   tmp0_serialDesc.yr('acceptPhrases', true);
   tmp0_serialDesc.yr('acceptPrompt', true);
   tmp0_serialDesc.yr('fallbackReplies', true);
-  this.d1t_1 = tmp0_serialDesc;
+  this.n1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_9).e1t = function (encoder, value) {
-  var tmp0_desc = this.d1t_1;
+protoOf($serializer_9).o1t = function (encoder, value) {
+  var tmp0_desc = this.n1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_41().c1t_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.y1i_1);
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.z1i_1 === 2)) {
-    tmp1_output.hn(tmp0_desc, 1, value.z1i_1);
+  var tmp2_cached = Companion_getInstance_41().m1t_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.c1j_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.d1j_1 === 2)) {
+    tmp1_output.hn(tmp0_desc, 1, value.d1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.a1j_1, listOf_0(['accept', 'deal', 'i accept']))) {
-    tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.a1j_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.e1j_1, listOf_0(['accept', 'deal', 'i accept']))) {
+    tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.e1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.b1j_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.b1j_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.f1j_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.f1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.c1j_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.c1j_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.g1j_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.g1j_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_9).dj = function (encoder, value) {
-  return this.e1t(encoder, value instanceof Ask ? value : THROW_CCE());
+  return this.o1t(encoder, value instanceof Ask ? value : THROW_CCE());
 };
 protoOf($serializer_9).ej = function (decoder) {
-  var tmp0_desc = this.d1t_1;
+  var tmp0_desc = this.n1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -28090,7 +28177,7 @@ protoOf($serializer_9).ej = function (decoder) {
   var tmp7_local3 = null;
   var tmp8_local4 = null;
   var tmp9_input = decoder.yl(tmp0_desc);
-  var tmp10_cached = Companion_getInstance_41().c1t_1;
+  var tmp10_cached = Companion_getInstance_41().m1t_1;
   if (tmp9_input.om()) {
     tmp4_local0 = tmp9_input.km(tmp0_desc, 0, tmp10_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -28137,10 +28224,10 @@ protoOf($serializer_9).ej = function (decoder) {
   return Ask_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, null);
 };
 protoOf($serializer_9).cj = function () {
-  return this.d1t_1;
+  return this.n1t_1;
 };
 protoOf($serializer_9).as = function () {
-  var tmp0_cached = Companion_getInstance_41().c1t_1;
+  var tmp0_cached = Companion_getInstance_41().m1t_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -28154,26 +28241,26 @@ function $serializer_getInstance_9() {
 }
 function Ask_init_$Init$(seen0, prompt, maxQuestions, acceptPhrases, acceptPrompt, fallbackReplies, serializationConstructorMarker, $this) {
   if (!(1 === (1 & seen0))) {
-    throwMissingFieldException(seen0, 1, $serializer_getInstance_9().d1t_1);
+    throwMissingFieldException(seen0, 1, $serializer_getInstance_9().n1t_1);
   }
   Challenge_init_$Init$(seen0, serializationConstructorMarker, $this);
-  $this.y1i_1 = prompt;
+  $this.c1j_1 = prompt;
   if (0 === (seen0 & 2))
-    $this.z1i_1 = 2;
+    $this.d1j_1 = 2;
   else
-    $this.z1i_1 = maxQuestions;
+    $this.d1j_1 = maxQuestions;
   if (0 === (seen0 & 4))
-    $this.a1j_1 = listOf_0(['accept', 'deal', 'i accept']);
+    $this.e1j_1 = listOf_0(['accept', 'deal', 'i accept']);
   else
-    $this.a1j_1 = acceptPhrases;
+    $this.e1j_1 = acceptPhrases;
   if (0 === (seen0 & 8))
-    $this.b1j_1 = emptyList();
+    $this.f1j_1 = emptyList();
   else
-    $this.b1j_1 = acceptPrompt;
+    $this.f1j_1 = acceptPrompt;
   if (0 === (seen0 & 16))
-    $this.c1j_1 = emptyList();
+    $this.g1j_1 = emptyList();
   else
-    $this.c1j_1 = fallbackReplies;
+    $this.g1j_1 = fallbackReplies;
   return $this;
 }
 function Ask_init_$Create$(seen0, prompt, maxQuestions, acceptPhrases, acceptPrompt, fallbackReplies, serializationConstructorMarker) {
@@ -28194,7 +28281,7 @@ function Companion_42() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.f1t_1 = [tmp_1, lazy(tmp_2, Challenge$Rhythm$Companion$$childSerializers$_anonymous__mw0wrx_0), null, null];
+  tmp.p1t_1 = [tmp_1, lazy(tmp_2, Challenge$Rhythm$Companion$$childSerializers$_anonymous__mw0wrx_0), null, null];
 }
 var Companion_instance_42;
 function Companion_getInstance_42() {
@@ -28209,27 +28296,27 @@ function $serializer_10() {
   tmp0_serialDesc.yr('onsetsBeats', false);
   tmp0_serialDesc.yr('toleranceBeats', true);
   tmp0_serialDesc.yr('maxAttempts', true);
-  this.g1t_1 = tmp0_serialDesc;
+  this.q1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_10).h1t = function (encoder, value) {
-  var tmp0_desc = this.g1t_1;
+protoOf($serializer_10).r1t = function (encoder, value) {
+  var tmp0_desc = this.q1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_42().f1t_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.u1i_1);
-  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.v1i_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.w1i_1, 0.2)) {
-    tmp1_output.kn(tmp0_desc, 2, value.w1i_1);
+  var tmp2_cached = Companion_getInstance_42().p1t_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.y1i_1);
+  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.z1i_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.a1j_1, 0.2)) {
+    tmp1_output.kn(tmp0_desc, 2, value.a1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.x1i_1 === 3)) {
-    tmp1_output.hn(tmp0_desc, 3, value.x1i_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.b1j_1 === 3)) {
+    tmp1_output.hn(tmp0_desc, 3, value.b1j_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_10).dj = function (encoder, value) {
-  return this.h1t(encoder, value instanceof Rhythm ? value : THROW_CCE());
+  return this.r1t(encoder, value instanceof Rhythm ? value : THROW_CCE());
 };
 protoOf($serializer_10).ej = function (decoder) {
-  var tmp0_desc = this.g1t_1;
+  var tmp0_desc = this.q1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -28238,7 +28325,7 @@ protoOf($serializer_10).ej = function (decoder) {
   var tmp6_local2 = 0.0;
   var tmp7_local3 = 0;
   var tmp8_input = decoder.yl(tmp0_desc);
-  var tmp9_cached = Companion_getInstance_42().f1t_1;
+  var tmp9_cached = Companion_getInstance_42().p1t_1;
   if (tmp8_input.om()) {
     tmp4_local0 = tmp8_input.km(tmp0_desc, 0, tmp9_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -28279,10 +28366,10 @@ protoOf($serializer_10).ej = function (decoder) {
   return Rhythm_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
 };
 protoOf($serializer_10).cj = function () {
-  return this.g1t_1;
+  return this.q1t_1;
 };
 protoOf($serializer_10).as = function () {
-  var tmp0_cached = Companion_getInstance_42().f1t_1;
+  var tmp0_cached = Companion_getInstance_42().p1t_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -28296,19 +28383,19 @@ function $serializer_getInstance_10() {
 }
 function Rhythm_init_$Init$(seen0, prompt, onsetsBeats, toleranceBeats, maxAttempts, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_10().g1t_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_10().q1t_1);
   }
   Challenge_init_$Init$(seen0, serializationConstructorMarker, $this);
-  $this.u1i_1 = prompt;
-  $this.v1i_1 = onsetsBeats;
+  $this.y1i_1 = prompt;
+  $this.z1i_1 = onsetsBeats;
   if (0 === (seen0 & 4))
-    $this.w1i_1 = 0.2;
+    $this.a1j_1 = 0.2;
   else
-    $this.w1i_1 = toleranceBeats;
+    $this.a1j_1 = toleranceBeats;
   if (0 === (seen0 & 8))
-    $this.x1i_1 = 3;
+    $this.b1j_1 = 3;
   else
-    $this.x1i_1 = maxAttempts;
+    $this.b1j_1 = maxAttempts;
   return $this;
 }
 function Rhythm_init_$Create$(seen0, prompt, onsetsBeats, toleranceBeats, maxAttempts, serializationConstructorMarker) {
@@ -28324,7 +28411,7 @@ function Companion_43() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.i1t_1 = [lazy(tmp_0, Challenge$Record$Companion$$childSerializers$_anonymous__qjiwrc), null];
+  tmp.s1t_1 = [lazy(tmp_0, Challenge$Record$Companion$$childSerializers$_anonymous__qjiwrc), null];
 }
 var Companion_instance_43;
 function Companion_getInstance_43() {
@@ -28337,30 +28424,30 @@ function $serializer_11() {
   var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('record', this, 2);
   tmp0_serialDesc.yr('prompt', false);
   tmp0_serialDesc.yr('maxSeconds', true);
-  this.j1t_1 = tmp0_serialDesc;
+  this.t1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_11).k1t = function (encoder, value) {
-  var tmp0_desc = this.j1t_1;
+protoOf($serializer_11).u1t = function (encoder, value) {
+  var tmp0_desc = this.t1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_43().i1t_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.s1i_1);
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.t1i_1 === 15)) {
-    tmp1_output.hn(tmp0_desc, 1, value.t1i_1);
+  var tmp2_cached = Companion_getInstance_43().s1t_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.w1i_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.x1i_1 === 15)) {
+    tmp1_output.hn(tmp0_desc, 1, value.x1i_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_11).dj = function (encoder, value) {
-  return this.k1t(encoder, value instanceof Record ? value : THROW_CCE());
+  return this.u1t(encoder, value instanceof Record ? value : THROW_CCE());
 };
 protoOf($serializer_11).ej = function (decoder) {
-  var tmp0_desc = this.j1t_1;
+  var tmp0_desc = this.t1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
   var tmp4_local0 = null;
   var tmp5_local1 = 0;
   var tmp6_input = decoder.yl(tmp0_desc);
-  var tmp7_cached = Companion_getInstance_43().i1t_1;
+  var tmp7_cached = Companion_getInstance_43().s1t_1;
   if (tmp6_input.om()) {
     tmp4_local0 = tmp6_input.km(tmp0_desc, 0, tmp7_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -28389,13 +28476,13 @@ protoOf($serializer_11).ej = function (decoder) {
   return Record_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
 };
 protoOf($serializer_11).cj = function () {
-  return this.j1t_1;
+  return this.t1t_1;
 };
 protoOf($serializer_11).as = function () {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  return [Companion_getInstance_43().i1t_1[0].t1(), IntSerializer_getInstance()];
+  return [Companion_getInstance_43().s1t_1[0].t1(), IntSerializer_getInstance()];
 };
 var $serializer_instance_11;
 function $serializer_getInstance_11() {
@@ -28405,14 +28492,14 @@ function $serializer_getInstance_11() {
 }
 function Record_init_$Init$(seen0, prompt, maxSeconds, serializationConstructorMarker, $this) {
   if (!(1 === (1 & seen0))) {
-    throwMissingFieldException(seen0, 1, $serializer_getInstance_11().j1t_1);
+    throwMissingFieldException(seen0, 1, $serializer_getInstance_11().t1t_1);
   }
   Challenge_init_$Init$(seen0, serializationConstructorMarker, $this);
-  $this.s1i_1 = prompt;
+  $this.w1i_1 = prompt;
   if (0 === (seen0 & 2))
-    $this.t1i_1 = 15;
+    $this.x1i_1 = 15;
   else
-    $this.t1i_1 = maxSeconds;
+    $this.x1i_1 = maxSeconds;
   return $this;
 }
 function Record_init_$Create$(seen0, prompt, maxSeconds, serializationConstructorMarker) {
@@ -28428,7 +28515,7 @@ function Companion_44() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.l1t_1 = [lazy(tmp_0, Challenge$Tune$Companion$$childSerializers$_anonymous__66tnxt), null, null, null];
+  tmp.v1t_1 = [lazy(tmp_0, Challenge$Tune$Companion$$childSerializers$_anonymous__66tnxt), null, null, null];
 }
 var Companion_instance_44;
 function Companion_getInstance_44() {
@@ -28443,25 +28530,25 @@ function $serializer_12() {
   tmp0_serialDesc.yr('target', false);
   tmp0_serialDesc.yr('targetName', false);
   tmp0_serialDesc.yr('toleranceDeg', true);
-  this.m1t_1 = tmp0_serialDesc;
+  this.w1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_12).n1t = function (encoder, value) {
-  var tmp0_desc = this.m1t_1;
+protoOf($serializer_12).x1t = function (encoder, value) {
+  var tmp0_desc = this.w1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_44().l1t_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.y1l_1);
-  tmp1_output.on(tmp0_desc, 1, $serializer_getInstance_0(), value.z1l_1);
-  tmp1_output.mn(tmp0_desc, 2, value.a1m_1);
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.b1m_1, 22.0)) {
-    tmp1_output.kn(tmp0_desc, 3, value.b1m_1);
+  var tmp2_cached = Companion_getInstance_44().v1t_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.c1m_1);
+  tmp1_output.on(tmp0_desc, 1, $serializer_getInstance_0(), value.d1m_1);
+  tmp1_output.mn(tmp0_desc, 2, value.e1m_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.f1m_1, 22.0)) {
+    tmp1_output.kn(tmp0_desc, 3, value.f1m_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_12).dj = function (encoder, value) {
-  return this.n1t(encoder, value instanceof Tune ? value : THROW_CCE());
+  return this.x1t(encoder, value instanceof Tune ? value : THROW_CCE());
 };
 protoOf($serializer_12).ej = function (decoder) {
-  var tmp0_desc = this.m1t_1;
+  var tmp0_desc = this.w1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -28470,7 +28557,7 @@ protoOf($serializer_12).ej = function (decoder) {
   var tmp6_local2 = null;
   var tmp7_local3 = 0.0;
   var tmp8_input = decoder.yl(tmp0_desc);
-  var tmp9_cached = Companion_getInstance_44().l1t_1;
+  var tmp9_cached = Companion_getInstance_44().v1t_1;
   if (tmp8_input.om()) {
     tmp4_local0 = tmp8_input.km(tmp0_desc, 0, tmp9_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -28511,13 +28598,13 @@ protoOf($serializer_12).ej = function (decoder) {
   return Tune_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
 };
 protoOf($serializer_12).cj = function () {
-  return this.m1t_1;
+  return this.w1t_1;
 };
 protoOf($serializer_12).as = function () {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  return [Companion_getInstance_44().l1t_1[0].t1(), $serializer_getInstance_0(), StringSerializer_getInstance(), DoubleSerializer_getInstance()];
+  return [Companion_getInstance_44().v1t_1[0].t1(), $serializer_getInstance_0(), StringSerializer_getInstance(), DoubleSerializer_getInstance()];
 };
 var $serializer_instance_12;
 function $serializer_getInstance_12() {
@@ -28527,23 +28614,23 @@ function $serializer_getInstance_12() {
 }
 function Tune_init_$Init$(seen0, prompt, target, targetName, toleranceDeg, serializationConstructorMarker, $this) {
   if (!(7 === (7 & seen0))) {
-    throwMissingFieldException(seen0, 7, $serializer_getInstance_12().m1t_1);
+    throwMissingFieldException(seen0, 7, $serializer_getInstance_12().w1t_1);
   }
   Challenge_init_$Init$(seen0, serializationConstructorMarker, $this);
-  $this.y1l_1 = prompt;
-  $this.z1l_1 = target;
-  $this.a1m_1 = targetName;
+  $this.c1m_1 = prompt;
+  $this.d1m_1 = target;
+  $this.e1m_1 = targetName;
   if (0 === (seen0 & 8))
-    $this.b1m_1 = 22.0;
+    $this.f1m_1 = 22.0;
   else
-    $this.b1m_1 = toleranceDeg;
+    $this.f1m_1 = toleranceDeg;
   return $this;
 }
 function Tune_init_$Create$(seen0, prompt, target, targetName, toleranceDeg, serializationConstructorMarker) {
   return Tune_init_$Init$(seen0, prompt, target, targetName, toleranceDeg, serializationConstructorMarker, objectCreate(protoOf(Tune)));
 }
 function _get_$cachedSerializer__te6jhj($this) {
-  return $this.o1s_1.t1();
+  return $this.y1s_1.t1();
 }
 function Challenge$Companion$_anonymous__e8zf4k() {
   var tmp = getKClass(Challenge);
@@ -28564,18 +28651,18 @@ function Challenge$Companion$_anonymous__e8zf4k() {
 function Command(prompt, phrases) {
   Companion_getInstance_38();
   Challenge.call(this);
-  this.l1j_1 = prompt;
-  this.m1j_1 = phrases;
+  this.p1j_1 = prompt;
+  this.q1j_1 = phrases;
 }
-protoOf(Command).r1i = function () {
-  return this.l1j_1;
+protoOf(Command).v1i = function () {
+  return this.p1j_1;
 };
 protoOf(Command).toString = function () {
-  return 'Command(prompt=' + toString_1(this.l1j_1) + ', phrases=' + toString_1(this.m1j_1) + ')';
+  return 'Command(prompt=' + toString_1(this.p1j_1) + ', phrases=' + toString_1(this.q1j_1) + ')';
 };
 protoOf(Command).hashCode = function () {
-  var result = hashCode_0(this.l1j_1);
-  result = imul_0(result, 31) + hashCode_0(this.m1j_1) | 0;
+  var result = hashCode_0(this.p1j_1);
+  result = imul_0(result, 31) + hashCode_0(this.q1j_1) | 0;
   return result;
 };
 protoOf(Command).equals = function (other) {
@@ -28583,9 +28670,9 @@ protoOf(Command).equals = function (other) {
     return true;
   if (!(other instanceof Command))
     return false;
-  if (!equals(this.l1j_1, other.l1j_1))
+  if (!equals(this.p1j_1, other.p1j_1))
     return false;
-  if (!equals(this.m1j_1, other.m1j_1))
+  if (!equals(this.q1j_1, other.q1j_1))
     return false;
   return true;
 };
@@ -28593,20 +28680,20 @@ function Passphrase(prompt, phrases, hintAfterAttempts) {
   Companion_getInstance_39();
   hintAfterAttempts = hintAfterAttempts === VOID ? 2 : hintAfterAttempts;
   Challenge.call(this);
-  this.i1j_1 = prompt;
-  this.j1j_1 = phrases;
-  this.k1j_1 = hintAfterAttempts;
+  this.m1j_1 = prompt;
+  this.n1j_1 = phrases;
+  this.o1j_1 = hintAfterAttempts;
 }
-protoOf(Passphrase).r1i = function () {
-  return this.i1j_1;
+protoOf(Passphrase).v1i = function () {
+  return this.m1j_1;
 };
 protoOf(Passphrase).toString = function () {
-  return 'Passphrase(prompt=' + toString_1(this.i1j_1) + ', phrases=' + toString_1(this.j1j_1) + ', hintAfterAttempts=' + this.k1j_1 + ')';
+  return 'Passphrase(prompt=' + toString_1(this.m1j_1) + ', phrases=' + toString_1(this.n1j_1) + ', hintAfterAttempts=' + this.o1j_1 + ')';
 };
 protoOf(Passphrase).hashCode = function () {
-  var result = hashCode_0(this.i1j_1);
-  result = imul_0(result, 31) + hashCode_0(this.j1j_1) | 0;
-  result = imul_0(result, 31) + this.k1j_1 | 0;
+  var result = hashCode_0(this.m1j_1);
+  result = imul_0(result, 31) + hashCode_0(this.n1j_1) | 0;
+  result = imul_0(result, 31) + this.o1j_1 | 0;
   return result;
 };
 protoOf(Passphrase).equals = function (other) {
@@ -28614,29 +28701,29 @@ protoOf(Passphrase).equals = function (other) {
     return true;
   if (!(other instanceof Passphrase))
     return false;
-  if (!equals(this.i1j_1, other.i1j_1))
+  if (!equals(this.m1j_1, other.m1j_1))
     return false;
-  if (!equals(this.j1j_1, other.j1j_1))
+  if (!equals(this.n1j_1, other.n1j_1))
     return false;
-  if (!(this.k1j_1 === other.k1j_1))
+  if (!(this.o1j_1 === other.o1j_1))
     return false;
   return true;
 };
 function Choice(prompt, options) {
   Companion_getInstance_40();
   Challenge.call(this);
-  this.d1j_1 = prompt;
-  this.e1j_1 = options;
+  this.h1j_1 = prompt;
+  this.i1j_1 = options;
 }
-protoOf(Choice).r1i = function () {
-  return this.d1j_1;
+protoOf(Choice).v1i = function () {
+  return this.h1j_1;
 };
 protoOf(Choice).toString = function () {
-  return 'Choice(prompt=' + toString_1(this.d1j_1) + ', options=' + toString_1(this.e1j_1) + ')';
+  return 'Choice(prompt=' + toString_1(this.h1j_1) + ', options=' + toString_1(this.i1j_1) + ')';
 };
 protoOf(Choice).hashCode = function () {
-  var result = hashCode_0(this.d1j_1);
-  result = imul_0(result, 31) + hashCode_0(this.e1j_1) | 0;
+  var result = hashCode_0(this.h1j_1);
+  result = imul_0(result, 31) + hashCode_0(this.i1j_1) | 0;
   return result;
 };
 protoOf(Choice).equals = function (other) {
@@ -28644,9 +28731,9 @@ protoOf(Choice).equals = function (other) {
     return true;
   if (!(other instanceof Choice))
     return false;
-  if (!equals(this.d1j_1, other.d1j_1))
+  if (!equals(this.h1j_1, other.h1j_1))
     return false;
-  if (!equals(this.e1j_1, other.e1j_1))
+  if (!equals(this.i1j_1, other.i1j_1))
     return false;
   return true;
 };
@@ -28657,24 +28744,24 @@ function Ask(prompt, maxQuestions, acceptPhrases, acceptPrompt, fallbackReplies)
   acceptPrompt = acceptPrompt === VOID ? emptyList() : acceptPrompt;
   fallbackReplies = fallbackReplies === VOID ? emptyList() : fallbackReplies;
   Challenge.call(this);
-  this.y1i_1 = prompt;
-  this.z1i_1 = maxQuestions;
-  this.a1j_1 = acceptPhrases;
-  this.b1j_1 = acceptPrompt;
-  this.c1j_1 = fallbackReplies;
+  this.c1j_1 = prompt;
+  this.d1j_1 = maxQuestions;
+  this.e1j_1 = acceptPhrases;
+  this.f1j_1 = acceptPrompt;
+  this.g1j_1 = fallbackReplies;
 }
-protoOf(Ask).r1i = function () {
-  return this.y1i_1;
+protoOf(Ask).v1i = function () {
+  return this.c1j_1;
 };
 protoOf(Ask).toString = function () {
-  return 'Ask(prompt=' + toString_1(this.y1i_1) + ', maxQuestions=' + this.z1i_1 + ', acceptPhrases=' + toString_1(this.a1j_1) + ', acceptPrompt=' + toString_1(this.b1j_1) + ', fallbackReplies=' + toString_1(this.c1j_1) + ')';
+  return 'Ask(prompt=' + toString_1(this.c1j_1) + ', maxQuestions=' + this.d1j_1 + ', acceptPhrases=' + toString_1(this.e1j_1) + ', acceptPrompt=' + toString_1(this.f1j_1) + ', fallbackReplies=' + toString_1(this.g1j_1) + ')';
 };
 protoOf(Ask).hashCode = function () {
-  var result = hashCode_0(this.y1i_1);
-  result = imul_0(result, 31) + this.z1i_1 | 0;
-  result = imul_0(result, 31) + hashCode_0(this.a1j_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.b1j_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.c1j_1) | 0;
+  var result = hashCode_0(this.c1j_1);
+  result = imul_0(result, 31) + this.d1j_1 | 0;
+  result = imul_0(result, 31) + hashCode_0(this.e1j_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.f1j_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.g1j_1) | 0;
   return result;
 };
 protoOf(Ask).equals = function (other) {
@@ -28682,15 +28769,15 @@ protoOf(Ask).equals = function (other) {
     return true;
   if (!(other instanceof Ask))
     return false;
-  if (!equals(this.y1i_1, other.y1i_1))
-    return false;
-  if (!(this.z1i_1 === other.z1i_1))
-    return false;
-  if (!equals(this.a1j_1, other.a1j_1))
-    return false;
-  if (!equals(this.b1j_1, other.b1j_1))
-    return false;
   if (!equals(this.c1j_1, other.c1j_1))
+    return false;
+  if (!(this.d1j_1 === other.d1j_1))
+    return false;
+  if (!equals(this.e1j_1, other.e1j_1))
+    return false;
+  if (!equals(this.f1j_1, other.f1j_1))
+    return false;
+  if (!equals(this.g1j_1, other.g1j_1))
     return false;
   return true;
 };
@@ -28699,22 +28786,22 @@ function Rhythm(prompt, onsetsBeats, toleranceBeats, maxAttempts) {
   toleranceBeats = toleranceBeats === VOID ? 0.2 : toleranceBeats;
   maxAttempts = maxAttempts === VOID ? 3 : maxAttempts;
   Challenge.call(this);
-  this.u1i_1 = prompt;
-  this.v1i_1 = onsetsBeats;
-  this.w1i_1 = toleranceBeats;
-  this.x1i_1 = maxAttempts;
+  this.y1i_1 = prompt;
+  this.z1i_1 = onsetsBeats;
+  this.a1j_1 = toleranceBeats;
+  this.b1j_1 = maxAttempts;
 }
-protoOf(Rhythm).r1i = function () {
-  return this.u1i_1;
+protoOf(Rhythm).v1i = function () {
+  return this.y1i_1;
 };
 protoOf(Rhythm).toString = function () {
-  return 'Rhythm(prompt=' + toString_1(this.u1i_1) + ', onsetsBeats=' + toString_1(this.v1i_1) + ', toleranceBeats=' + this.w1i_1 + ', maxAttempts=' + this.x1i_1 + ')';
+  return 'Rhythm(prompt=' + toString_1(this.y1i_1) + ', onsetsBeats=' + toString_1(this.z1i_1) + ', toleranceBeats=' + this.a1j_1 + ', maxAttempts=' + this.b1j_1 + ')';
 };
 protoOf(Rhythm).hashCode = function () {
-  var result = hashCode_0(this.u1i_1);
-  result = imul_0(result, 31) + hashCode_0(this.v1i_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.w1i_1) | 0;
-  result = imul_0(result, 31) + this.x1i_1 | 0;
+  var result = hashCode_0(this.y1i_1);
+  result = imul_0(result, 31) + hashCode_0(this.z1i_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.a1j_1) | 0;
+  result = imul_0(result, 31) + this.b1j_1 | 0;
   return result;
 };
 protoOf(Rhythm).equals = function (other) {
@@ -28722,13 +28809,13 @@ protoOf(Rhythm).equals = function (other) {
     return true;
   if (!(other instanceof Rhythm))
     return false;
-  if (!equals(this.u1i_1, other.u1i_1))
+  if (!equals(this.y1i_1, other.y1i_1))
     return false;
-  if (!equals(this.v1i_1, other.v1i_1))
+  if (!equals(this.z1i_1, other.z1i_1))
     return false;
-  if (!equals(this.w1i_1, other.w1i_1))
+  if (!equals(this.a1j_1, other.a1j_1))
     return false;
-  if (!(this.x1i_1 === other.x1i_1))
+  if (!(this.b1j_1 === other.b1j_1))
     return false;
   return true;
 };
@@ -28736,18 +28823,18 @@ function Record(prompt, maxSeconds) {
   Companion_getInstance_43();
   maxSeconds = maxSeconds === VOID ? 15 : maxSeconds;
   Challenge.call(this);
-  this.s1i_1 = prompt;
-  this.t1i_1 = maxSeconds;
+  this.w1i_1 = prompt;
+  this.x1i_1 = maxSeconds;
 }
-protoOf(Record).r1i = function () {
-  return this.s1i_1;
+protoOf(Record).v1i = function () {
+  return this.w1i_1;
 };
 protoOf(Record).toString = function () {
-  return 'Record(prompt=' + toString_1(this.s1i_1) + ', maxSeconds=' + this.t1i_1 + ')';
+  return 'Record(prompt=' + toString_1(this.w1i_1) + ', maxSeconds=' + this.x1i_1 + ')';
 };
 protoOf(Record).hashCode = function () {
-  var result = hashCode_0(this.s1i_1);
-  result = imul_0(result, 31) + this.t1i_1 | 0;
+  var result = hashCode_0(this.w1i_1);
+  result = imul_0(result, 31) + this.x1i_1 | 0;
   return result;
 };
 protoOf(Record).equals = function (other) {
@@ -28755,9 +28842,9 @@ protoOf(Record).equals = function (other) {
     return true;
   if (!(other instanceof Record))
     return false;
-  if (!equals(this.s1i_1, other.s1i_1))
+  if (!equals(this.w1i_1, other.w1i_1))
     return false;
-  if (!(this.t1i_1 === other.t1i_1))
+  if (!(this.x1i_1 === other.x1i_1))
     return false;
   return true;
 };
@@ -28765,22 +28852,22 @@ function Tune(prompt, target, targetName, toleranceDeg) {
   Companion_getInstance_44();
   toleranceDeg = toleranceDeg === VOID ? 22.0 : toleranceDeg;
   Challenge.call(this);
-  this.y1l_1 = prompt;
-  this.z1l_1 = target;
-  this.a1m_1 = targetName;
-  this.b1m_1 = toleranceDeg;
+  this.c1m_1 = prompt;
+  this.d1m_1 = target;
+  this.e1m_1 = targetName;
+  this.f1m_1 = toleranceDeg;
 }
-protoOf(Tune).r1i = function () {
-  return this.y1l_1;
+protoOf(Tune).v1i = function () {
+  return this.c1m_1;
 };
 protoOf(Tune).toString = function () {
-  return 'Tune(prompt=' + toString_1(this.y1l_1) + ', target=' + this.z1l_1.toString() + ', targetName=' + this.a1m_1 + ', toleranceDeg=' + this.b1m_1 + ')';
+  return 'Tune(prompt=' + toString_1(this.c1m_1) + ', target=' + this.d1m_1.toString() + ', targetName=' + this.e1m_1 + ', toleranceDeg=' + this.f1m_1 + ')';
 };
 protoOf(Tune).hashCode = function () {
-  var result = hashCode_0(this.y1l_1);
-  result = imul_0(result, 31) + this.z1l_1.hashCode() | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.a1m_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.b1m_1) | 0;
+  var result = hashCode_0(this.c1m_1);
+  result = imul_0(result, 31) + this.d1m_1.hashCode() | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.e1m_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.f1m_1) | 0;
   return result;
 };
 protoOf(Tune).equals = function (other) {
@@ -28788,13 +28875,13 @@ protoOf(Tune).equals = function (other) {
     return true;
   if (!(other instanceof Tune))
     return false;
-  if (!equals(this.y1l_1, other.y1l_1))
+  if (!equals(this.c1m_1, other.c1m_1))
     return false;
-  if (!this.z1l_1.equals(other.z1l_1))
+  if (!this.d1m_1.equals(other.d1m_1))
     return false;
-  if (!(this.a1m_1 === other.a1m_1))
+  if (!(this.e1m_1 === other.e1m_1))
     return false;
-  if (!equals(this.b1m_1, other.b1m_1))
+  if (!equals(this.f1m_1, other.f1m_1))
     return false;
   return true;
 };
@@ -28802,9 +28889,9 @@ function Companion_45() {
   Companion_instance_45 = this;
   var tmp = this;
   var tmp_0 = LazyThreadSafetyMode_PUBLICATION_getInstance();
-  tmp.o1s_1 = lazy(tmp_0, Challenge$Companion$_anonymous__e8zf4k);
+  tmp.y1s_1 = lazy(tmp_0, Challenge$Companion$_anonymous__e8zf4k);
 }
-protoOf(Companion_45).k1p = function () {
+protoOf(Companion_45).q1p = function () {
   return _get_$cachedSerializer__te6jhj(this);
 };
 var Companion_instance_45;
@@ -28834,7 +28921,7 @@ function Companion_46() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.o1t_1 = [null, tmp_1, lazy(tmp_2, ChoiceOption$Companion$$childSerializers$_anonymous__iglefg_0)];
+  tmp.y1t_1 = [null, tmp_1, lazy(tmp_2, ChoiceOption$Companion$$childSerializers$_anonymous__iglefg_0)];
 }
 var Companion_instance_46;
 function Companion_getInstance_46() {
@@ -28848,24 +28935,24 @@ function $serializer_13() {
   tmp0_serialDesc.yr('id', false);
   tmp0_serialDesc.yr('phrases', false);
   tmp0_serialDesc.yr('reply', true);
-  this.p1t_1 = tmp0_serialDesc;
+  this.z1t_1 = tmp0_serialDesc;
 }
-protoOf($serializer_13).q1t = function (encoder, value) {
-  var tmp0_desc = this.p1t_1;
+protoOf($serializer_13).a1u = function (encoder, value) {
+  var tmp0_desc = this.z1t_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_46().o1t_1;
-  tmp1_output.mn(tmp0_desc, 0, value.f1j_1);
-  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.g1j_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.h1j_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.h1j_1);
+  var tmp2_cached = Companion_getInstance_46().y1t_1;
+  tmp1_output.mn(tmp0_desc, 0, value.j1j_1);
+  tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.k1j_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.l1j_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.l1j_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_13).dj = function (encoder, value) {
-  return this.q1t(encoder, value instanceof ChoiceOption ? value : THROW_CCE());
+  return this.a1u(encoder, value instanceof ChoiceOption ? value : THROW_CCE());
 };
 protoOf($serializer_13).ej = function (decoder) {
-  var tmp0_desc = this.p1t_1;
+  var tmp0_desc = this.z1t_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -28873,7 +28960,7 @@ protoOf($serializer_13).ej = function (decoder) {
   var tmp5_local1 = null;
   var tmp6_local2 = null;
   var tmp7_input = decoder.yl(tmp0_desc);
-  var tmp8_cached = Companion_getInstance_46().o1t_1;
+  var tmp8_cached = Companion_getInstance_46().y1t_1;
   if (tmp7_input.om()) {
     tmp4_local0 = tmp7_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -28908,10 +28995,10 @@ protoOf($serializer_13).ej = function (decoder) {
   return ChoiceOption_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
 };
 protoOf($serializer_13).cj = function () {
-  return this.p1t_1;
+  return this.z1t_1;
 };
 protoOf($serializer_13).as = function () {
-  var tmp0_cached = Companion_getInstance_46().o1t_1;
+  var tmp0_cached = Companion_getInstance_46().y1t_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -28925,14 +29012,14 @@ function $serializer_getInstance_13() {
 }
 function ChoiceOption_init_$Init$(seen0, id, phrases, reply, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_13().p1t_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_13().z1t_1);
   }
-  $this.f1j_1 = id;
-  $this.g1j_1 = phrases;
+  $this.j1j_1 = id;
+  $this.k1j_1 = phrases;
   if (0 === (seen0 & 4))
-    $this.h1j_1 = emptyList();
+    $this.l1j_1 = emptyList();
   else
-    $this.h1j_1 = reply;
+    $this.l1j_1 = reply;
   return $this;
 }
 function ChoiceOption_init_$Create$(seen0, id, phrases, reply, serializationConstructorMarker) {
@@ -28941,12 +29028,12 @@ function ChoiceOption_init_$Create$(seen0, id, phrases, reply, serializationCons
 function ChoiceOption() {
 }
 protoOf(ChoiceOption).toString = function () {
-  return 'ChoiceOption(id=' + this.f1j_1 + ', phrases=' + toString_1(this.g1j_1) + ', reply=' + toString_1(this.h1j_1) + ')';
+  return 'ChoiceOption(id=' + this.j1j_1 + ', phrases=' + toString_1(this.k1j_1) + ', reply=' + toString_1(this.l1j_1) + ')';
 };
 protoOf(ChoiceOption).hashCode = function () {
-  var result = getStringHashCode(this.f1j_1);
-  result = imul_0(result, 31) + hashCode_0(this.g1j_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.h1j_1) | 0;
+  var result = getStringHashCode(this.j1j_1);
+  result = imul_0(result, 31) + hashCode_0(this.k1j_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.l1j_1) | 0;
   return result;
 };
 protoOf(ChoiceOption).equals = function (other) {
@@ -28954,11 +29041,11 @@ protoOf(ChoiceOption).equals = function (other) {
     return true;
   if (!(other instanceof ChoiceOption))
     return false;
-  if (!(this.f1j_1 === other.f1j_1))
+  if (!(this.j1j_1 === other.j1j_1))
     return false;
-  if (!equals(this.g1j_1, other.g1j_1))
+  if (!equals(this.k1j_1, other.k1j_1))
     return false;
-  if (!equals(this.h1j_1, other.h1j_1))
+  if (!equals(this.l1j_1, other.l1j_1))
     return false;
   return true;
 };
@@ -28977,7 +29064,7 @@ function Companion_47() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.r1t_1 = [tmp_1, lazy(tmp_2, Finale$Companion$$childSerializers$_anonymous__1bq16t_0)];
+  tmp.b1u_1 = [tmp_1, lazy(tmp_2, Finale$Companion$$childSerializers$_anonymous__1bq16t_0)];
 }
 var Companion_instance_47;
 function Companion_getInstance_47() {
@@ -28990,30 +29077,30 @@ function $serializer_14() {
   var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('com.ghostsignal.core.model.Finale', this, 2);
   tmp0_serialDesc.yr('lines', false);
   tmp0_serialDesc.yr('outro', true);
-  this.s1t_1 = tmp0_serialDesc;
+  this.c1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_14).t1t = function (encoder, value) {
-  var tmp0_desc = this.s1t_1;
+protoOf($serializer_14).d1u = function (encoder, value) {
+  var tmp0_desc = this.c1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_47().r1t_1;
-  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.f1k_1);
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !equals(value.g1k_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.g1k_1);
+  var tmp2_cached = Companion_getInstance_47().b1u_1;
+  tmp1_output.on(tmp0_desc, 0, tmp2_cached[0].t1(), value.j1k_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !equals(value.k1k_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.k1k_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_14).dj = function (encoder, value) {
-  return this.t1t(encoder, value instanceof Finale ? value : THROW_CCE());
+  return this.d1u(encoder, value instanceof Finale ? value : THROW_CCE());
 };
 protoOf($serializer_14).ej = function (decoder) {
-  var tmp0_desc = this.s1t_1;
+  var tmp0_desc = this.c1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
   var tmp4_local0 = null;
   var tmp5_local1 = null;
   var tmp6_input = decoder.yl(tmp0_desc);
-  var tmp7_cached = Companion_getInstance_47().r1t_1;
+  var tmp7_cached = Companion_getInstance_47().b1u_1;
   if (tmp6_input.om()) {
     tmp4_local0 = tmp6_input.km(tmp0_desc, 0, tmp7_cached[0].t1(), tmp4_local0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -29042,10 +29129,10 @@ protoOf($serializer_14).ej = function (decoder) {
   return Finale_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
 };
 protoOf($serializer_14).cj = function () {
-  return this.s1t_1;
+  return this.c1u_1;
 };
 protoOf($serializer_14).as = function () {
-  var tmp0_cached = Companion_getInstance_47().r1t_1;
+  var tmp0_cached = Companion_getInstance_47().b1u_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -29059,13 +29146,13 @@ function $serializer_getInstance_14() {
 }
 function Finale_init_$Init$(seen0, lines, outro, serializationConstructorMarker, $this) {
   if (!(1 === (1 & seen0))) {
-    throwMissingFieldException(seen0, 1, $serializer_getInstance_14().s1t_1);
+    throwMissingFieldException(seen0, 1, $serializer_getInstance_14().c1u_1);
   }
-  $this.f1k_1 = lines;
+  $this.j1k_1 = lines;
   if (0 === (seen0 & 2))
-    $this.g1k_1 = emptyList();
+    $this.k1k_1 = emptyList();
   else
-    $this.g1k_1 = outro;
+    $this.k1k_1 = outro;
   return $this;
 }
 function Finale_init_$Create$(seen0, lines, outro, serializationConstructorMarker) {
@@ -29074,11 +29161,11 @@ function Finale_init_$Create$(seen0, lines, outro, serializationConstructorMarke
 function Finale() {
 }
 protoOf(Finale).toString = function () {
-  return 'Finale(lines=' + toString_1(this.f1k_1) + ', outro=' + toString_1(this.g1k_1) + ')';
+  return 'Finale(lines=' + toString_1(this.j1k_1) + ', outro=' + toString_1(this.k1k_1) + ')';
 };
 protoOf(Finale).hashCode = function () {
-  var result = hashCode_0(this.f1k_1);
-  result = imul_0(result, 31) + hashCode_0(this.g1k_1) | 0;
+  var result = hashCode_0(this.j1k_1);
+  result = imul_0(result, 31) + hashCode_0(this.k1k_1) | 0;
   return result;
 };
 protoOf(Finale).equals = function (other) {
@@ -29086,9 +29173,9 @@ protoOf(Finale).equals = function (other) {
     return true;
   if (!(other instanceof Finale))
     return false;
-  if (!equals(this.f1k_1, other.f1k_1))
+  if (!equals(this.j1k_1, other.j1k_1))
     return false;
-  if (!equals(this.g1k_1, other.g1k_1))
+  if (!equals(this.k1k_1, other.k1k_1))
     return false;
   return true;
 };
@@ -29102,7 +29189,7 @@ function Companion_48() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.u1t_1 = [null, null, null, null, lazy(tmp_0, MusicManifest$Companion$$childSerializers$_anonymous__wmjgfq)];
+  tmp.e1u_1 = [null, null, null, null, lazy(tmp_0, MusicManifest$Companion$$childSerializers$_anonymous__wmjgfq)];
 }
 var Companion_instance_48;
 function Companion_getInstance_48() {
@@ -29118,30 +29205,30 @@ function $serializer_15() {
   tmp0_serialDesc.yr('beatsPerBar', true);
   tmp0_serialDesc.yr('loopBars', true);
   tmp0_serialDesc.yr('stems', false);
-  this.v1t_1 = tmp0_serialDesc;
+  this.f1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_15).w1t = function (encoder, value) {
-  var tmp0_desc = this.v1t_1;
+protoOf($serializer_15).g1u = function (encoder, value) {
+  var tmp0_desc = this.f1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_48().u1t_1;
-  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.b1h_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 0, value.b1h_1);
+  var tmp2_cached = Companion_getInstance_48().e1u_1;
+  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.f1h_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 0, value.f1h_1);
   }
-  tmp1_output.kn(tmp0_desc, 1, value.c1h_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.d1h_1 === 4)) {
-    tmp1_output.hn(tmp0_desc, 2, value.d1h_1);
+  tmp1_output.kn(tmp0_desc, 1, value.g1h_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.h1h_1 === 4)) {
+    tmp1_output.hn(tmp0_desc, 2, value.h1h_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.e1h_1 === 8)) {
-    tmp1_output.hn(tmp0_desc, 3, value.e1h_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.i1h_1 === 8)) {
+    tmp1_output.hn(tmp0_desc, 3, value.i1h_1);
   }
-  tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.f1h_1);
+  tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.j1h_1);
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_15).dj = function (encoder, value) {
-  return this.w1t(encoder, value instanceof MusicManifest ? value : THROW_CCE());
+  return this.g1u(encoder, value instanceof MusicManifest ? value : THROW_CCE());
 };
 protoOf($serializer_15).ej = function (decoder) {
-  var tmp0_desc = this.v1t_1;
+  var tmp0_desc = this.f1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -29151,7 +29238,7 @@ protoOf($serializer_15).ej = function (decoder) {
   var tmp7_local3 = 0;
   var tmp8_local4 = null;
   var tmp9_input = decoder.yl(tmp0_desc);
-  var tmp10_cached = Companion_getInstance_48().u1t_1;
+  var tmp10_cached = Companion_getInstance_48().e1u_1;
   if (tmp9_input.om()) {
     tmp4_local0 = tmp9_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -29198,10 +29285,10 @@ protoOf($serializer_15).ej = function (decoder) {
   return MusicManifest_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, null);
 };
 protoOf($serializer_15).cj = function () {
-  return this.v1t_1;
+  return this.f1u_1;
 };
 protoOf($serializer_15).as = function () {
-  var tmp0_cached = Companion_getInstance_48().u1t_1;
+  var tmp0_cached = Companion_getInstance_48().e1u_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -29215,22 +29302,22 @@ function $serializer_getInstance_15() {
 }
 function MusicManifest_init_$Init$(seen0, title, bpm, beatsPerBar, loopBars, stems, serializationConstructorMarker, $this) {
   if (!(18 === (18 & seen0))) {
-    throwMissingFieldException(seen0, 18, $serializer_getInstance_15().v1t_1);
+    throwMissingFieldException(seen0, 18, $serializer_getInstance_15().f1u_1);
   }
   if (0 === (seen0 & 1))
-    $this.b1h_1 = '';
+    $this.f1h_1 = '';
   else
-    $this.b1h_1 = title;
-  $this.c1h_1 = bpm;
+    $this.f1h_1 = title;
+  $this.g1h_1 = bpm;
   if (0 === (seen0 & 4))
-    $this.d1h_1 = 4;
+    $this.h1h_1 = 4;
   else
-    $this.d1h_1 = beatsPerBar;
+    $this.h1h_1 = beatsPerBar;
   if (0 === (seen0 & 8))
-    $this.e1h_1 = 8;
+    $this.i1h_1 = 8;
   else
-    $this.e1h_1 = loopBars;
-  $this.f1h_1 = stems;
+    $this.i1h_1 = loopBars;
+  $this.j1h_1 = stems;
   return $this;
 }
 function MusicManifest_init_$Create$(seen0, title, bpm, beatsPerBar, loopBars, stems, serializationConstructorMarker) {
@@ -29241,35 +29328,35 @@ function MusicManifest(title, bpm, beatsPerBar, loopBars, stems) {
   title = title === VOID ? '' : title;
   beatsPerBar = beatsPerBar === VOID ? 4 : beatsPerBar;
   loopBars = loopBars === VOID ? 8 : loopBars;
-  this.b1h_1 = title;
-  this.c1h_1 = bpm;
-  this.d1h_1 = beatsPerBar;
-  this.e1h_1 = loopBars;
-  this.f1h_1 = stems;
+  this.f1h_1 = title;
+  this.g1h_1 = bpm;
+  this.h1h_1 = beatsPerBar;
+  this.i1h_1 = loopBars;
+  this.j1h_1 = stems;
 }
-protoOf(MusicManifest).s1l = function () {
-  return 60000.0 / this.c1h_1;
+protoOf(MusicManifest).w1l = function () {
+  return 60000.0 / this.g1h_1;
 };
-protoOf(MusicManifest).x1t = function (title, bpm, beatsPerBar, loopBars, stems) {
+protoOf(MusicManifest).h1u = function (title, bpm, beatsPerBar, loopBars, stems) {
   return new MusicManifest(title, bpm, beatsPerBar, loopBars, stems);
 };
-protoOf(MusicManifest).b1r = function (title, bpm, beatsPerBar, loopBars, stems, $super) {
-  title = title === VOID ? this.b1h_1 : title;
-  bpm = bpm === VOID ? this.c1h_1 : bpm;
-  beatsPerBar = beatsPerBar === VOID ? this.d1h_1 : beatsPerBar;
-  loopBars = loopBars === VOID ? this.e1h_1 : loopBars;
-  stems = stems === VOID ? this.f1h_1 : stems;
-  return $super === VOID ? this.x1t(title, bpm, beatsPerBar, loopBars, stems) : $super.x1t.call(this, title, bpm, beatsPerBar, loopBars, stems);
+protoOf(MusicManifest).l1r = function (title, bpm, beatsPerBar, loopBars, stems, $super) {
+  title = title === VOID ? this.f1h_1 : title;
+  bpm = bpm === VOID ? this.g1h_1 : bpm;
+  beatsPerBar = beatsPerBar === VOID ? this.h1h_1 : beatsPerBar;
+  loopBars = loopBars === VOID ? this.i1h_1 : loopBars;
+  stems = stems === VOID ? this.j1h_1 : stems;
+  return $super === VOID ? this.h1u(title, bpm, beatsPerBar, loopBars, stems) : $super.h1u.call(this, title, bpm, beatsPerBar, loopBars, stems);
 };
 protoOf(MusicManifest).toString = function () {
-  return 'MusicManifest(title=' + this.b1h_1 + ', bpm=' + this.c1h_1 + ', beatsPerBar=' + this.d1h_1 + ', loopBars=' + this.e1h_1 + ', stems=' + toString_1(this.f1h_1) + ')';
+  return 'MusicManifest(title=' + this.f1h_1 + ', bpm=' + this.g1h_1 + ', beatsPerBar=' + this.h1h_1 + ', loopBars=' + this.i1h_1 + ', stems=' + toString_1(this.j1h_1) + ')';
 };
 protoOf(MusicManifest).hashCode = function () {
-  var result = getStringHashCode(this.b1h_1);
-  result = imul_0(result, 31) + getNumberHashCode(this.c1h_1) | 0;
-  result = imul_0(result, 31) + this.d1h_1 | 0;
-  result = imul_0(result, 31) + this.e1h_1 | 0;
-  result = imul_0(result, 31) + hashCode_0(this.f1h_1) | 0;
+  var result = getStringHashCode(this.f1h_1);
+  result = imul_0(result, 31) + getNumberHashCode(this.g1h_1) | 0;
+  result = imul_0(result, 31) + this.h1h_1 | 0;
+  result = imul_0(result, 31) + this.i1h_1 | 0;
+  result = imul_0(result, 31) + hashCode_0(this.j1h_1) | 0;
   return result;
 };
 protoOf(MusicManifest).equals = function (other) {
@@ -29277,15 +29364,15 @@ protoOf(MusicManifest).equals = function (other) {
     return true;
   if (!(other instanceof MusicManifest))
     return false;
-  if (!(this.b1h_1 === other.b1h_1))
+  if (!(this.f1h_1 === other.f1h_1))
     return false;
-  if (!equals(this.c1h_1, other.c1h_1))
+  if (!equals(this.g1h_1, other.g1h_1))
     return false;
-  if (!(this.d1h_1 === other.d1h_1))
+  if (!(this.h1h_1 === other.h1h_1))
     return false;
-  if (!(this.e1h_1 === other.e1h_1))
+  if (!(this.i1h_1 === other.i1h_1))
     return false;
-  if (!equals(this.f1h_1, other.f1h_1))
+  if (!equals(this.j1h_1, other.j1h_1))
     return false;
   return true;
 };
@@ -29299,7 +29386,7 @@ function Companion_49() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.y1t_1 = [null, null, null, null, lazy(tmp_0, Soundtrack$Companion$$childSerializers$_anonymous__y157da), null];
+  tmp.i1u_1 = [null, null, null, null, lazy(tmp_0, Soundtrack$Companion$$childSerializers$_anonymous__y157da), null];
 }
 var Companion_instance_49;
 function Companion_getInstance_49() {
@@ -29316,31 +29403,31 @@ function $serializer_16() {
   tmp0_serialDesc.yr('unlockAfterCompletions', true);
   tmp0_serialDesc.yr('unlockLines', true);
   tmp0_serialDesc.yr('music', false);
-  this.z1t_1 = tmp0_serialDesc;
+  this.j1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_16).a1u = function (encoder, value) {
-  var tmp0_desc = this.z1t_1;
+protoOf($serializer_16).k1u = function (encoder, value) {
+  var tmp0_desc = this.j1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_49().y1t_1;
-  tmp1_output.mn(tmp0_desc, 0, value.d1r_1);
-  tmp1_output.mn(tmp0_desc, 1, value.e1r_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.f1r_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 2, value.f1r_1);
+  var tmp2_cached = Companion_getInstance_49().i1u_1;
+  tmp1_output.mn(tmp0_desc, 0, value.n1r_1);
+  tmp1_output.mn(tmp0_desc, 1, value.o1r_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.p1r_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 2, value.p1r_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.g1r_1 === 1)) {
-    tmp1_output.hn(tmp0_desc, 3, value.g1r_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.q1r_1 === 1)) {
+    tmp1_output.hn(tmp0_desc, 3, value.q1r_1);
   }
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.h1r_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.h1r_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.r1r_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.r1r_1);
   }
-  tmp1_output.on(tmp0_desc, 5, $serializer_getInstance_15(), value.i1r_1);
+  tmp1_output.on(tmp0_desc, 5, $serializer_getInstance_15(), value.s1r_1);
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_16).dj = function (encoder, value) {
-  return this.a1u(encoder, value instanceof Soundtrack ? value : THROW_CCE());
+  return this.k1u(encoder, value instanceof Soundtrack ? value : THROW_CCE());
 };
 protoOf($serializer_16).ej = function (decoder) {
-  var tmp0_desc = this.z1t_1;
+  var tmp0_desc = this.j1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -29351,7 +29438,7 @@ protoOf($serializer_16).ej = function (decoder) {
   var tmp8_local4 = null;
   var tmp9_local5 = null;
   var tmp10_input = decoder.yl(tmp0_desc);
-  var tmp11_cached = Companion_getInstance_49().y1t_1;
+  var tmp11_cached = Companion_getInstance_49().i1u_1;
   if (tmp10_input.om()) {
     tmp4_local0 = tmp10_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -29404,10 +29491,10 @@ protoOf($serializer_16).ej = function (decoder) {
   return Soundtrack_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, null);
 };
 protoOf($serializer_16).cj = function () {
-  return this.z1t_1;
+  return this.j1u_1;
 };
 protoOf($serializer_16).as = function () {
-  var tmp0_cached = Companion_getInstance_49().y1t_1;
+  var tmp0_cached = Companion_getInstance_49().i1u_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -29421,23 +29508,23 @@ function $serializer_getInstance_16() {
 }
 function Soundtrack_init_$Init$(seen0, id, title, description, unlockAfterCompletions, unlockLines, music, serializationConstructorMarker, $this) {
   if (!(35 === (35 & seen0))) {
-    throwMissingFieldException(seen0, 35, $serializer_getInstance_16().z1t_1);
+    throwMissingFieldException(seen0, 35, $serializer_getInstance_16().j1u_1);
   }
-  $this.d1r_1 = id;
-  $this.e1r_1 = title;
+  $this.n1r_1 = id;
+  $this.o1r_1 = title;
   if (0 === (seen0 & 4))
-    $this.f1r_1 = '';
+    $this.p1r_1 = '';
   else
-    $this.f1r_1 = description;
+    $this.p1r_1 = description;
   if (0 === (seen0 & 8))
-    $this.g1r_1 = 1;
+    $this.q1r_1 = 1;
   else
-    $this.g1r_1 = unlockAfterCompletions;
+    $this.q1r_1 = unlockAfterCompletions;
   if (0 === (seen0 & 16))
-    $this.h1r_1 = emptyList();
+    $this.r1r_1 = emptyList();
   else
-    $this.h1r_1 = unlockLines;
-  $this.i1r_1 = music;
+    $this.r1r_1 = unlockLines;
+  $this.s1r_1 = music;
   return $this;
 }
 function Soundtrack_init_$Create$(seen0, id, title, description, unlockAfterCompletions, unlockLines, music, serializationConstructorMarker) {
@@ -29448,35 +29535,35 @@ function Soundtrack(id, title, description, unlockAfterCompletions, unlockLines,
   description = description === VOID ? '' : description;
   unlockAfterCompletions = unlockAfterCompletions === VOID ? 1 : unlockAfterCompletions;
   unlockLines = unlockLines === VOID ? emptyList() : unlockLines;
-  this.d1r_1 = id;
-  this.e1r_1 = title;
-  this.f1r_1 = description;
-  this.g1r_1 = unlockAfterCompletions;
-  this.h1r_1 = unlockLines;
-  this.i1r_1 = music;
+  this.n1r_1 = id;
+  this.o1r_1 = title;
+  this.p1r_1 = description;
+  this.q1r_1 = unlockAfterCompletions;
+  this.r1r_1 = unlockLines;
+  this.s1r_1 = music;
 }
-protoOf(Soundtrack).b1u = function (id, title, description, unlockAfterCompletions, unlockLines, music) {
+protoOf(Soundtrack).l1u = function (id, title, description, unlockAfterCompletions, unlockLines, music) {
   return new Soundtrack(id, title, description, unlockAfterCompletions, unlockLines, music);
 };
-protoOf(Soundtrack).w1r = function (id, title, description, unlockAfterCompletions, unlockLines, music, $super) {
-  id = id === VOID ? this.d1r_1 : id;
-  title = title === VOID ? this.e1r_1 : title;
-  description = description === VOID ? this.f1r_1 : description;
-  unlockAfterCompletions = unlockAfterCompletions === VOID ? this.g1r_1 : unlockAfterCompletions;
-  unlockLines = unlockLines === VOID ? this.h1r_1 : unlockLines;
-  music = music === VOID ? this.i1r_1 : music;
-  return $super === VOID ? this.b1u(id, title, description, unlockAfterCompletions, unlockLines, music) : $super.b1u.call(this, id, title, description, unlockAfterCompletions, unlockLines, music);
+protoOf(Soundtrack).g1s = function (id, title, description, unlockAfterCompletions, unlockLines, music, $super) {
+  id = id === VOID ? this.n1r_1 : id;
+  title = title === VOID ? this.o1r_1 : title;
+  description = description === VOID ? this.p1r_1 : description;
+  unlockAfterCompletions = unlockAfterCompletions === VOID ? this.q1r_1 : unlockAfterCompletions;
+  unlockLines = unlockLines === VOID ? this.r1r_1 : unlockLines;
+  music = music === VOID ? this.s1r_1 : music;
+  return $super === VOID ? this.l1u(id, title, description, unlockAfterCompletions, unlockLines, music) : $super.l1u.call(this, id, title, description, unlockAfterCompletions, unlockLines, music);
 };
 protoOf(Soundtrack).toString = function () {
-  return 'Soundtrack(id=' + this.d1r_1 + ', title=' + this.e1r_1 + ', description=' + this.f1r_1 + ', unlockAfterCompletions=' + this.g1r_1 + ', unlockLines=' + toString_1(this.h1r_1) + ', music=' + this.i1r_1.toString() + ')';
+  return 'Soundtrack(id=' + this.n1r_1 + ', title=' + this.o1r_1 + ', description=' + this.p1r_1 + ', unlockAfterCompletions=' + this.q1r_1 + ', unlockLines=' + toString_1(this.r1r_1) + ', music=' + this.s1r_1.toString() + ')';
 };
 protoOf(Soundtrack).hashCode = function () {
-  var result = getStringHashCode(this.d1r_1);
-  result = imul_0(result, 31) + getStringHashCode(this.e1r_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.f1r_1) | 0;
-  result = imul_0(result, 31) + this.g1r_1 | 0;
-  result = imul_0(result, 31) + hashCode_0(this.h1r_1) | 0;
-  result = imul_0(result, 31) + this.i1r_1.hashCode() | 0;
+  var result = getStringHashCode(this.n1r_1);
+  result = imul_0(result, 31) + getStringHashCode(this.o1r_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.p1r_1) | 0;
+  result = imul_0(result, 31) + this.q1r_1 | 0;
+  result = imul_0(result, 31) + hashCode_0(this.r1r_1) | 0;
+  result = imul_0(result, 31) + this.s1r_1.hashCode() | 0;
   return result;
 };
 protoOf(Soundtrack).equals = function (other) {
@@ -29484,17 +29571,17 @@ protoOf(Soundtrack).equals = function (other) {
     return true;
   if (!(other instanceof Soundtrack))
     return false;
-  if (!(this.d1r_1 === other.d1r_1))
+  if (!(this.n1r_1 === other.n1r_1))
     return false;
-  if (!(this.e1r_1 === other.e1r_1))
+  if (!(this.o1r_1 === other.o1r_1))
     return false;
-  if (!(this.f1r_1 === other.f1r_1))
+  if (!(this.p1r_1 === other.p1r_1))
     return false;
-  if (!(this.g1r_1 === other.g1r_1))
+  if (!(this.q1r_1 === other.q1r_1))
     return false;
-  if (!equals(this.h1r_1, other.h1r_1))
+  if (!equals(this.r1r_1, other.r1r_1))
     return false;
-  if (!this.i1r_1.equals(other.i1r_1))
+  if (!this.s1r_1.equals(other.s1r_1))
     return false;
   return true;
 };
@@ -29505,26 +29592,26 @@ function $serializer_17() {
   tmp0_serialDesc.yr('theme', false);
   tmp0_serialDesc.yr('gainDb', true);
   tmp0_serialDesc.yr('duck', true);
-  this.c1u_1 = tmp0_serialDesc;
+  this.m1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_17).d1u = function (encoder, value) {
-  var tmp0_desc = this.c1u_1;
+protoOf($serializer_17).n1u = function (encoder, value) {
+  var tmp0_desc = this.m1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  tmp1_output.mn(tmp0_desc, 0, value.x1h_1);
-  tmp1_output.mn(tmp0_desc, 1, value.y1h_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.z1h_1, 0.0)) {
-    tmp1_output.kn(tmp0_desc, 2, value.z1h_1);
+  tmp1_output.mn(tmp0_desc, 0, value.b1i_1);
+  tmp1_output.mn(tmp0_desc, 1, value.c1i_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.d1i_1, 0.0)) {
+    tmp1_output.kn(tmp0_desc, 2, value.d1i_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.a1i_1, 0.85)) {
-    tmp1_output.kn(tmp0_desc, 3, value.a1i_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.e1i_1, 0.85)) {
+    tmp1_output.kn(tmp0_desc, 3, value.e1i_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_17).dj = function (encoder, value) {
-  return this.d1u(encoder, value instanceof Antagonist ? value : THROW_CCE());
+  return this.n1u(encoder, value instanceof Antagonist ? value : THROW_CCE());
 };
 protoOf($serializer_17).ej = function (decoder) {
-  var tmp0_desc = this.c1u_1;
+  var tmp0_desc = this.m1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -29573,7 +29660,7 @@ protoOf($serializer_17).ej = function (decoder) {
   return Antagonist_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
 };
 protoOf($serializer_17).cj = function () {
-  return this.c1u_1;
+  return this.m1u_1;
 };
 protoOf($serializer_17).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -29589,18 +29676,18 @@ function $serializer_getInstance_17() {
 }
 function Antagonist_init_$Init$(seen0, speaker, theme, gainDb, duck, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_17().c1u_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_17().m1u_1);
   }
-  $this.x1h_1 = speaker;
-  $this.y1h_1 = theme;
+  $this.b1i_1 = speaker;
+  $this.c1i_1 = theme;
   if (0 === (seen0 & 4))
-    $this.z1h_1 = 0.0;
+    $this.d1i_1 = 0.0;
   else
-    $this.z1h_1 = gainDb;
+    $this.d1i_1 = gainDb;
   if (0 === (seen0 & 8))
-    $this.a1i_1 = 0.85;
+    $this.e1i_1 = 0.85;
   else
-    $this.a1i_1 = duck;
+    $this.e1i_1 = duck;
   return $this;
 }
 function Antagonist_init_$Create$(seen0, speaker, theme, gainDb, duck, serializationConstructorMarker) {
@@ -29609,13 +29696,13 @@ function Antagonist_init_$Create$(seen0, speaker, theme, gainDb, duck, serializa
 function Antagonist() {
 }
 protoOf(Antagonist).toString = function () {
-  return 'Antagonist(speaker=' + this.x1h_1 + ', theme=' + this.y1h_1 + ', gainDb=' + this.z1h_1 + ', duck=' + this.a1i_1 + ')';
+  return 'Antagonist(speaker=' + this.b1i_1 + ', theme=' + this.c1i_1 + ', gainDb=' + this.d1i_1 + ', duck=' + this.e1i_1 + ')';
 };
 protoOf(Antagonist).hashCode = function () {
-  var result = getStringHashCode(this.x1h_1);
-  result = imul_0(result, 31) + getStringHashCode(this.y1h_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.z1h_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.a1i_1) | 0;
+  var result = getStringHashCode(this.b1i_1);
+  result = imul_0(result, 31) + getStringHashCode(this.c1i_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.d1i_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.e1i_1) | 0;
   return result;
 };
 protoOf(Antagonist).equals = function (other) {
@@ -29623,13 +29710,13 @@ protoOf(Antagonist).equals = function (other) {
     return true;
   if (!(other instanceof Antagonist))
     return false;
-  if (!(this.x1h_1 === other.x1h_1))
+  if (!(this.b1i_1 === other.b1i_1))
     return false;
-  if (!(this.y1h_1 === other.y1h_1))
+  if (!(this.c1i_1 === other.c1i_1))
     return false;
-  if (!equals(this.z1h_1, other.z1h_1))
+  if (!equals(this.d1i_1, other.d1i_1))
     return false;
-  if (!equals(this.a1i_1, other.a1i_1))
+  if (!equals(this.e1i_1, other.e1i_1))
     return false;
   return true;
 };
@@ -29648,30 +29735,30 @@ function $serializer_18() {
   tmp0_serialDesc.yr('gainDb', true);
   tmp0_serialDesc.yr('sha256', true);
   tmp0_serialDesc.yr('bytes', true);
-  this.e1u_1 = tmp0_serialDesc;
+  this.o1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_18).f1u = function (encoder, value) {
-  var tmp0_desc = this.e1u_1;
+protoOf($serializer_18).p1u = function (encoder, value) {
+  var tmp0_desc = this.o1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  tmp1_output.mn(tmp0_desc, 0, value.g1h_1);
-  tmp1_output.mn(tmp0_desc, 1, value.h1h_1);
-  tmp1_output.mn(tmp0_desc, 2, value.i1h_1);
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.j1h_1, 0.0)) {
-    tmp1_output.kn(tmp0_desc, 3, value.j1h_1);
+  tmp1_output.mn(tmp0_desc, 0, value.k1h_1);
+  tmp1_output.mn(tmp0_desc, 1, value.l1h_1);
+  tmp1_output.mn(tmp0_desc, 2, value.m1h_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.n1h_1, 0.0)) {
+    tmp1_output.kn(tmp0_desc, 3, value.n1h_1);
   }
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !(value.k1h_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 4, value.k1h_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !(value.o1h_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 4, value.o1h_1);
   }
-  if (tmp1_output.un(tmp0_desc, 5) ? true : !equalsLong(value.l1h_1, new Long(0, 0))) {
-    tmp1_output.in(tmp0_desc, 5, value.l1h_1);
+  if (tmp1_output.un(tmp0_desc, 5) ? true : !equalsLong(value.p1h_1, new Long(0, 0))) {
+    tmp1_output.in(tmp0_desc, 5, value.p1h_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_18).dj = function (encoder, value) {
-  return this.f1u(encoder, value instanceof StemSpec ? value : THROW_CCE());
+  return this.p1u(encoder, value instanceof StemSpec ? value : THROW_CCE());
 };
 protoOf($serializer_18).ej = function (decoder) {
-  var tmp0_desc = this.e1u_1;
+  var tmp0_desc = this.o1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -29734,7 +29821,7 @@ protoOf($serializer_18).ej = function (decoder) {
   return StemSpec_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, null);
 };
 protoOf($serializer_18).cj = function () {
-  return this.e1u_1;
+  return this.o1u_1;
 };
 protoOf($serializer_18).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -29750,23 +29837,23 @@ function $serializer_getInstance_18() {
 }
 function StemSpec_init_$Init$(seen0, id, file, name, gainDb, sha256, bytes, serializationConstructorMarker, $this) {
   if (!(7 === (7 & seen0))) {
-    throwMissingFieldException(seen0, 7, $serializer_getInstance_18().e1u_1);
+    throwMissingFieldException(seen0, 7, $serializer_getInstance_18().o1u_1);
   }
-  $this.g1h_1 = id;
-  $this.h1h_1 = file;
-  $this.i1h_1 = name;
+  $this.k1h_1 = id;
+  $this.l1h_1 = file;
+  $this.m1h_1 = name;
   if (0 === (seen0 & 8))
-    $this.j1h_1 = 0.0;
+    $this.n1h_1 = 0.0;
   else
-    $this.j1h_1 = gainDb;
+    $this.n1h_1 = gainDb;
   if (0 === (seen0 & 16))
-    $this.k1h_1 = '';
+    $this.o1h_1 = '';
   else
-    $this.k1h_1 = sha256;
+    $this.o1h_1 = sha256;
   if (0 === (seen0 & 32))
-    $this.l1h_1 = new Long(0, 0);
+    $this.p1h_1 = new Long(0, 0);
   else
-    $this.l1h_1 = bytes;
+    $this.p1h_1 = bytes;
   return $this;
 }
 function StemSpec_init_$Create$(seen0, id, file, name, gainDb, sha256, bytes, serializationConstructorMarker) {
@@ -29776,35 +29863,35 @@ function StemSpec(id, file, name, gainDb, sha256, bytes) {
   gainDb = gainDb === VOID ? 0.0 : gainDb;
   sha256 = sha256 === VOID ? '' : sha256;
   bytes = bytes === VOID ? new Long(0, 0) : bytes;
-  this.g1h_1 = id;
-  this.h1h_1 = file;
-  this.i1h_1 = name;
-  this.j1h_1 = gainDb;
-  this.k1h_1 = sha256;
-  this.l1h_1 = bytes;
+  this.k1h_1 = id;
+  this.l1h_1 = file;
+  this.m1h_1 = name;
+  this.n1h_1 = gainDb;
+  this.o1h_1 = sha256;
+  this.p1h_1 = bytes;
 }
-protoOf(StemSpec).g1u = function (id, file, name, gainDb, sha256, bytes) {
+protoOf(StemSpec).q1u = function (id, file, name, gainDb, sha256, bytes) {
   return new StemSpec(id, file, name, gainDb, sha256, bytes);
 };
-protoOf(StemSpec).a1r = function (id, file, name, gainDb, sha256, bytes, $super) {
-  id = id === VOID ? this.g1h_1 : id;
-  file = file === VOID ? this.h1h_1 : file;
-  name = name === VOID ? this.i1h_1 : name;
-  gainDb = gainDb === VOID ? this.j1h_1 : gainDb;
-  sha256 = sha256 === VOID ? this.k1h_1 : sha256;
-  bytes = bytes === VOID ? this.l1h_1 : bytes;
-  return $super === VOID ? this.g1u(id, file, name, gainDb, sha256, bytes) : $super.g1u.call(this, id, file, name, gainDb, sha256, bytes);
+protoOf(StemSpec).k1r = function (id, file, name, gainDb, sha256, bytes, $super) {
+  id = id === VOID ? this.k1h_1 : id;
+  file = file === VOID ? this.l1h_1 : file;
+  name = name === VOID ? this.m1h_1 : name;
+  gainDb = gainDb === VOID ? this.n1h_1 : gainDb;
+  sha256 = sha256 === VOID ? this.o1h_1 : sha256;
+  bytes = bytes === VOID ? this.p1h_1 : bytes;
+  return $super === VOID ? this.q1u(id, file, name, gainDb, sha256, bytes) : $super.q1u.call(this, id, file, name, gainDb, sha256, bytes);
 };
 protoOf(StemSpec).toString = function () {
-  return 'StemSpec(id=' + this.g1h_1 + ', file=' + this.h1h_1 + ', name=' + this.i1h_1 + ', gainDb=' + this.j1h_1 + ', sha256=' + this.k1h_1 + ', bytes=' + this.l1h_1.toString() + ')';
+  return 'StemSpec(id=' + this.k1h_1 + ', file=' + this.l1h_1 + ', name=' + this.m1h_1 + ', gainDb=' + this.n1h_1 + ', sha256=' + this.o1h_1 + ', bytes=' + this.p1h_1.toString() + ')';
 };
 protoOf(StemSpec).hashCode = function () {
-  var result = getStringHashCode(this.g1h_1);
-  result = imul_0(result, 31) + getStringHashCode(this.h1h_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.i1h_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.j1h_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.k1h_1) | 0;
-  result = imul_0(result, 31) + this.l1h_1.hashCode() | 0;
+  var result = getStringHashCode(this.k1h_1);
+  result = imul_0(result, 31) + getStringHashCode(this.l1h_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.m1h_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.n1h_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.o1h_1) | 0;
+  result = imul_0(result, 31) + this.p1h_1.hashCode() | 0;
   return result;
 };
 protoOf(StemSpec).equals = function (other) {
@@ -29812,17 +29899,17 @@ protoOf(StemSpec).equals = function (other) {
     return true;
   if (!(other instanceof StemSpec))
     return false;
-  if (!(this.g1h_1 === other.g1h_1))
-    return false;
-  if (!(this.h1h_1 === other.h1h_1))
-    return false;
-  if (!(this.i1h_1 === other.i1h_1))
-    return false;
-  if (!equals(this.j1h_1, other.j1h_1))
-    return false;
   if (!(this.k1h_1 === other.k1h_1))
     return false;
-  if (!equalsLong(this.l1h_1, other.l1h_1))
+  if (!(this.l1h_1 === other.l1h_1))
+    return false;
+  if (!(this.m1h_1 === other.m1h_1))
+    return false;
+  if (!equals(this.n1h_1, other.n1h_1))
+    return false;
+  if (!(this.o1h_1 === other.o1h_1))
+    return false;
+  if (!equalsLong(this.p1h_1, other.p1h_1))
     return false;
   return true;
 };
@@ -29841,10 +29928,10 @@ function Companion_51() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.h1u_1 = [null, tmp_1, null, lazy(tmp_2, TrackCatalog$Companion$$childSerializers$_anonymous__g65ty4_0)];
-  this.i1u_1 = 'server:';
+  tmp.r1u_1 = [null, tmp_1, null, lazy(tmp_2, TrackCatalog$Companion$$childSerializers$_anonymous__g65ty4_0)];
+  this.s1u_1 = 'server:';
 }
-protoOf(Companion_51).k1p = function () {
+protoOf(Companion_51).q1p = function () {
   return $serializer_getInstance_19();
 };
 var Companion_instance_51;
@@ -29860,29 +29947,29 @@ function $serializer_19() {
   tmp0_serialDesc.yr('soundtracks', true);
   tmp0_serialDesc.yr('updatedAtMs', true);
   tmp0_serialDesc.yr('locked', true);
-  this.j1u_1 = tmp0_serialDesc;
+  this.t1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_19).k1u = function (encoder, value) {
-  var tmp0_desc = this.j1u_1;
+protoOf($serializer_19).u1u = function (encoder, value) {
+  var tmp0_desc = this.t1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_51().h1u_1;
-  tmp1_output.mn(tmp0_desc, 0, value.y1r_1);
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !equals(value.z1r_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.z1r_1);
+  var tmp2_cached = Companion_getInstance_51().r1u_1;
+  tmp1_output.mn(tmp0_desc, 0, value.i1s_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !equals(value.j1s_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 1, tmp2_cached[1].t1(), value.j1s_1);
   }
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !equalsLong(value.a1s_1, new Long(0, 0))) {
-    tmp1_output.in(tmp0_desc, 2, value.a1s_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !equalsLong(value.k1s_1, new Long(0, 0))) {
+    tmp1_output.in(tmp0_desc, 2, value.k1s_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.b1s_1, emptyList())) {
-    tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.b1s_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !equals(value.l1s_1, emptyList())) {
+    tmp1_output.on(tmp0_desc, 3, tmp2_cached[3].t1(), value.l1s_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_19).dj = function (encoder, value) {
-  return this.k1u(encoder, value instanceof TrackCatalog ? value : THROW_CCE());
+  return this.u1u(encoder, value instanceof TrackCatalog ? value : THROW_CCE());
 };
 protoOf($serializer_19).ej = function (decoder) {
-  var tmp0_desc = this.j1u_1;
+  var tmp0_desc = this.t1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -29891,7 +29978,7 @@ protoOf($serializer_19).ej = function (decoder) {
   var tmp6_local2 = new Long(0, 0);
   var tmp7_local3 = null;
   var tmp8_input = decoder.yl(tmp0_desc);
-  var tmp9_cached = Companion_getInstance_51().h1u_1;
+  var tmp9_cached = Companion_getInstance_51().r1u_1;
   if (tmp8_input.om()) {
     tmp4_local0 = tmp8_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -29932,10 +30019,10 @@ protoOf($serializer_19).ej = function (decoder) {
   return TrackCatalog_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, null);
 };
 protoOf($serializer_19).cj = function () {
-  return this.j1u_1;
+  return this.t1u_1;
 };
 protoOf($serializer_19).as = function () {
-  var tmp0_cached = Companion_getInstance_51().h1u_1;
+  var tmp0_cached = Companion_getInstance_51().r1u_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -29949,21 +30036,21 @@ function $serializer_getInstance_19() {
 }
 function TrackCatalog_init_$Init$(seen0, missionId, soundtracks, updatedAtMs, locked, serializationConstructorMarker, $this) {
   if (!(1 === (1 & seen0))) {
-    throwMissingFieldException(seen0, 1, $serializer_getInstance_19().j1u_1);
+    throwMissingFieldException(seen0, 1, $serializer_getInstance_19().t1u_1);
   }
-  $this.y1r_1 = missionId;
+  $this.i1s_1 = missionId;
   if (0 === (seen0 & 2))
-    $this.z1r_1 = emptyList();
+    $this.j1s_1 = emptyList();
   else
-    $this.z1r_1 = soundtracks;
+    $this.j1s_1 = soundtracks;
   if (0 === (seen0 & 4))
-    $this.a1s_1 = new Long(0, 0);
+    $this.k1s_1 = new Long(0, 0);
   else
-    $this.a1s_1 = updatedAtMs;
+    $this.k1s_1 = updatedAtMs;
   if (0 === (seen0 & 8))
-    $this.b1s_1 = emptyList();
+    $this.l1s_1 = emptyList();
   else
-    $this.b1s_1 = locked;
+    $this.l1s_1 = locked;
   return $this;
 }
 function TrackCatalog_init_$Create$(seen0, missionId, soundtracks, updatedAtMs, locked, serializationConstructorMarker) {
@@ -29972,13 +30059,13 @@ function TrackCatalog_init_$Create$(seen0, missionId, soundtracks, updatedAtMs, 
 function TrackCatalog() {
 }
 protoOf(TrackCatalog).toString = function () {
-  return 'TrackCatalog(missionId=' + this.y1r_1 + ', soundtracks=' + toString_1(this.z1r_1) + ', updatedAtMs=' + this.a1s_1.toString() + ', locked=' + toString_1(this.b1s_1) + ')';
+  return 'TrackCatalog(missionId=' + this.i1s_1 + ', soundtracks=' + toString_1(this.j1s_1) + ', updatedAtMs=' + this.k1s_1.toString() + ', locked=' + toString_1(this.l1s_1) + ')';
 };
 protoOf(TrackCatalog).hashCode = function () {
-  var result = getStringHashCode(this.y1r_1);
-  result = imul_0(result, 31) + hashCode_0(this.z1r_1) | 0;
-  result = imul_0(result, 31) + this.a1s_1.hashCode() | 0;
-  result = imul_0(result, 31) + hashCode_0(this.b1s_1) | 0;
+  var result = getStringHashCode(this.i1s_1);
+  result = imul_0(result, 31) + hashCode_0(this.j1s_1) | 0;
+  result = imul_0(result, 31) + this.k1s_1.hashCode() | 0;
+  result = imul_0(result, 31) + hashCode_0(this.l1s_1) | 0;
   return result;
 };
 protoOf(TrackCatalog).equals = function (other) {
@@ -29986,13 +30073,13 @@ protoOf(TrackCatalog).equals = function (other) {
     return true;
   if (!(other instanceof TrackCatalog))
     return false;
-  if (!(this.y1r_1 === other.y1r_1))
+  if (!(this.i1s_1 === other.i1s_1))
     return false;
-  if (!equals(this.z1r_1, other.z1r_1))
+  if (!equals(this.j1s_1, other.j1s_1))
     return false;
-  if (!equalsLong(this.a1s_1, other.a1s_1))
+  if (!equalsLong(this.k1s_1, other.k1s_1))
     return false;
-  if (!equals(this.b1s_1, other.b1s_1))
+  if (!equals(this.l1s_1, other.l1s_1))
     return false;
   return true;
 };
@@ -30022,69 +30109,69 @@ function $serializer_20() {
   tmp0_serialDesc.yr('recordingSaved', true);
   tmp0_serialDesc.yr('fragmentCollected', true);
   tmp0_serialDesc.yr('npcOffline', true);
-  this.l1u_1 = tmp0_serialDesc;
+  this.v1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_20).m1u = function (encoder, value) {
-  var tmp0_desc = this.l1u_1;
+protoOf($serializer_20).w1u = function (encoder, value) {
+  var tmp0_desc = this.v1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.n1j_1 === 'smartspecs')) {
-    tmp1_output.mn(tmp0_desc, 0, value.n1j_1);
+  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.r1j_1 === 'smartspecs')) {
+    tmp1_output.mn(tmp0_desc, 0, value.r1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.o1j_1 === 'No soundwave in range. {signal} is {distance}, {direction}.')) {
-    tmp1_output.mn(tmp0_desc, 1, value.o1j_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.s1j_1 === 'No soundwave in range. {signal} is {distance}, {direction}.')) {
+    tmp1_output.mn(tmp0_desc, 1, value.s1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.p1j_1 === 'Layer {count} of {total}. {signal} is {distance}, {direction}.')) {
-    tmp1_output.mn(tmp0_desc, 2, value.p1j_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.t1j_1 === 'Layer {count} of {total}. {signal} is {distance}, {direction}.')) {
+    tmp1_output.mn(tmp0_desc, 2, value.t1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.q1j_1 === 'Soundwave in range. Press capture.')) {
-    tmp1_output.mn(tmp0_desc, 3, value.q1j_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !(value.u1j_1 === 'Soundwave in range. Press capture.')) {
+    tmp1_output.mn(tmp0_desc, 3, value.u1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !(value.r1j_1 === 'Soundwave captured.')) {
-    tmp1_output.mn(tmp0_desc, 4, value.r1j_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !(value.v1j_1 === 'Soundwave captured.')) {
+    tmp1_output.mn(tmp0_desc, 4, value.v1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 5) ? true : !(value.s1j_1 === 'Signal paused. Tap back to resume.')) {
-    tmp1_output.mn(tmp0_desc, 5, value.s1j_1);
+  if (tmp1_output.un(tmp0_desc, 5) ? true : !(value.w1j_1 === 'Signal paused. Tap back to resume.')) {
+    tmp1_output.mn(tmp0_desc, 5, value.w1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 6) ? true : !(value.t1j_1 === 'Signal resumed.')) {
-    tmp1_output.mn(tmp0_desc, 6, value.t1j_1);
+  if (tmp1_output.un(tmp0_desc, 6) ? true : !(value.x1j_1 === 'Signal resumed.')) {
+    tmp1_output.mn(tmp0_desc, 6, value.x1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 7) ? true : !(value.u1j_1 === 'Hold capture to talk.')) {
-    tmp1_output.mn(tmp0_desc, 7, value.u1j_1);
+  if (tmp1_output.un(tmp0_desc, 7) ? true : !(value.y1j_1 === 'Hold capture to talk.')) {
+    tmp1_output.mn(tmp0_desc, 7, value.y1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 8) ? true : !(value.v1j_1 === 'Nothing on the channel.')) {
-    tmp1_output.mn(tmp0_desc, 8, value.v1j_1);
+  if (tmp1_output.un(tmp0_desc, 8) ? true : !(value.z1j_1 === 'Nothing on the channel.')) {
+    tmp1_output.mn(tmp0_desc, 8, value.z1j_1);
   }
-  if (tmp1_output.un(tmp0_desc, 9) ? true : !(value.w1j_1 === "Didn't catch that.")) {
-    tmp1_output.mn(tmp0_desc, 9, value.w1j_1);
+  if (tmp1_output.un(tmp0_desc, 9) ? true : !(value.a1k_1 === "Didn't catch that.")) {
+    tmp1_output.mn(tmp0_desc, 9, value.a1k_1);
   }
-  if (tmp1_output.un(tmp0_desc, 10) ? true : !(value.x1j_1 === "Static's heavier on your right. Turn left.")) {
-    tmp1_output.mn(tmp0_desc, 10, value.x1j_1);
+  if (tmp1_output.un(tmp0_desc, 10) ? true : !(value.b1k_1 === "Static's heavier on your right. Turn left.")) {
+    tmp1_output.mn(tmp0_desc, 10, value.b1k_1);
   }
-  if (tmp1_output.un(tmp0_desc, 11) ? true : !(value.y1j_1 === "Static's heavier on your left. Turn right.")) {
-    tmp1_output.mn(tmp0_desc, 11, value.y1j_1);
+  if (tmp1_output.un(tmp0_desc, 11) ? true : !(value.c1k_1 === "Static's heavier on your left. Turn right.")) {
+    tmp1_output.mn(tmp0_desc, 11, value.c1k_1);
   }
-  if (tmp1_output.un(tmp0_desc, 12) ? true : !(value.z1j_1 === 'No head tracking. Press capture when you are facing {target}.')) {
-    tmp1_output.mn(tmp0_desc, 12, value.z1j_1);
+  if (tmp1_output.un(tmp0_desc, 12) ? true : !(value.d1k_1 === 'No head tracking. Press capture when you are facing {target}.')) {
+    tmp1_output.mn(tmp0_desc, 12, value.d1k_1);
   }
-  if (tmp1_output.un(tmp0_desc, 13) ? true : !(value.a1k_1 === 'Off the beat. Listen again.')) {
-    tmp1_output.mn(tmp0_desc, 13, value.a1k_1);
+  if (tmp1_output.un(tmp0_desc, 13) ? true : !(value.e1k_1 === 'Off the beat. Listen again.')) {
+    tmp1_output.mn(tmp0_desc, 13, value.e1k_1);
   }
-  if (tmp1_output.un(tmp0_desc, 14) ? true : !(value.b1k_1 === 'Message saved to your SmartSpecs.')) {
-    tmp1_output.mn(tmp0_desc, 14, value.b1k_1);
+  if (tmp1_output.un(tmp0_desc, 14) ? true : !(value.f1k_1 === 'Message saved to your SmartSpecs.')) {
+    tmp1_output.mn(tmp0_desc, 14, value.f1k_1);
   }
-  if (tmp1_output.un(tmp0_desc, 15) ? true : !(value.c1k_1 === 'Layer {count} of {total} unlocked.')) {
-    tmp1_output.mn(tmp0_desc, 15, value.c1k_1);
+  if (tmp1_output.un(tmp0_desc, 15) ? true : !(value.g1k_1 === 'Layer {count} of {total} unlocked.')) {
+    tmp1_output.mn(tmp0_desc, 15, value.g1k_1);
   }
-  if (tmp1_output.un(tmp0_desc, 16) ? true : !(value.d1k_1 === 'Their channel is jammed. Try again in a moment.')) {
-    tmp1_output.mn(tmp0_desc, 16, value.d1k_1);
+  if (tmp1_output.un(tmp0_desc, 16) ? true : !(value.h1k_1 === 'Their channel is jammed. Try again in a moment.')) {
+    tmp1_output.mn(tmp0_desc, 16, value.h1k_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_20).dj = function (encoder, value) {
-  return this.m1u(encoder, value instanceof SystemLines ? value : THROW_CCE());
+  return this.w1u(encoder, value instanceof SystemLines ? value : THROW_CCE());
 };
 protoOf($serializer_20).ej = function (decoder) {
-  var tmp0_desc = this.l1u_1;
+  var tmp0_desc = this.v1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -30224,7 +30311,7 @@ protoOf($serializer_20).ej = function (decoder) {
   return SystemLines_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, tmp9_local5, tmp10_local6, tmp11_local7, tmp12_local8, tmp13_local9, tmp14_local10, tmp15_local11, tmp16_local12, tmp17_local13, tmp18_local14, tmp19_local15, tmp20_local16, null);
 };
 protoOf($serializer_20).cj = function () {
-  return this.l1u_1;
+  return this.v1u_1;
 };
 protoOf($serializer_20).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -30240,76 +30327,76 @@ function $serializer_getInstance_20() {
 }
 function SystemLines_init_$Init$(seen0, speaker, noLock, status, lockAvailable, locked, paused, resumed, talkHint, heardNothing, notUnderstood, tuneLeft, tuneRight, tuneNoHeading, rhythmMiss, recordingSaved, fragmentCollected, npcOffline, serializationConstructorMarker, $this) {
   if (!(0 === (0 & seen0))) {
-    throwMissingFieldException(seen0, 0, $serializer_getInstance_20().l1u_1);
+    throwMissingFieldException(seen0, 0, $serializer_getInstance_20().v1u_1);
   }
   if (0 === (seen0 & 1))
-    $this.n1j_1 = 'smartspecs';
+    $this.r1j_1 = 'smartspecs';
   else
-    $this.n1j_1 = speaker;
+    $this.r1j_1 = speaker;
   if (0 === (seen0 & 2))
-    $this.o1j_1 = 'No soundwave in range. {signal} is {distance}, {direction}.';
+    $this.s1j_1 = 'No soundwave in range. {signal} is {distance}, {direction}.';
   else
-    $this.o1j_1 = noLock;
+    $this.s1j_1 = noLock;
   if (0 === (seen0 & 4))
-    $this.p1j_1 = 'Layer {count} of {total}. {signal} is {distance}, {direction}.';
+    $this.t1j_1 = 'Layer {count} of {total}. {signal} is {distance}, {direction}.';
   else
-    $this.p1j_1 = status;
+    $this.t1j_1 = status;
   if (0 === (seen0 & 8))
-    $this.q1j_1 = 'Soundwave in range. Press capture.';
+    $this.u1j_1 = 'Soundwave in range. Press capture.';
   else
-    $this.q1j_1 = lockAvailable;
+    $this.u1j_1 = lockAvailable;
   if (0 === (seen0 & 16))
-    $this.r1j_1 = 'Soundwave captured.';
+    $this.v1j_1 = 'Soundwave captured.';
   else
-    $this.r1j_1 = locked;
+    $this.v1j_1 = locked;
   if (0 === (seen0 & 32))
-    $this.s1j_1 = 'Signal paused. Tap back to resume.';
+    $this.w1j_1 = 'Signal paused. Tap back to resume.';
   else
-    $this.s1j_1 = paused;
+    $this.w1j_1 = paused;
   if (0 === (seen0 & 64))
-    $this.t1j_1 = 'Signal resumed.';
+    $this.x1j_1 = 'Signal resumed.';
   else
-    $this.t1j_1 = resumed;
+    $this.x1j_1 = resumed;
   if (0 === (seen0 & 128))
-    $this.u1j_1 = 'Hold capture to talk.';
+    $this.y1j_1 = 'Hold capture to talk.';
   else
-    $this.u1j_1 = talkHint;
+    $this.y1j_1 = talkHint;
   if (0 === (seen0 & 256))
-    $this.v1j_1 = 'Nothing on the channel.';
+    $this.z1j_1 = 'Nothing on the channel.';
   else
-    $this.v1j_1 = heardNothing;
+    $this.z1j_1 = heardNothing;
   if (0 === (seen0 & 512))
-    $this.w1j_1 = "Didn't catch that.";
+    $this.a1k_1 = "Didn't catch that.";
   else
-    $this.w1j_1 = notUnderstood;
+    $this.a1k_1 = notUnderstood;
   if (0 === (seen0 & 1024))
-    $this.x1j_1 = "Static's heavier on your right. Turn left.";
+    $this.b1k_1 = "Static's heavier on your right. Turn left.";
   else
-    $this.x1j_1 = tuneLeft;
+    $this.b1k_1 = tuneLeft;
   if (0 === (seen0 & 2048))
-    $this.y1j_1 = "Static's heavier on your left. Turn right.";
+    $this.c1k_1 = "Static's heavier on your left. Turn right.";
   else
-    $this.y1j_1 = tuneRight;
+    $this.c1k_1 = tuneRight;
   if (0 === (seen0 & 4096))
-    $this.z1j_1 = 'No head tracking. Press capture when you are facing {target}.';
+    $this.d1k_1 = 'No head tracking. Press capture when you are facing {target}.';
   else
-    $this.z1j_1 = tuneNoHeading;
+    $this.d1k_1 = tuneNoHeading;
   if (0 === (seen0 & 8192))
-    $this.a1k_1 = 'Off the beat. Listen again.';
+    $this.e1k_1 = 'Off the beat. Listen again.';
   else
-    $this.a1k_1 = rhythmMiss;
+    $this.e1k_1 = rhythmMiss;
   if (0 === (seen0 & 16384))
-    $this.b1k_1 = 'Message saved to your SmartSpecs.';
+    $this.f1k_1 = 'Message saved to your SmartSpecs.';
   else
-    $this.b1k_1 = recordingSaved;
+    $this.f1k_1 = recordingSaved;
   if (0 === (seen0 & 32768))
-    $this.c1k_1 = 'Layer {count} of {total} unlocked.';
+    $this.g1k_1 = 'Layer {count} of {total} unlocked.';
   else
-    $this.c1k_1 = fragmentCollected;
+    $this.g1k_1 = fragmentCollected;
   if (0 === (seen0 & 65536))
-    $this.d1k_1 = 'Their channel is jammed. Try again in a moment.';
+    $this.h1k_1 = 'Their channel is jammed. Try again in a moment.';
   else
-    $this.d1k_1 = npcOffline;
+    $this.h1k_1 = npcOffline;
   return $this;
 }
 function SystemLines_init_$Create$(seen0, speaker, noLock, status, lockAvailable, locked, paused, resumed, talkHint, heardNothing, notUnderstood, tuneLeft, tuneRight, tuneNoHeading, rhythmMiss, recordingSaved, fragmentCollected, npcOffline, serializationConstructorMarker) {
@@ -30333,33 +30420,29 @@ function SystemLines(speaker, noLock, status, lockAvailable, locked, paused, res
   recordingSaved = recordingSaved === VOID ? 'Message saved to your SmartSpecs.' : recordingSaved;
   fragmentCollected = fragmentCollected === VOID ? 'Layer {count} of {total} unlocked.' : fragmentCollected;
   npcOffline = npcOffline === VOID ? 'Their channel is jammed. Try again in a moment.' : npcOffline;
-  this.n1j_1 = speaker;
-  this.o1j_1 = noLock;
-  this.p1j_1 = status;
-  this.q1j_1 = lockAvailable;
-  this.r1j_1 = locked;
-  this.s1j_1 = paused;
-  this.t1j_1 = resumed;
-  this.u1j_1 = talkHint;
-  this.v1j_1 = heardNothing;
-  this.w1j_1 = notUnderstood;
-  this.x1j_1 = tuneLeft;
-  this.y1j_1 = tuneRight;
-  this.z1j_1 = tuneNoHeading;
-  this.a1k_1 = rhythmMiss;
-  this.b1k_1 = recordingSaved;
-  this.c1k_1 = fragmentCollected;
-  this.d1k_1 = npcOffline;
+  this.r1j_1 = speaker;
+  this.s1j_1 = noLock;
+  this.t1j_1 = status;
+  this.u1j_1 = lockAvailable;
+  this.v1j_1 = locked;
+  this.w1j_1 = paused;
+  this.x1j_1 = resumed;
+  this.y1j_1 = talkHint;
+  this.z1j_1 = heardNothing;
+  this.a1k_1 = notUnderstood;
+  this.b1k_1 = tuneLeft;
+  this.c1k_1 = tuneRight;
+  this.d1k_1 = tuneNoHeading;
+  this.e1k_1 = rhythmMiss;
+  this.f1k_1 = recordingSaved;
+  this.g1k_1 = fragmentCollected;
+  this.h1k_1 = npcOffline;
 }
 protoOf(SystemLines).toString = function () {
-  return 'SystemLines(speaker=' + this.n1j_1 + ', noLock=' + this.o1j_1 + ', status=' + this.p1j_1 + ', lockAvailable=' + this.q1j_1 + ', locked=' + this.r1j_1 + ', paused=' + this.s1j_1 + ', resumed=' + this.t1j_1 + ', talkHint=' + this.u1j_1 + ', heardNothing=' + this.v1j_1 + ', notUnderstood=' + this.w1j_1 + ', tuneLeft=' + this.x1j_1 + ', tuneRight=' + this.y1j_1 + ', tuneNoHeading=' + this.z1j_1 + ', rhythmMiss=' + this.a1k_1 + ', recordingSaved=' + this.b1k_1 + ', fragmentCollected=' + this.c1k_1 + ', npcOffline=' + this.d1k_1 + ')';
+  return 'SystemLines(speaker=' + this.r1j_1 + ', noLock=' + this.s1j_1 + ', status=' + this.t1j_1 + ', lockAvailable=' + this.u1j_1 + ', locked=' + this.v1j_1 + ', paused=' + this.w1j_1 + ', resumed=' + this.x1j_1 + ', talkHint=' + this.y1j_1 + ', heardNothing=' + this.z1j_1 + ', notUnderstood=' + this.a1k_1 + ', tuneLeft=' + this.b1k_1 + ', tuneRight=' + this.c1k_1 + ', tuneNoHeading=' + this.d1k_1 + ', rhythmMiss=' + this.e1k_1 + ', recordingSaved=' + this.f1k_1 + ', fragmentCollected=' + this.g1k_1 + ', npcOffline=' + this.h1k_1 + ')';
 };
 protoOf(SystemLines).hashCode = function () {
-  var result = getStringHashCode(this.n1j_1);
-  result = imul_0(result, 31) + getStringHashCode(this.o1j_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.p1j_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.q1j_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.r1j_1) | 0;
+  var result = getStringHashCode(this.r1j_1);
   result = imul_0(result, 31) + getStringHashCode(this.s1j_1) | 0;
   result = imul_0(result, 31) + getStringHashCode(this.t1j_1) | 0;
   result = imul_0(result, 31) + getStringHashCode(this.u1j_1) | 0;
@@ -30372,20 +30455,16 @@ protoOf(SystemLines).hashCode = function () {
   result = imul_0(result, 31) + getStringHashCode(this.b1k_1) | 0;
   result = imul_0(result, 31) + getStringHashCode(this.c1k_1) | 0;
   result = imul_0(result, 31) + getStringHashCode(this.d1k_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.e1k_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.f1k_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.g1k_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.h1k_1) | 0;
   return result;
 };
 protoOf(SystemLines).equals = function (other) {
   if (this === other)
     return true;
   if (!(other instanceof SystemLines))
-    return false;
-  if (!(this.n1j_1 === other.n1j_1))
-    return false;
-  if (!(this.o1j_1 === other.o1j_1))
-    return false;
-  if (!(this.p1j_1 === other.p1j_1))
-    return false;
-  if (!(this.q1j_1 === other.q1j_1))
     return false;
   if (!(this.r1j_1 === other.r1j_1))
     return false;
@@ -30413,6 +30492,14 @@ protoOf(SystemLines).equals = function (other) {
     return false;
   if (!(this.d1k_1 === other.d1k_1))
     return false;
+  if (!(this.e1k_1 === other.e1k_1))
+    return false;
+  if (!(this.f1k_1 === other.f1k_1))
+    return false;
+  if (!(this.g1k_1 === other.g1k_1))
+    return false;
+  if (!(this.h1k_1 === other.h1k_1))
+    return false;
   return true;
 };
 function $serializer_21() {
@@ -30421,21 +30508,21 @@ function $serializer_21() {
   tmp0_serialDesc.yr('location', false);
   tmp0_serialDesc.yr('radiusM', false);
   tmp0_serialDesc.yr('lockRadiusM', false);
-  this.n1u_1 = tmp0_serialDesc;
+  this.x1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_21).o1u = function (encoder, value) {
-  var tmp0_desc = this.n1u_1;
+protoOf($serializer_21).y1u = function (encoder, value) {
+  var tmp0_desc = this.x1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  tmp1_output.on(tmp0_desc, 0, $serializer_getInstance_0(), value.q1r_1);
-  tmp1_output.kn(tmp0_desc, 1, value.r1r_1);
-  tmp1_output.kn(tmp0_desc, 2, value.s1r_1);
+  tmp1_output.on(tmp0_desc, 0, $serializer_getInstance_0(), value.a1s_1);
+  tmp1_output.kn(tmp0_desc, 1, value.b1s_1);
+  tmp1_output.kn(tmp0_desc, 2, value.c1s_1);
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_21).dj = function (encoder, value) {
-  return this.o1u(encoder, value instanceof SignalPlacement ? value : THROW_CCE());
+  return this.y1u(encoder, value instanceof SignalPlacement ? value : THROW_CCE());
 };
 protoOf($serializer_21).ej = function (decoder) {
-  var tmp0_desc = this.n1u_1;
+  var tmp0_desc = this.x1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -30477,7 +30564,7 @@ protoOf($serializer_21).ej = function (decoder) {
   return SignalPlacement_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
 };
 protoOf($serializer_21).cj = function () {
-  return this.n1u_1;
+  return this.x1u_1;
 };
 protoOf($serializer_21).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -30493,11 +30580,11 @@ function $serializer_getInstance_21() {
 }
 function SignalPlacement_init_$Init$(seen0, location, radiusM, lockRadiusM, serializationConstructorMarker, $this) {
   if (!(7 === (7 & seen0))) {
-    throwMissingFieldException(seen0, 7, $serializer_getInstance_21().n1u_1);
+    throwMissingFieldException(seen0, 7, $serializer_getInstance_21().x1u_1);
   }
-  $this.q1r_1 = location;
-  $this.r1r_1 = radiusM;
-  $this.s1r_1 = lockRadiusM;
+  $this.a1s_1 = location;
+  $this.b1s_1 = radiusM;
+  $this.c1s_1 = lockRadiusM;
   return $this;
 }
 function SignalPlacement_init_$Create$(seen0, location, radiusM, lockRadiusM, serializationConstructorMarker) {
@@ -30506,12 +30593,12 @@ function SignalPlacement_init_$Create$(seen0, location, radiusM, lockRadiusM, se
 function SignalPlacement() {
 }
 protoOf(SignalPlacement).toString = function () {
-  return 'SignalPlacement(location=' + this.q1r_1.toString() + ', radiusM=' + this.r1r_1 + ', lockRadiusM=' + this.s1r_1 + ')';
+  return 'SignalPlacement(location=' + this.a1s_1.toString() + ', radiusM=' + this.b1s_1 + ', lockRadiusM=' + this.c1s_1 + ')';
 };
 protoOf(SignalPlacement).hashCode = function () {
-  var result = this.q1r_1.hashCode();
-  result = imul_0(result, 31) + getNumberHashCode(this.r1r_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.s1r_1) | 0;
+  var result = this.a1s_1.hashCode();
+  result = imul_0(result, 31) + getNumberHashCode(this.b1s_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.c1s_1) | 0;
   return result;
 };
 protoOf(SignalPlacement).equals = function (other) {
@@ -30519,11 +30606,11 @@ protoOf(SignalPlacement).equals = function (other) {
     return true;
   if (!(other instanceof SignalPlacement))
     return false;
-  if (!this.q1r_1.equals(other.q1r_1))
+  if (!this.a1s_1.equals(other.a1s_1))
     return false;
-  if (!equals(this.r1r_1, other.r1r_1))
+  if (!equals(this.b1s_1, other.b1s_1))
     return false;
-  if (!equals(this.s1r_1, other.s1r_1))
+  if (!equals(this.c1s_1, other.c1s_1))
     return false;
   return true;
 };
@@ -30533,23 +30620,23 @@ function $serializer_22() {
   tmp0_serialDesc.yr('id', false);
   tmp0_serialDesc.yr('title', false);
   tmp0_serialDesc.yr('description', true);
-  this.p1u_1 = tmp0_serialDesc;
+  this.z1u_1 = tmp0_serialDesc;
 }
-protoOf($serializer_22).q1u = function (encoder, value) {
-  var tmp0_desc = this.p1u_1;
+protoOf($serializer_22).a1v = function (encoder, value) {
+  var tmp0_desc = this.z1u_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  tmp1_output.mn(tmp0_desc, 0, value.r1u_1);
-  tmp1_output.mn(tmp0_desc, 1, value.s1u_1);
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.t1u_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 2, value.t1u_1);
+  tmp1_output.mn(tmp0_desc, 0, value.b1v_1);
+  tmp1_output.mn(tmp0_desc, 1, value.c1v_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !(value.d1v_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 2, value.d1v_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_22).dj = function (encoder, value) {
-  return this.q1u(encoder, value instanceof LockedTrack ? value : THROW_CCE());
+  return this.a1v(encoder, value instanceof LockedTrack ? value : THROW_CCE());
 };
 protoOf($serializer_22).ej = function (decoder) {
-  var tmp0_desc = this.p1u_1;
+  var tmp0_desc = this.z1u_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -30591,7 +30678,7 @@ protoOf($serializer_22).ej = function (decoder) {
   return LockedTrack_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, null);
 };
 protoOf($serializer_22).cj = function () {
-  return this.p1u_1;
+  return this.z1u_1;
 };
 protoOf($serializer_22).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -30607,14 +30694,14 @@ function $serializer_getInstance_22() {
 }
 function LockedTrack_init_$Init$(seen0, id, title, description, serializationConstructorMarker, $this) {
   if (!(3 === (3 & seen0))) {
-    throwMissingFieldException(seen0, 3, $serializer_getInstance_22().p1u_1);
+    throwMissingFieldException(seen0, 3, $serializer_getInstance_22().z1u_1);
   }
-  $this.r1u_1 = id;
-  $this.s1u_1 = title;
+  $this.b1v_1 = id;
+  $this.c1v_1 = title;
   if (0 === (seen0 & 4))
-    $this.t1u_1 = '';
+    $this.d1v_1 = '';
   else
-    $this.t1u_1 = description;
+    $this.d1v_1 = description;
   return $this;
 }
 function LockedTrack_init_$Create$(seen0, id, title, description, serializationConstructorMarker) {
@@ -30623,12 +30710,12 @@ function LockedTrack_init_$Create$(seen0, id, title, description, serializationC
 function LockedTrack() {
 }
 protoOf(LockedTrack).toString = function () {
-  return 'LockedTrack(id=' + this.r1u_1 + ', title=' + this.s1u_1 + ', description=' + this.t1u_1 + ')';
+  return 'LockedTrack(id=' + this.b1v_1 + ', title=' + this.c1v_1 + ', description=' + this.d1v_1 + ')';
 };
 protoOf(LockedTrack).hashCode = function () {
-  var result = getStringHashCode(this.r1u_1);
-  result = imul_0(result, 31) + getStringHashCode(this.s1u_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.t1u_1) | 0;
+  var result = getStringHashCode(this.b1v_1);
+  result = imul_0(result, 31) + getStringHashCode(this.c1v_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.d1v_1) | 0;
   return result;
 };
 protoOf(LockedTrack).equals = function (other) {
@@ -30636,11 +30723,11 @@ protoOf(LockedTrack).equals = function (other) {
     return true;
   if (!(other instanceof LockedTrack))
     return false;
-  if (!(this.r1u_1 === other.r1u_1))
+  if (!(this.b1v_1 === other.b1v_1))
     return false;
-  if (!(this.s1u_1 === other.s1u_1))
+  if (!(this.c1v_1 === other.c1v_1))
     return false;
-  if (!(this.t1u_1 === other.t1u_1))
+  if (!(this.d1v_1 === other.d1v_1))
     return false;
   return true;
 };
@@ -30655,24 +30742,24 @@ function $serializer_23() {
   var tmp0_serialDesc = new PluginGeneratedSerialDescriptor('com.ghostsignal.core.model.SignalLabel', this, 2);
   tmp0_serialDesc.yr('name', true);
   tmp0_serialDesc.yr('place', true);
-  this.u1u_1 = tmp0_serialDesc;
+  this.e1v_1 = tmp0_serialDesc;
 }
-protoOf($serializer_23).v1u = function (encoder, value) {
-  var tmp0_desc = this.u1u_1;
+protoOf($serializer_23).f1v = function (encoder, value) {
+  var tmp0_desc = this.e1v_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.t1r_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 0, value.t1r_1);
+  if (tmp1_output.un(tmp0_desc, 0) ? true : !(value.d1s_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 0, value.d1s_1);
   }
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.u1r_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 1, value.u1r_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.e1s_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 1, value.e1s_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_23).dj = function (encoder, value) {
-  return this.v1u(encoder, value instanceof SignalLabel ? value : THROW_CCE());
+  return this.f1v(encoder, value instanceof SignalLabel ? value : THROW_CCE());
 };
 protoOf($serializer_23).ej = function (decoder) {
-  var tmp0_desc = this.u1u_1;
+  var tmp0_desc = this.e1v_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -30707,7 +30794,7 @@ protoOf($serializer_23).ej = function (decoder) {
   return SignalLabel_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, null);
 };
 protoOf($serializer_23).cj = function () {
-  return this.u1u_1;
+  return this.e1v_1;
 };
 protoOf($serializer_23).as = function () {
   // Inline function 'kotlin.arrayOf' call
@@ -30723,16 +30810,16 @@ function $serializer_getInstance_23() {
 }
 function SignalLabel_init_$Init$(seen0, name, place, serializationConstructorMarker, $this) {
   if (!(0 === (0 & seen0))) {
-    throwMissingFieldException(seen0, 0, $serializer_getInstance_23().u1u_1);
+    throwMissingFieldException(seen0, 0, $serializer_getInstance_23().e1v_1);
   }
   if (0 === (seen0 & 1))
-    $this.t1r_1 = '';
+    $this.d1s_1 = '';
   else
-    $this.t1r_1 = name;
+    $this.d1s_1 = name;
   if (0 === (seen0 & 2))
-    $this.u1r_1 = '';
+    $this.e1s_1 = '';
   else
-    $this.u1r_1 = place;
+    $this.e1s_1 = place;
   return $this;
 }
 function SignalLabel_init_$Create$(seen0, name, place, serializationConstructorMarker) {
@@ -30741,15 +30828,15 @@ function SignalLabel_init_$Create$(seen0, name, place, serializationConstructorM
 function SignalLabel(name, place) {
   name = name === VOID ? '' : name;
   place = place === VOID ? '' : place;
-  this.t1r_1 = name;
-  this.u1r_1 = place;
+  this.d1s_1 = name;
+  this.e1s_1 = place;
 }
 protoOf(SignalLabel).toString = function () {
-  return 'SignalLabel(name=' + this.t1r_1 + ', place=' + this.u1r_1 + ')';
+  return 'SignalLabel(name=' + this.d1s_1 + ', place=' + this.e1s_1 + ')';
 };
 protoOf(SignalLabel).hashCode = function () {
-  var result = getStringHashCode(this.t1r_1);
-  result = imul_0(result, 31) + getStringHashCode(this.u1r_1) | 0;
+  var result = getStringHashCode(this.d1s_1);
+  result = imul_0(result, 31) + getStringHashCode(this.e1s_1) | 0;
   return result;
 };
 protoOf(SignalLabel).equals = function (other) {
@@ -30757,9 +30844,9 @@ protoOf(SignalLabel).equals = function (other) {
     return true;
   if (!(other instanceof SignalLabel))
     return false;
-  if (!(this.t1r_1 === other.t1r_1))
+  if (!(this.d1s_1 === other.d1s_1))
     return false;
-  if (!(this.u1r_1 === other.u1r_1))
+  if (!(this.e1s_1 === other.e1s_1))
     return false;
   return true;
 };
@@ -30778,9 +30865,9 @@ function Companion_54() {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  tmp.w1u_1 = [null, null, tmp_1, null, lazy(tmp_2, RouteOverride$Companion$$childSerializers$_anonymous__cz872j_0)];
+  tmp.g1v_1 = [null, null, tmp_1, null, lazy(tmp_2, RouteOverride$Companion$$childSerializers$_anonymous__cz872j_0)];
 }
-protoOf(Companion_54).k1p = function () {
+protoOf(Companion_54).q1p = function () {
   return $serializer_getInstance_24();
 };
 var Companion_instance_54;
@@ -30797,32 +30884,32 @@ function $serializer_24() {
   tmp0_serialDesc.yr('placements', true);
   tmp0_serialDesc.yr('updatedAtMs', true);
   tmp0_serialDesc.yr('labels', true);
-  this.x1u_1 = tmp0_serialDesc;
+  this.h1v_1 = tmp0_serialDesc;
 }
-protoOf($serializer_24).y1u = function (encoder, value) {
-  var tmp0_desc = this.x1u_1;
+protoOf($serializer_24).i1v = function (encoder, value) {
+  var tmp0_desc = this.h1v_1;
   var tmp1_output = encoder.yl(tmp0_desc);
-  var tmp2_cached = Companion_getInstance_54().w1u_1;
-  tmp1_output.mn(tmp0_desc, 0, value.l1r_1);
-  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.m1r_1 === '')) {
-    tmp1_output.mn(tmp0_desc, 1, value.m1r_1);
+  var tmp2_cached = Companion_getInstance_54().g1v_1;
+  tmp1_output.mn(tmp0_desc, 0, value.v1r_1);
+  if (tmp1_output.un(tmp0_desc, 1) ? true : !(value.w1r_1 === '')) {
+    tmp1_output.mn(tmp0_desc, 1, value.w1r_1);
   }
-  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.n1r_1, emptyMap())) {
-    tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.n1r_1);
+  if (tmp1_output.un(tmp0_desc, 2) ? true : !equals(value.x1r_1, emptyMap())) {
+    tmp1_output.on(tmp0_desc, 2, tmp2_cached[2].t1(), value.x1r_1);
   }
-  if (tmp1_output.un(tmp0_desc, 3) ? true : !equalsLong(value.o1r_1, new Long(0, 0))) {
-    tmp1_output.in(tmp0_desc, 3, value.o1r_1);
+  if (tmp1_output.un(tmp0_desc, 3) ? true : !equalsLong(value.y1r_1, new Long(0, 0))) {
+    tmp1_output.in(tmp0_desc, 3, value.y1r_1);
   }
-  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.p1r_1, emptyMap())) {
-    tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.p1r_1);
+  if (tmp1_output.un(tmp0_desc, 4) ? true : !equals(value.z1r_1, emptyMap())) {
+    tmp1_output.on(tmp0_desc, 4, tmp2_cached[4].t1(), value.z1r_1);
   }
   tmp1_output.zl(tmp0_desc);
 };
 protoOf($serializer_24).dj = function (encoder, value) {
-  return this.y1u(encoder, value instanceof RouteOverride ? value : THROW_CCE());
+  return this.i1v(encoder, value instanceof RouteOverride ? value : THROW_CCE());
 };
 protoOf($serializer_24).ej = function (decoder) {
-  var tmp0_desc = this.x1u_1;
+  var tmp0_desc = this.h1v_1;
   var tmp1_flag = true;
   var tmp2_index = 0;
   var tmp3_bitMask0 = 0;
@@ -30832,7 +30919,7 @@ protoOf($serializer_24).ej = function (decoder) {
   var tmp7_local3 = new Long(0, 0);
   var tmp8_local4 = null;
   var tmp9_input = decoder.yl(tmp0_desc);
-  var tmp10_cached = Companion_getInstance_54().w1u_1;
+  var tmp10_cached = Companion_getInstance_54().g1v_1;
   if (tmp9_input.om()) {
     tmp4_local0 = tmp9_input.im(tmp0_desc, 0);
     tmp3_bitMask0 = tmp3_bitMask0 | 1;
@@ -30879,10 +30966,10 @@ protoOf($serializer_24).ej = function (decoder) {
   return RouteOverride_init_$Create$(tmp3_bitMask0, tmp4_local0, tmp5_local1, tmp6_local2, tmp7_local3, tmp8_local4, null);
 };
 protoOf($serializer_24).cj = function () {
-  return this.x1u_1;
+  return this.h1v_1;
 };
 protoOf($serializer_24).as = function () {
-  var tmp0_cached = Companion_getInstance_54().w1u_1;
+  var tmp0_cached = Companion_getInstance_54().g1v_1;
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
@@ -30896,25 +30983,25 @@ function $serializer_getInstance_24() {
 }
 function RouteOverride_init_$Init$(seen0, missionId, name, placements, updatedAtMs, labels, serializationConstructorMarker, $this) {
   if (!(1 === (1 & seen0))) {
-    throwMissingFieldException(seen0, 1, $serializer_getInstance_24().x1u_1);
+    throwMissingFieldException(seen0, 1, $serializer_getInstance_24().h1v_1);
   }
-  $this.l1r_1 = missionId;
+  $this.v1r_1 = missionId;
   if (0 === (seen0 & 2))
-    $this.m1r_1 = '';
+    $this.w1r_1 = '';
   else
-    $this.m1r_1 = name;
+    $this.w1r_1 = name;
   if (0 === (seen0 & 4))
-    $this.n1r_1 = emptyMap();
+    $this.x1r_1 = emptyMap();
   else
-    $this.n1r_1 = placements;
+    $this.x1r_1 = placements;
   if (0 === (seen0 & 8))
-    $this.o1r_1 = new Long(0, 0);
+    $this.y1r_1 = new Long(0, 0);
   else
-    $this.o1r_1 = updatedAtMs;
+    $this.y1r_1 = updatedAtMs;
   if (0 === (seen0 & 16))
-    $this.p1r_1 = emptyMap();
+    $this.z1r_1 = emptyMap();
   else
-    $this.p1r_1 = labels;
+    $this.z1r_1 = labels;
   return $this;
 }
 function RouteOverride_init_$Create$(seen0, missionId, name, placements, updatedAtMs, labels, serializationConstructorMarker) {
@@ -30923,14 +31010,14 @@ function RouteOverride_init_$Create$(seen0, missionId, name, placements, updated
 function RouteOverride() {
 }
 protoOf(RouteOverride).toString = function () {
-  return 'RouteOverride(missionId=' + this.l1r_1 + ', name=' + this.m1r_1 + ', placements=' + toString_1(this.n1r_1) + ', updatedAtMs=' + this.o1r_1.toString() + ', labels=' + toString_1(this.p1r_1) + ')';
+  return 'RouteOverride(missionId=' + this.v1r_1 + ', name=' + this.w1r_1 + ', placements=' + toString_1(this.x1r_1) + ', updatedAtMs=' + this.y1r_1.toString() + ', labels=' + toString_1(this.z1r_1) + ')';
 };
 protoOf(RouteOverride).hashCode = function () {
-  var result = getStringHashCode(this.l1r_1);
-  result = imul_0(result, 31) + getStringHashCode(this.m1r_1) | 0;
-  result = imul_0(result, 31) + hashCode_0(this.n1r_1) | 0;
-  result = imul_0(result, 31) + this.o1r_1.hashCode() | 0;
-  result = imul_0(result, 31) + hashCode_0(this.p1r_1) | 0;
+  var result = getStringHashCode(this.v1r_1);
+  result = imul_0(result, 31) + getStringHashCode(this.w1r_1) | 0;
+  result = imul_0(result, 31) + hashCode_0(this.x1r_1) | 0;
+  result = imul_0(result, 31) + this.y1r_1.hashCode() | 0;
+  result = imul_0(result, 31) + hashCode_0(this.z1r_1) | 0;
   return result;
 };
 protoOf(RouteOverride).equals = function (other) {
@@ -30938,62 +31025,62 @@ protoOf(RouteOverride).equals = function (other) {
     return true;
   if (!(other instanceof RouteOverride))
     return false;
-  if (!(this.l1r_1 === other.l1r_1))
+  if (!(this.v1r_1 === other.v1r_1))
     return false;
-  if (!(this.m1r_1 === other.m1r_1))
+  if (!(this.w1r_1 === other.w1r_1))
     return false;
-  if (!equals(this.n1r_1, other.n1r_1))
+  if (!equals(this.x1r_1, other.x1r_1))
     return false;
-  if (!equalsLong(this.o1r_1, other.o1r_1))
+  if (!equalsLong(this.y1r_1, other.y1r_1))
     return false;
-  if (!equals(this.p1r_1, other.p1r_1))
+  if (!equals(this.z1r_1, other.z1r_1))
     return false;
   return true;
 };
 function LineCatalog() {
 }
-protoOf(LineCatalog).z1u = function (mission) {
+protoOf(LineCatalog).j1v = function (mission) {
   // Inline function 'kotlin.collections.mutableListOf' call
   var lines = ArrayList_init_$Create$();
   // Inline function 'kotlin.collections.plusAssign' call
-  var elements = mission.d1g_1;
+  var elements = mission.g1g_1;
   addAll(lines, elements);
   // Inline function 'kotlin.collections.plusAssign' call
-  var elements_0 = mission.e1g_1;
+  var elements_0 = mission.h1g_1;
   addAll(lines, elements_0);
-  var _iterator__ex2g4s = mission.f1g_1.l();
+  var _iterator__ex2g4s = mission.i1g_1.l();
   while (_iterator__ex2g4s.m()) {
     var s = _iterator__ex2g4s.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var elements_1 = plus(plus(plus(plus(plus(plus(s.u1g_1, s.v1g_1), s.w1g_1), s.x1g_1.r1i()), s.y1g_1), s.z1g_1), s.a1h_1);
+    var elements_1 = plus(plus(plus(plus(plus(plus(s.y1g_1, s.z1g_1), s.a1h_1), s.b1h_1.v1i()), s.c1h_1), s.d1h_1), s.e1h_1);
     addAll(lines, elements_1);
-    var c = s.x1g_1;
+    var c = s.b1h_1;
     if (c instanceof Choice) {
       // Inline function 'kotlin.collections.forEach' call
-      var _iterator__ex2g4s_0 = c.e1j_1.l();
+      var _iterator__ex2g4s_0 = c.i1j_1.l();
       while (_iterator__ex2g4s_0.m()) {
         var element = _iterator__ex2g4s_0.n();
         // Inline function 'kotlin.collections.plusAssign' call
-        var elements_2 = element.h1j_1;
+        var elements_2 = element.l1j_1;
         addAll(lines, elements_2);
       }
     } else {
       if (c instanceof Ask) {
         // Inline function 'kotlin.collections.plusAssign' call
-        var elements_3 = c.b1j_1;
+        var elements_3 = c.f1j_1;
         addAll(lines, elements_3);
       }
     }
   }
   // Inline function 'kotlin.collections.plusAssign' call
-  var elements_4 = plus(mission.g1g_1.f1k_1, mission.g1g_1.g1k_1);
+  var elements_4 = plus(mission.j1g_1.j1k_1, mission.j1g_1.k1k_1);
   addAll(lines, elements_4);
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_1 = mission.i1g_1.l();
+  var _iterator__ex2g4s_1 = mission.l1g_1.l();
   while (_iterator__ex2g4s_1.m()) {
     var element_0 = _iterator__ex2g4s_1.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var elements_5 = element_0.h1r_1;
+    var elements_5 = element_0.r1r_1;
     addAll(lines, elements_5);
   }
   // Inline function 'kotlin.collections.distinctBy' call
@@ -31002,7 +31089,7 @@ protoOf(LineCatalog).z1u = function (mission) {
   var _iterator__ex2g4s_2 = lines.l();
   while (_iterator__ex2g4s_2.m()) {
     var e = _iterator__ex2g4s_2.n();
-    var key = e.l1m_1;
+    var key = e.p1m_1;
     if (set.g(key)) {
       list.g(e);
     }
@@ -31014,21 +31101,21 @@ function LineCatalog_getInstance() {
   return LineCatalog_instance;
 }
 function Choice_0(id, title, description, unlocked, unlockAfterCompletions) {
-  this.a1v_1 = id;
-  this.b1v_1 = title;
-  this.c1v_1 = description;
-  this.d1v_1 = unlocked;
-  this.e1v_1 = unlockAfterCompletions;
+  this.k1v_1 = id;
+  this.l1v_1 = title;
+  this.m1v_1 = description;
+  this.n1v_1 = unlocked;
+  this.o1v_1 = unlockAfterCompletions;
 }
 protoOf(Choice_0).toString = function () {
-  return 'Choice(id=' + this.a1v_1 + ', title=' + this.b1v_1 + ', description=' + this.c1v_1 + ', unlocked=' + this.d1v_1 + ', unlockAfterCompletions=' + this.e1v_1 + ')';
+  return 'Choice(id=' + this.k1v_1 + ', title=' + this.l1v_1 + ', description=' + this.m1v_1 + ', unlocked=' + this.n1v_1 + ', unlockAfterCompletions=' + this.o1v_1 + ')';
 };
 protoOf(Choice_0).hashCode = function () {
-  var result = getStringHashCode(this.a1v_1);
-  result = imul_0(result, 31) + getStringHashCode(this.b1v_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.c1v_1) | 0;
-  result = imul_0(result, 31) + getBooleanHashCode(this.d1v_1) | 0;
-  result = imul_0(result, 31) + this.e1v_1 | 0;
+  var result = getStringHashCode(this.k1v_1);
+  result = imul_0(result, 31) + getStringHashCode(this.l1v_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.m1v_1) | 0;
+  result = imul_0(result, 31) + getBooleanHashCode(this.n1v_1) | 0;
+  result = imul_0(result, 31) + this.o1v_1 | 0;
   return result;
 };
 protoOf(Choice_0).equals = function (other) {
@@ -31036,29 +31123,29 @@ protoOf(Choice_0).equals = function (other) {
     return true;
   if (!(other instanceof Choice_0))
     return false;
-  if (!(this.a1v_1 === other.a1v_1))
+  if (!(this.k1v_1 === other.k1v_1))
     return false;
-  if (!(this.b1v_1 === other.b1v_1))
+  if (!(this.l1v_1 === other.l1v_1))
     return false;
-  if (!(this.c1v_1 === other.c1v_1))
+  if (!(this.m1v_1 === other.m1v_1))
     return false;
-  if (!(this.d1v_1 === other.d1v_1))
+  if (!(this.n1v_1 === other.n1v_1))
     return false;
-  if (!(this.e1v_1 === other.e1v_1))
+  if (!(this.o1v_1 === other.o1v_1))
     return false;
   return true;
 };
 function sam$kotlin_Comparator$0_0(function_0) {
-  this.f1v_1 = function_0;
+  this.p1v_1 = function_0;
 }
 protoOf(sam$kotlin_Comparator$0_0).nb = function (a, b) {
-  return this.f1v_1(a, b);
+  return this.p1v_1(a, b);
 };
 protoOf(sam$kotlin_Comparator$0_0).compare = function (a, b) {
   return this.nb(a, b);
 };
 protoOf(sam$kotlin_Comparator$0_0).n2 = function () {
-  return this.f1v_1;
+  return this.p1v_1;
 };
 protoOf(sam$kotlin_Comparator$0_0).equals = function (other) {
   var tmp;
@@ -31080,16 +31167,16 @@ protoOf(sam$kotlin_Comparator$0_0).hashCode = function () {
 };
 function Soundtracks$choices$lambda(a, b) {
   // Inline function 'kotlin.comparisons.compareValuesBy' call
-  var tmp = a.g1r_1;
-  var tmp$ret$1 = b.g1r_1;
+  var tmp = a.q1r_1;
+  var tmp$ret$1 = b.q1r_1;
   return compareValues(tmp, tmp$ret$1);
 }
 function Soundtracks() {
-  this.g1v_1 = 'original';
+  this.q1v_1 = 'original';
 }
-protoOf(Soundtracks).h1v = function (mission, completions) {
+protoOf(Soundtracks).r1v = function (mission, completions) {
   // Inline function 'kotlin.text.ifBlank' call
-  var this_0 = mission.c1g_1.b1h_1;
+  var this_0 = mission.f1g_1.f1h_1;
   var tmp;
   if (isBlank(this_0)) {
     tmp = 'Original';
@@ -31099,7 +31186,7 @@ protoOf(Soundtracks).h1v = function (mission, completions) {
   var tmp$ret$1 = tmp;
   var tmp_0 = listOf(new Choice_0('original', tmp$ret$1, '', true, 0));
   // Inline function 'kotlin.collections.sortedBy' call
-  var this_1 = mission.i1g_1;
+  var this_1 = mission.l1g_1;
   // Inline function 'kotlin.comparisons.compareBy' call
   var tmp_1 = Soundtracks$choices$lambda;
   var tmp$ret$2 = new sam$kotlin_Comparator$0_0(tmp_1);
@@ -31110,17 +31197,17 @@ protoOf(Soundtracks).h1v = function (mission, completions) {
   var _iterator__ex2g4s = this_2.l();
   while (_iterator__ex2g4s.m()) {
     var item = _iterator__ex2g4s.n();
-    var tmp$ret$4 = new Choice_0(item.d1r_1, item.e1r_1, item.f1r_1, completions >= item.g1r_1, item.g1r_1);
+    var tmp$ret$4 = new Choice_0(item.n1r_1, item.o1r_1, item.p1r_1, completions >= item.q1r_1, item.q1r_1);
     destination.g(tmp$ret$4);
   }
   return plus(tmp_0, destination);
 };
-protoOf(Soundtracks).i1v = function (mission, id, completions) {
+protoOf(Soundtracks).s1v = function (mission, id, completions) {
   var tmp;
   if (id === 'original') {
     tmp = true;
   } else {
-    var tmp0 = mission.i1g_1;
+    var tmp0 = mission.l1g_1;
     var tmp$ret$0;
     $l$block_0: {
       // Inline function 'kotlin.collections.any' call
@@ -31137,7 +31224,7 @@ protoOf(Soundtracks).i1v = function (mission, id, completions) {
       var _iterator__ex2g4s = tmp0.l();
       while (_iterator__ex2g4s.m()) {
         var element = _iterator__ex2g4s.n();
-        if (element.d1r_1 === id && completions >= element.g1r_1) {
+        if (element.n1r_1 === id && completions >= element.q1r_1) {
           tmp$ret$0 = true;
           break $l$block_0;
         }
@@ -31148,14 +31235,14 @@ protoOf(Soundtracks).i1v = function (mission, id, completions) {
   }
   return tmp;
 };
-protoOf(Soundtracks).j1v = function (mission, chosen, completions) {
+protoOf(Soundtracks).t1v = function (mission, chosen, completions) {
   var tmp;
   if (chosen == null) {
     tmp = null;
   } else {
     // Inline function 'kotlin.takeIf' call
     var tmp_0;
-    if (Soundtracks_instance.i1v(mission, chosen, completions)) {
+    if (Soundtracks_instance.s1v(mission, chosen, completions)) {
       tmp_0 = chosen;
     } else {
       tmp_0 = null;
@@ -31165,15 +31252,15 @@ protoOf(Soundtracks).j1v = function (mission, chosen, completions) {
   var tmp1_elvis_lhs = tmp;
   return tmp1_elvis_lhs == null ? 'original' : tmp1_elvis_lhs;
 };
-protoOf(Soundtracks).k1v = function (mission, completions) {
+protoOf(Soundtracks).u1v = function (mission, completions) {
   // Inline function 'kotlin.collections.filter' call
-  var tmp0 = mission.i1g_1;
+  var tmp0 = mission.l1g_1;
   // Inline function 'kotlin.collections.filterTo' call
   var destination = ArrayList_init_$Create$();
   var _iterator__ex2g4s = tmp0.l();
   while (_iterator__ex2g4s.m()) {
     var element = _iterator__ex2g4s.n();
-    if (element.g1r_1 === (completions + 1 | 0)) {
+    if (element.q1r_1 === (completions + 1 | 0)) {
       destination.g(element);
     }
   }
@@ -31222,433 +31309,463 @@ function validate$dupes(ids) {
 }
 function MissionValidator() {
 }
-protoOf(MissionValidator).l1v = function (mission) {
+protoOf(MissionValidator).v1v = function (mission) {
   // Inline function 'kotlin.collections.mutableListOf' call
   var problems = ArrayList_init_$Create$();
   // Inline function 'kotlin.collections.map' call
-  var this_0 = mission.b1g_1;
+  var this_0 = mission.e1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.l();
   while (_iterator__ex2g4s.m()) {
     var item = _iterator__ex2g4s.n();
-    var tmp$ret$1 = item.j1n_1;
+    var tmp$ret$1 = item.n1n_1;
     destination.g(tmp$ret$1);
   }
-  var characterIds = plus_0(toSet_0(destination), mission.h1g_1.n1j_1);
+  var characterIds = plus_0(toSet_0(destination), mission.k1g_1.r1j_1);
   // Inline function 'kotlin.collections.map' call
-  var this_1 = mission.c1g_1.f1h_1;
+  var this_1 = mission.f1g_1.j1h_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_0 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_1, 10));
   var _iterator__ex2g4s_0 = this_1.l();
   while (_iterator__ex2g4s_0.m()) {
     var item_0 = _iterator__ex2g4s_0.n();
-    var tmp$ret$4 = item_0.g1h_1;
+    var tmp$ret$4 = item_0.k1h_1;
     destination_0.g(tmp$ret$4);
   }
   var stemIds = toSet_0(destination_0);
+  if (mission.e1g_1.q()) {
+    // Inline function 'kotlin.collections.plusAssign' call
+    var element = 'mission has no characters';
+    problems.g(element);
+  }
   // Inline function 'kotlin.collections.map' call
-  var this_2 = mission.f1g_1;
+  var this_2 = mission.e1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_1 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_2, 10));
   var _iterator__ex2g4s_1 = this_2.l();
   while (_iterator__ex2g4s_1.m()) {
     var item_1 = _iterator__ex2g4s_1.n();
-    var tmp$ret$7 = item_1.m1g_1;
-    destination_1.g(tmp$ret$7);
+    var tmp$ret$8 = item_1.n1n_1;
+    destination_1.g(tmp$ret$8);
   }
   // Inline function 'kotlin.collections.forEach' call
   var _iterator__ex2g4s_2 = validate$dupes(destination_1).l();
   while (_iterator__ex2g4s_2.m()) {
-    var element = _iterator__ex2g4s_2.n();
+    var element_0 = _iterator__ex2g4s_2.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_0 = "duplicate signal id '" + element + "'";
-    problems.g(element_0);
+    var element_1 = "duplicate character id '" + element_0 + "'";
+    problems.g(element_1);
   }
   // Inline function 'kotlin.collections.map' call
-  var this_3 = mission.c1g_1.f1h_1;
+  var this_3 = mission.i1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_2 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_3, 10));
   var _iterator__ex2g4s_3 = this_3.l();
   while (_iterator__ex2g4s_3.m()) {
     var item_2 = _iterator__ex2g4s_3.n();
-    var tmp$ret$13 = item_2.g1h_1;
-    destination_2.g(tmp$ret$13);
+    var tmp$ret$14 = item_2.p1g_1;
+    destination_2.g(tmp$ret$14);
   }
   // Inline function 'kotlin.collections.forEach' call
   var _iterator__ex2g4s_4 = validate$dupes(destination_2).l();
   while (_iterator__ex2g4s_4.m()) {
-    var element_1 = _iterator__ex2g4s_4.n();
+    var element_2 = _iterator__ex2g4s_4.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_2 = "duplicate stem id '" + element_1 + "'";
-    problems.g(element_2);
+    var element_3 = "duplicate signal id '" + element_2 + "'";
+    problems.g(element_3);
   }
-  var allLines = LineCatalog_instance.z1u(mission);
+  // Inline function 'kotlin.collections.map' call
+  var this_4 = mission.f1g_1.j1h_1;
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination_3 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_4, 10));
+  var _iterator__ex2g4s_5 = this_4.l();
+  while (_iterator__ex2g4s_5.m()) {
+    var item_3 = _iterator__ex2g4s_5.n();
+    var tmp$ret$20 = item_3.k1h_1;
+    destination_3.g(tmp$ret$20);
+  }
+  // Inline function 'kotlin.collections.forEach' call
+  var _iterator__ex2g4s_6 = validate$dupes(destination_3).l();
+  while (_iterator__ex2g4s_6.m()) {
+    var element_4 = _iterator__ex2g4s_6.n();
+    // Inline function 'kotlin.collections.plusAssign' call
+    var element_5 = "duplicate stem id '" + element_4 + "'";
+    problems.g(element_5);
+  }
+  var allLines = LineCatalog_instance.j1v(mission);
   // Inline function 'kotlin.collections.buildList' call
   // Inline function 'kotlin.collections.buildListInternal' call
   // Inline function 'kotlin.apply' call
-  var this_4 = ArrayList_init_$Create$();
+  var this_5 = ArrayList_init_$Create$();
   // Inline function 'kotlin.collections.map' call
-  var this_5 = mission.d1g_1;
-  // Inline function 'kotlin.collections.mapTo' call
-  var destination_3 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_5, 10));
-  var _iterator__ex2g4s_5 = this_5.l();
-  while (_iterator__ex2g4s_5.m()) {
-    var item_3 = _iterator__ex2g4s_5.n();
-    var tmp$ret$19 = item_3.l1m_1;
-    destination_3.g(tmp$ret$19);
-  }
-  this_4.r(destination_3);
-  // Inline function 'kotlin.collections.map' call
-  var this_6 = mission.e1g_1;
+  var this_6 = mission.g1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_4 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_6, 10));
-  var _iterator__ex2g4s_6 = this_6.l();
-  while (_iterator__ex2g4s_6.m()) {
-    var item_4 = _iterator__ex2g4s_6.n();
-    var tmp$ret$22 = item_4.l1m_1;
-    destination_4.g(tmp$ret$22);
-  }
-  this_4.r(destination_4);
-  // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_7 = mission.f1g_1.l();
+  var _iterator__ex2g4s_7 = this_6.l();
   while (_iterator__ex2g4s_7.m()) {
-    var element_3 = _iterator__ex2g4s_7.n();
-    var c = element_3.x1g_1;
+    var item_4 = _iterator__ex2g4s_7.n();
+    var tmp$ret$26 = item_4.p1m_1;
+    destination_4.g(tmp$ret$26);
+  }
+  this_5.r(destination_4);
+  // Inline function 'kotlin.collections.map' call
+  var this_7 = mission.h1g_1;
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination_5 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_7, 10));
+  var _iterator__ex2g4s_8 = this_7.l();
+  while (_iterator__ex2g4s_8.m()) {
+    var item_5 = _iterator__ex2g4s_8.n();
+    var tmp$ret$29 = item_5.p1m_1;
+    destination_5.g(tmp$ret$29);
+  }
+  this_5.r(destination_5);
+  // Inline function 'kotlin.collections.forEach' call
+  var _iterator__ex2g4s_9 = mission.i1g_1.l();
+  while (_iterator__ex2g4s_9.m()) {
+    var element_6 = _iterator__ex2g4s_9.n();
+    var c = element_6.b1h_1;
     // Inline function 'kotlin.collections.map' call
-    var this_7 = plus(plus(plus(plus(plus(plus(element_3.u1g_1, element_3.v1g_1), element_3.w1g_1), c.r1i()), element_3.y1g_1), element_3.z1g_1), element_3.a1h_1);
+    var this_8 = plus(plus(plus(plus(plus(plus(element_6.y1g_1, element_6.z1g_1), element_6.a1h_1), c.v1i()), element_6.c1h_1), element_6.d1h_1), element_6.e1h_1);
     // Inline function 'kotlin.collections.mapTo' call
-    var destination_5 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_7, 10));
-    var _iterator__ex2g4s_8 = this_7.l();
-    while (_iterator__ex2g4s_8.m()) {
-      var item_5 = _iterator__ex2g4s_8.n();
-      var tmp$ret$25 = item_5.l1m_1;
-      destination_5.g(tmp$ret$25);
+    var destination_6 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_8, 10));
+    var _iterator__ex2g4s_10 = this_8.l();
+    while (_iterator__ex2g4s_10.m()) {
+      var item_6 = _iterator__ex2g4s_10.n();
+      var tmp$ret$32 = item_6.p1m_1;
+      destination_6.g(tmp$ret$32);
     }
-    this_4.r(destination_5);
+    this_5.r(destination_6);
     if (c instanceof Choice) {
       // Inline function 'kotlin.collections.forEach' call
-      var _iterator__ex2g4s_9 = c.e1j_1.l();
-      while (_iterator__ex2g4s_9.m()) {
-        var element_4 = _iterator__ex2g4s_9.n();
+      var _iterator__ex2g4s_11 = c.i1j_1.l();
+      while (_iterator__ex2g4s_11.m()) {
+        var element_7 = _iterator__ex2g4s_11.n();
         // Inline function 'kotlin.collections.map' call
-        var this_8 = element_4.h1j_1;
+        var this_9 = element_7.l1j_1;
         // Inline function 'kotlin.collections.mapTo' call
-        var destination_6 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_8, 10));
-        var _iterator__ex2g4s_10 = this_8.l();
-        while (_iterator__ex2g4s_10.m()) {
-          var item_6 = _iterator__ex2g4s_10.n();
-          var tmp$ret$28 = item_6.l1m_1;
-          destination_6.g(tmp$ret$28);
+        var destination_7 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_9, 10));
+        var _iterator__ex2g4s_12 = this_9.l();
+        while (_iterator__ex2g4s_12.m()) {
+          var item_7 = _iterator__ex2g4s_12.n();
+          var tmp$ret$35 = item_7.p1m_1;
+          destination_7.g(tmp$ret$35);
         }
-        this_4.r(destination_6);
+        this_5.r(destination_7);
       }
     }
     if (c instanceof Ask) {
       // Inline function 'kotlin.collections.map' call
-      var this_9 = c.b1j_1;
+      var this_10 = c.f1j_1;
       // Inline function 'kotlin.collections.mapTo' call
-      var destination_7 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_9, 10));
-      var _iterator__ex2g4s_11 = this_9.l();
-      while (_iterator__ex2g4s_11.m()) {
-        var item_7 = _iterator__ex2g4s_11.n();
-        var tmp$ret$33 = item_7.l1m_1;
-        destination_7.g(tmp$ret$33);
+      var destination_8 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_10, 10));
+      var _iterator__ex2g4s_13 = this_10.l();
+      while (_iterator__ex2g4s_13.m()) {
+        var item_8 = _iterator__ex2g4s_13.n();
+        var tmp$ret$40 = item_8.p1m_1;
+        destination_8.g(tmp$ret$40);
       }
-      this_4.r(destination_7);
+      this_5.r(destination_8);
     }
   }
   // Inline function 'kotlin.collections.map' call
-  var this_10 = plus(mission.g1g_1.f1k_1, mission.g1g_1.g1k_1);
+  var this_11 = plus(mission.j1g_1.j1k_1, mission.j1g_1.k1k_1);
   // Inline function 'kotlin.collections.mapTo' call
-  var destination_8 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_10, 10));
-  var _iterator__ex2g4s_12 = this_10.l();
-  while (_iterator__ex2g4s_12.m()) {
-    var item_8 = _iterator__ex2g4s_12.n();
-    var tmp$ret$38 = item_8.l1m_1;
-    destination_8.g(tmp$ret$38);
+  var destination_9 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_11, 10));
+  var _iterator__ex2g4s_14 = this_11.l();
+  while (_iterator__ex2g4s_14.m()) {
+    var item_9 = _iterator__ex2g4s_14.n();
+    var tmp$ret$45 = item_9.p1m_1;
+    destination_9.g(tmp$ret$45);
   }
-  this_4.r(destination_8);
+  this_5.r(destination_9);
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_13 = mission.i1g_1.l();
-  while (_iterator__ex2g4s_13.m()) {
-    var element_5 = _iterator__ex2g4s_13.n();
-    // Inline function 'kotlin.collections.map' call
-    var this_11 = element_5.h1r_1;
-    // Inline function 'kotlin.collections.mapTo' call
-    var destination_9 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_11, 10));
-    var _iterator__ex2g4s_14 = this_11.l();
-    while (_iterator__ex2g4s_14.m()) {
-      var item_9 = _iterator__ex2g4s_14.n();
-      var tmp$ret$41 = item_9.l1m_1;
-      destination_9.g(tmp$ret$41);
-    }
-    this_4.r(destination_9);
-  }
-  var rawLineIds = this_4.m4();
-  // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_15 = validate$dupes(rawLineIds).l();
+  var _iterator__ex2g4s_15 = mission.l1g_1.l();
   while (_iterator__ex2g4s_15.m()) {
-    var element_6 = _iterator__ex2g4s_15.n();
-    // Inline function 'kotlin.collections.plusAssign' call
-    var element_7 = "line id '" + element_6 + "' is used more than once";
-    problems.g(element_7);
-  }
-  var _iterator__ex2g4s_16 = allLines.l();
-  while (_iterator__ex2g4s_16.m()) {
-    var line = _iterator__ex2g4s_16.n();
-    if (!characterIds.c1(line.m1m_1)) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_8 = "line '" + line.l1m_1 + "' has unknown speaker '" + line.m1m_1 + "'";
-      problems.g(element_8);
+    var element_8 = _iterator__ex2g4s_15.n();
+    // Inline function 'kotlin.collections.map' call
+    var this_12 = element_8.r1r_1;
+    // Inline function 'kotlin.collections.mapTo' call
+    var destination_10 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_12, 10));
+    var _iterator__ex2g4s_16 = this_12.l();
+    while (_iterator__ex2g4s_16.m()) {
+      var item_10 = _iterator__ex2g4s_16.n();
+      var tmp$ret$48 = item_10.p1m_1;
+      destination_10.g(tmp$ret$48);
     }
-    if (isBlank(line.n1m_1)) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_9 = "line '" + line.l1m_1 + "' is empty";
-      problems.g(element_9);
-    }
+    this_5.r(destination_10);
   }
-  if (mission.e1g_1.q()) {
+  var rawLineIds = this_5.m4();
+  // Inline function 'kotlin.collections.forEach' call
+  var _iterator__ex2g4s_17 = validate$dupes(rawLineIds).l();
+  while (_iterator__ex2g4s_17.m()) {
+    var element_9 = _iterator__ex2g4s_17.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_10 = 'mission has no briefing';
+    var element_10 = "line id '" + element_9 + "' is used more than once";
     problems.g(element_10);
+  }
+  var _iterator__ex2g4s_18 = allLines.l();
+  while (_iterator__ex2g4s_18.m()) {
+    var line = _iterator__ex2g4s_18.n();
+    if (!characterIds.c1(line.q1m_1)) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_11 = "line '" + line.p1m_1 + "' has unknown speaker '" + line.q1m_1 + "'";
+      problems.g(element_11);
+    }
+    if (isBlank(line.r1m_1)) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_12 = "line '" + line.p1m_1 + "' is empty";
+      problems.g(element_12);
+    }
+  }
+  if (mission.h1g_1.q()) {
+    // Inline function 'kotlin.collections.plusAssign' call
+    var element_13 = 'mission has no briefing';
+    problems.g(element_13);
   }
   var tmp;
   // Inline function 'kotlin.text.isNotBlank' call
-  var this_12 = mission.j1g_1;
-  if (!isBlank(this_12)) {
-    tmp = mission.f1m(mission.j1g_1) == null;
+  var this_13 = mission.m1g_1;
+  if (!isBlank(this_13)) {
+    tmp = mission.j1m(mission.m1g_1) == null;
   } else {
     tmp = false;
   }
   if (tmp) {
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_11 = "handler '" + mission.j1g_1 + "' is not a character";
-    problems.g(element_11);
+    var element_14 = "handler '" + mission.m1g_1 + "' is not a character";
+    problems.g(element_14);
   }
-  var tmp0_safe_receiver = mission.k1g_1;
+  var tmp0_safe_receiver = mission.n1g_1;
   if (tmp0_safe_receiver == null)
     null;
   else {
     // Inline function 'kotlin.let' call
-    if (mission.f1m(tmp0_safe_receiver.x1h_1) == null) {
+    if (mission.j1m(tmp0_safe_receiver.b1i_1) == null) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_12 = "antagonist '" + tmp0_safe_receiver.x1h_1 + "' is not a character";
-      problems.g(element_12);
+      var element_15 = "antagonist '" + tmp0_safe_receiver.b1i_1 + "' is not a character";
+      problems.g(element_15);
     }
-    if (isBlank(tmp0_safe_receiver.y1h_1)) {
+    if (isBlank(tmp0_safe_receiver.c1i_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_13 = "antagonist '" + tmp0_safe_receiver.x1h_1 + "' has no theme";
-      problems.g(element_13);
+      var element_16 = "antagonist '" + tmp0_safe_receiver.b1i_1 + "' has no theme";
+      problems.g(element_16);
     }
-    var containsArg = tmp0_safe_receiver.a1i_1;
+    var containsArg = tmp0_safe_receiver.e1i_1;
     if (!(0.0 <= containsArg ? containsArg <= 1.0 : false)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_14 = 'antagonist duck ' + tmp0_safe_receiver.a1i_1 + ' should be between 0 and 1';
-      problems.g(element_14);
+      var element_17 = 'antagonist duck ' + tmp0_safe_receiver.e1i_1 + ' should be between 0 and 1';
+      problems.g(element_17);
     }
   }
-  if (mission.f1g_1.q()) {
+  if (mission.i1g_1.q()) {
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_15 = 'mission has no signals';
-    problems.g(element_15);
+    var element_18 = 'mission has no signals';
+    problems.g(element_18);
   }
-  var containsArg_0 = mission.c1g_1.c1h_1;
+  var containsArg_0 = mission.f1g_1.g1h_1;
   if (!(40.0 <= containsArg_0 ? containsArg_0 <= 220.0 : false)) {
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_16 = 'music bpm ' + mission.c1g_1.c1h_1 + ' looks wrong';
-    problems.g(element_16);
+    var element_19 = 'music bpm ' + mission.f1g_1.g1h_1 + ' looks wrong';
+    problems.g(element_19);
   }
-  // Inline function 'kotlin.collections.map' call
-  var this_13 = mission.f1g_1;
-  // Inline function 'kotlin.collections.mapTo' call
-  var destination_10 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_13, 10));
-  var _iterator__ex2g4s_17 = this_13.l();
-  while (_iterator__ex2g4s_17.m()) {
-    var item_10 = _iterator__ex2g4s_17.n();
-    var tmp$ret$65 = item_10.s1g_1;
-    destination_10.g(tmp$ret$65);
-  }
-  var signalStems = toSet_0(destination_10);
   // Inline function 'kotlin.collections.map' call
   var this_14 = mission.i1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_11 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_14, 10));
-  var _iterator__ex2g4s_18 = this_14.l();
-  while (_iterator__ex2g4s_18.m()) {
-    var item_11 = _iterator__ex2g4s_18.n();
-    var tmp$ret$68 = item_11.d1r_1;
-    destination_11.g(tmp$ret$68);
+  var _iterator__ex2g4s_19 = this_14.l();
+  while (_iterator__ex2g4s_19.m()) {
+    var item_11 = _iterator__ex2g4s_19.n();
+    var tmp$ret$72 = item_11.w1g_1;
+    destination_11.g(tmp$ret$72);
+  }
+  var signalStems = toSet_0(destination_11);
+  // Inline function 'kotlin.collections.map' call
+  var this_15 = mission.l1g_1;
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination_12 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_15, 10));
+  var _iterator__ex2g4s_20 = this_15.l();
+  while (_iterator__ex2g4s_20.m()) {
+    var item_12 = _iterator__ex2g4s_20.n();
+    var tmp$ret$75 = item_12.n1r_1;
+    destination_12.g(tmp$ret$75);
   }
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_19 = validate$dupes(destination_11).l();
-  while (_iterator__ex2g4s_19.m()) {
-    var element_17 = _iterator__ex2g4s_19.n();
+  var _iterator__ex2g4s_21 = validate$dupes(destination_12).l();
+  while (_iterator__ex2g4s_21.m()) {
+    var element_20 = _iterator__ex2g4s_21.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_18 = "duplicate soundtrack id '" + element_17 + "'";
-    problems.g(element_18);
+    var element_21 = "duplicate soundtrack id '" + element_20 + "'";
+    problems.g(element_21);
   }
-  var _iterator__ex2g4s_20 = mission.i1g_1.l();
-  while (_iterator__ex2g4s_20.m()) {
-    var t = _iterator__ex2g4s_20.n();
-    if (t.d1r_1 === 'original') {
+  var _iterator__ex2g4s_22 = mission.l1g_1.l();
+  while (_iterator__ex2g4s_22.m()) {
+    var t = _iterator__ex2g4s_22.n();
+    if (t.n1r_1 === 'original') {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_19 = "soundtrack id '" + t.d1r_1 + "' is reserved for the mission's own music";
-      problems.g(element_19);
-    }
-    if (isBlank(t.e1r_1)) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_20 = "soundtrack '" + t.d1r_1 + "' has no title";
-      problems.g(element_20);
-    }
-    if (t.g1r_1 < 0) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_21 = "soundtrack '" + t.d1r_1 + "' unlock count is negative";
-      problems.g(element_21);
-    }
-    var containsArg_1 = t.i1r_1.c1h_1;
-    if (!(40.0 <= containsArg_1 ? containsArg_1 <= 220.0 : false)) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_22 = "soundtrack '" + t.d1r_1 + "' bpm " + t.i1r_1.c1h_1 + ' looks wrong';
+      var element_22 = "soundtrack id '" + t.n1r_1 + "' is reserved for the mission's own music";
       problems.g(element_22);
     }
-    // Inline function 'kotlin.collections.map' call
-    var this_15 = t.i1r_1.f1h_1;
-    // Inline function 'kotlin.collections.mapTo' call
-    var destination_12 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_15, 10));
-    var _iterator__ex2g4s_21 = this_15.l();
-    while (_iterator__ex2g4s_21.m()) {
-      var item_12 = _iterator__ex2g4s_21.n();
-      var tmp$ret$78 = item_12.g1h_1;
-      destination_12.g(tmp$ret$78);
-    }
-    // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s_22 = validate$dupes(destination_12).l();
-    while (_iterator__ex2g4s_22.m()) {
-      var element_23 = _iterator__ex2g4s_22.n();
+    if (isBlank(t.o1r_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_24 = "soundtrack '" + t.d1r_1 + "' has duplicate stem id '" + element_23 + "'";
+      var element_23 = "soundtrack '" + t.n1r_1 + "' has no title";
+      problems.g(element_23);
+    }
+    if (t.q1r_1 < 0) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_24 = "soundtrack '" + t.n1r_1 + "' unlock count is negative";
       problems.g(element_24);
     }
+    var containsArg_1 = t.s1r_1.g1h_1;
+    if (!(40.0 <= containsArg_1 ? containsArg_1 <= 220.0 : false)) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_25 = "soundtrack '" + t.n1r_1 + "' bpm " + t.s1r_1.g1h_1 + ' looks wrong';
+      problems.g(element_25);
+    }
     // Inline function 'kotlin.collections.map' call
-    var this_16 = t.i1r_1.f1h_1;
+    var this_16 = t.s1r_1.j1h_1;
     // Inline function 'kotlin.collections.mapTo' call
     var destination_13 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_16, 10));
     var _iterator__ex2g4s_23 = this_16.l();
     while (_iterator__ex2g4s_23.m()) {
       var item_13 = _iterator__ex2g4s_23.n();
-      var tmp$ret$84 = item_13.g1h_1;
-      destination_13.g(tmp$ret$84);
+      var tmp$ret$85 = item_13.k1h_1;
+      destination_13.g(tmp$ret$85);
     }
-    var ids = toSet_0(destination_13);
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s_24 = sorted(minus(signalStems, ids)).l();
+    var _iterator__ex2g4s_24 = validate$dupes(destination_13).l();
     while (_iterator__ex2g4s_24.m()) {
-      var element_25 = _iterator__ex2g4s_24.n();
+      var element_26 = _iterator__ex2g4s_24.n();
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_26 = "soundtrack '" + t.d1r_1 + "' has no stem '" + element_25 + "'";
-      problems.g(element_26);
+      var element_27 = "soundtrack '" + t.n1r_1 + "' has duplicate stem id '" + element_26 + "'";
+      problems.g(element_27);
+    }
+    // Inline function 'kotlin.collections.map' call
+    var this_17 = t.s1r_1.j1h_1;
+    // Inline function 'kotlin.collections.mapTo' call
+    var destination_14 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_17, 10));
+    var _iterator__ex2g4s_25 = this_17.l();
+    while (_iterator__ex2g4s_25.m()) {
+      var item_14 = _iterator__ex2g4s_25.n();
+      var tmp$ret$91 = item_14.k1h_1;
+      destination_14.g(tmp$ret$91);
+    }
+    var ids = toSet_0(destination_14);
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s_26 = sorted(minus(signalStems, ids)).l();
+    while (_iterator__ex2g4s_26.m()) {
+      var element_28 = _iterator__ex2g4s_26.n();
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_29 = "soundtrack '" + t.n1r_1 + "' has no stem '" + element_28 + "'";
+      problems.g(element_29);
     }
   }
   // Inline function 'kotlin.collections.mutableSetOf' call
   var usedStems = LinkedHashSet_init_$Create$();
-  var _iterator__ex2g4s_25 = mission.f1g_1.l();
-  while (_iterator__ex2g4s_25.m()) {
-    var s = _iterator__ex2g4s_25.n();
-    if (!stemIds.c1(s.s1g_1)) {
+  var _iterator__ex2g4s_27 = mission.i1g_1.l();
+  while (_iterator__ex2g4s_27.m()) {
+    var s = _iterator__ex2g4s_27.n();
+    if (!stemIds.c1(s.w1g_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_27 = "signal '" + s.m1g_1 + "' unlocks unknown stem '" + s.s1g_1 + "'";
-      problems.g(element_27);
-    }
-    if (!usedStems.g(s.s1g_1)) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_28 = "stem '" + s.s1g_1 + "' is unlocked by more than one signal";
-      problems.g(element_28);
-    }
-    if (!characterIds.c1(s.t1g_1)) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_29 = "signal '" + s.m1g_1 + "' has unknown speaker '" + s.t1g_1 + "'";
-      problems.g(element_29);
-    }
-    if (s.r1g_1 > s.q1g_1) {
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_30 = "signal '" + s.m1g_1 + "' lock radius is larger than its near radius";
+      var element_30 = "signal '" + s.p1g_1 + "' unlocks unknown stem '" + s.w1g_1 + "'";
       problems.g(element_30);
     }
-    if (s.r1g_1 < 10) {
+    if (!usedStems.g(s.w1g_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_31 = "signal '" + s.m1g_1 + "' lock radius under 10 m will be unreliable on phone GPS";
+      var element_31 = "stem '" + s.w1g_1 + "' is unlocked by more than one signal";
       problems.g(element_31);
     }
-    if (abs_1(this, s.p1g_1.s1p_1) > 90 || abs_1(this, s.p1g_1.t1p_1) > 180) {
+    if (!characterIds.c1(s.x1g_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_32 = "signal '" + s.m1g_1 + "' has invalid coordinates";
+      var element_32 = "signal '" + s.p1g_1 + "' has unknown speaker '" + s.x1g_1 + "'";
       problems.g(element_32);
     }
-    if (s.x1g_1.r1i().q()) {
+    if (s.u1g_1 > s.t1g_1) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_33 = "signal '" + s.m1g_1 + "' challenge has no prompt";
+      var element_33 = "signal '" + s.p1g_1 + "' lock radius is larger than its near radius";
       problems.g(element_33);
     }
-    var c_0 = s.x1g_1;
+    if (s.u1g_1 < 10) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_34 = "signal '" + s.p1g_1 + "' lock radius under 10 m will be unreliable on phone GPS";
+      problems.g(element_34);
+    }
+    var containsLower = -60.0;
+    var containsArg_2 = s.v1g_1;
+    if (!(containsLower <= containsArg_2 ? containsArg_2 <= 60.0 : false)) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_35 = "signal '" + s.p1g_1 + "' elevation " + s.v1g_1 + ' should be between -60 and 60 degrees';
+      problems.g(element_35);
+    }
+    if (abs_1(this, s.s1g_1.y1p_1) > 90 || abs_1(this, s.s1g_1.z1p_1) > 180) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_36 = "signal '" + s.p1g_1 + "' has invalid coordinates";
+      problems.g(element_36);
+    }
+    if (s.b1h_1.v1i().q()) {
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_37 = "signal '" + s.p1g_1 + "' challenge has no prompt";
+      problems.g(element_37);
+    }
+    var c_0 = s.b1h_1;
     if (c_0 instanceof Command) {
-      if (c_0.m1j_1.q()) {
+      if (c_0.q1j_1.q()) {
         // Inline function 'kotlin.collections.plusAssign' call
-        var element_34 = "signal '" + s.m1g_1 + "' command has no phrases";
-        problems.g(element_34);
+        var element_38 = "signal '" + s.p1g_1 + "' command has no phrases";
+        problems.g(element_38);
       }
     } else {
       if (c_0 instanceof Passphrase) {
-        if (c_0.j1j_1.q()) {
+        if (c_0.n1j_1.q()) {
           // Inline function 'kotlin.collections.plusAssign' call
-          var element_35 = "signal '" + s.m1g_1 + "' passphrase has no phrases";
-          problems.g(element_35);
+          var element_39 = "signal '" + s.p1g_1 + "' passphrase has no phrases";
+          problems.g(element_39);
         }
       } else {
         if (c_0 instanceof Choice) {
-          if (c_0.e1j_1.o() < 2) {
+          if (c_0.i1j_1.o() < 2) {
             // Inline function 'kotlin.collections.plusAssign' call
-            var element_36 = "signal '" + s.m1g_1 + "' choice needs at least two options";
-            problems.g(element_36);
+            var element_40 = "signal '" + s.p1g_1 + "' choice needs at least two options";
+            problems.g(element_40);
           }
           // Inline function 'kotlin.collections.forEach' call
-          var _iterator__ex2g4s_26 = c_0.e1j_1.l();
-          while (_iterator__ex2g4s_26.m()) {
-            var element_37 = _iterator__ex2g4s_26.n();
-            if (element_37.g1j_1.q()) {
+          var _iterator__ex2g4s_28 = c_0.i1j_1.l();
+          while (_iterator__ex2g4s_28.m()) {
+            var element_41 = _iterator__ex2g4s_28.n();
+            if (element_41.k1j_1.q()) {
               // Inline function 'kotlin.collections.plusAssign' call
-              var element_38 = "signal '" + s.m1g_1 + "' option '" + element_37.f1j_1 + "' has no phrases";
-              problems.g(element_38);
+              var element_42 = "signal '" + s.p1g_1 + "' option '" + element_41.j1j_1 + "' has no phrases";
+              problems.g(element_42);
             }
           }
         } else {
           if (c_0 instanceof Ask) {
-            if (c_0.c1j_1.q()) {
+            if (c_0.g1j_1.q()) {
               // Inline function 'kotlin.collections.plusAssign' call
-              var element_39 = "signal '" + s.m1g_1 + "' ask has no offline fallback replies";
-              problems.g(element_39);
+              var element_43 = "signal '" + s.p1g_1 + "' ask has no offline fallback replies";
+              problems.g(element_43);
             }
           } else {
             if (c_0 instanceof Rhythm) {
-              if (c_0.v1i_1.o() < 3) {
+              if (c_0.z1i_1.o() < 3) {
                 // Inline function 'kotlin.collections.plusAssign' call
-                var element_40 = "signal '" + s.m1g_1 + "' rhythm needs at least three taps";
-                problems.g(element_40);
+                var element_44 = "signal '" + s.p1g_1 + "' rhythm needs at least three taps";
+                problems.g(element_44);
               }
             } else {
               if (c_0 instanceof Record) {
-                var containsArg_2 = c_0.t1i_1;
-                if (!(3 <= containsArg_2 ? containsArg_2 <= 60 : false)) {
+                var containsArg_3 = c_0.x1i_1;
+                if (!(3 <= containsArg_3 ? containsArg_3 <= 60 : false)) {
                   // Inline function 'kotlin.collections.plusAssign' call
-                  var element_41 = "signal '" + s.m1g_1 + "' record length should be 3-60 s";
-                  problems.g(element_41);
+                  var element_45 = "signal '" + s.p1g_1 + "' record length should be 3-60 s";
+                  problems.g(element_45);
                 }
               } else {
                 if (c_0 instanceof Tune) {
-                  if (Geo_getInstance().d1o(s.p1g_1, c_0.z1l_1) < 150) {
+                  if (Geo_getInstance().j1o(s.s1g_1, c_0.d1m_1) < 150) {
                     // Inline function 'kotlin.collections.plusAssign' call
-                    var element_42 = "signal '" + s.m1g_1 + "' tune target is too close to aim at";
-                    problems.g(element_42);
+                    var element_46 = "signal '" + s.p1g_1 + "' tune target is too close to aim at";
+                    problems.g(element_46);
                   }
                 } else {
                   noWhenBranchMatchedException();
@@ -31660,7 +31777,7 @@ protoOf(MissionValidator).l1v = function (mission) {
       }
     }
   }
-  var tmp0 = mission.f1g_1;
+  var tmp0 = mission.i1g_1;
   $l$block: {
     // Inline function 'kotlin.collections.zipWithNext' call
     var iterator = tmp0.l();
@@ -31674,11 +31791,11 @@ protoOf(MissionValidator).l1v = function (mission) {
     while (iterator.m()) {
       var next = iterator.n();
       var a = current;
-      var d = Geo_getInstance().d1o(a.p1g_1, next.p1g_1);
+      var d = Geo_getInstance().j1o(a.s1g_1, next.s1g_1);
       if (d < 35) {
         // Inline function 'kotlin.collections.plusAssign' call
-        var element_43 = "signals '" + a.m1g_1 + "' and '" + next.m1g_1 + "' are only " + numberToInt(d) + ' m apart';
-        problems.g(element_43);
+        var element_47 = "signals '" + a.p1g_1 + "' and '" + next.p1g_1 + "' are only " + numberToInt(d) + ' m apart';
+        problems.g(element_47);
       }
       result.g(Unit_instance);
       current = next;
@@ -31691,19 +31808,19 @@ function MissionValidator_getInstance() {
   return MissionValidator_instance;
 }
 function Result_0(passed, meanErrorBeats, tempoRatio, reason) {
-  this.t1l_1 = passed;
-  this.u1l_1 = meanErrorBeats;
-  this.v1l_1 = tempoRatio;
-  this.w1l_1 = reason;
+  this.x1l_1 = passed;
+  this.y1l_1 = meanErrorBeats;
+  this.z1l_1 = tempoRatio;
+  this.a1m_1 = reason;
 }
 protoOf(Result_0).toString = function () {
-  return 'Result(passed=' + this.t1l_1 + ', meanErrorBeats=' + this.u1l_1 + ', tempoRatio=' + this.v1l_1 + ', reason=' + this.w1l_1 + ')';
+  return 'Result(passed=' + this.x1l_1 + ', meanErrorBeats=' + this.y1l_1 + ', tempoRatio=' + this.z1l_1 + ', reason=' + this.a1m_1 + ')';
 };
 protoOf(Result_0).hashCode = function () {
-  var result = getBooleanHashCode(this.t1l_1);
-  result = imul_0(result, 31) + getNumberHashCode(this.u1l_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.v1l_1) | 0;
-  result = imul_0(result, 31) + getStringHashCode(this.w1l_1) | 0;
+  var result = getBooleanHashCode(this.x1l_1);
+  result = imul_0(result, 31) + getNumberHashCode(this.y1l_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.z1l_1) | 0;
+  result = imul_0(result, 31) + getStringHashCode(this.a1m_1) | 0;
   return result;
 };
 protoOf(Result_0).equals = function (other) {
@@ -31711,19 +31828,19 @@ protoOf(Result_0).equals = function (other) {
     return true;
   if (!(other instanceof Result_0))
     return false;
-  if (!(this.t1l_1 === other.t1l_1))
+  if (!(this.x1l_1 === other.x1l_1))
     return false;
-  if (!equals(this.u1l_1, other.u1l_1))
+  if (!equals(this.y1l_1, other.y1l_1))
     return false;
-  if (!equals(this.v1l_1, other.v1l_1))
+  if (!equals(this.z1l_1, other.z1l_1))
     return false;
-  if (!(this.w1l_1 === other.w1l_1))
+  if (!(this.a1m_1 === other.a1m_1))
     return false;
   return true;
 };
 function RhythmMatcher() {
 }
-protoOf(RhythmMatcher).x1l = function (onsetsBeats, tapTimesMs, beatMs, toleranceBeats) {
+protoOf(RhythmMatcher).b1m = function (onsetsBeats, tapTimesMs, beatMs, toleranceBeats) {
   // Inline function 'kotlin.require' call
   if (!(onsetsBeats.o() >= 2)) {
     var message = 'A rhythm needs at least two onsets';
@@ -31812,17 +31929,17 @@ function RhythmMatcher_getInstance() {
   return RhythmMatcher_instance;
 }
 function Match(key, phrase, score) {
-  this.k1l_1 = key;
-  this.l1l_1 = phrase;
-  this.m1l_1 = score;
+  this.o1l_1 = key;
+  this.p1l_1 = phrase;
+  this.q1l_1 = score;
 }
 protoOf(Match).toString = function () {
-  return 'Match(key=' + toString_0(this.k1l_1) + ', phrase=' + this.l1l_1 + ', score=' + this.m1l_1 + ')';
+  return 'Match(key=' + toString_0(this.o1l_1) + ', phrase=' + this.p1l_1 + ', score=' + this.q1l_1 + ')';
 };
 protoOf(Match).hashCode = function () {
-  var result = this.k1l_1 == null ? 0 : hashCode_0(this.k1l_1);
-  result = imul_0(result, 31) + getStringHashCode(this.l1l_1) | 0;
-  result = imul_0(result, 31) + getNumberHashCode(this.m1l_1) | 0;
+  var result = this.o1l_1 == null ? 0 : hashCode_0(this.o1l_1);
+  result = imul_0(result, 31) + getStringHashCode(this.p1l_1) | 0;
+  result = imul_0(result, 31) + getNumberHashCode(this.q1l_1) | 0;
   return result;
 };
 protoOf(Match).equals = function (other) {
@@ -31830,11 +31947,11 @@ protoOf(Match).equals = function (other) {
     return true;
   if (!(other instanceof Match))
     return false;
-  if (!equals(this.k1l_1, other.k1l_1))
+  if (!equals(this.o1l_1, other.o1l_1))
     return false;
-  if (!(this.l1l_1 === other.l1l_1))
+  if (!(this.p1l_1 === other.p1l_1))
     return false;
-  if (!equals(this.m1l_1, other.m1l_1))
+  if (!equals(this.q1l_1, other.q1l_1))
     return false;
   return true;
 };
@@ -31896,12 +32013,12 @@ function levenshtein($this, a, b) {
   return prev[b.length];
 }
 function soundsAlike($this, a, b) {
-  var ka = $this.m1v(a);
-  return ka.length >= 3 && ka === $this.m1v(b);
+  var ka = $this.w1v(a);
+  return ka.length >= 3 && ka === $this.w1v(b);
 }
 function PhraseMatcher() {
   PhraseMatcher_instance = this;
-  this.z1k_1 = 0.72;
+  this.d1l_1 = 0.72;
   var tmp = this;
   // Inline function 'kotlin.collections.buildMap' call
   // Inline function 'kotlin.collections.buildMapInternal' call
@@ -31938,10 +32055,10 @@ function PhraseMatcher() {
     this_0.a2(new Char(element_2), new Char(_Char___init__impl__6a9atx(53)));
   }
   this_0.a2(new Char(_Char___init__impl__6a9atx(114)), new Char(_Char___init__impl__6a9atx(54)));
-  tmp.a1l_1 = this_0.m4();
-  this.b1l_1 = mapOf_0([to('0', 'zero'), to('1', 'one'), to('2', 'two'), to('3', 'three'), to('4', 'four'), to('5', 'five'), to('6', 'six'), to('7', 'seven'), to('8', 'eight'), to('9', 'nine')]);
+  tmp.e1l_1 = this_0.m4();
+  this.f1l_1 = mapOf_0([to('0', 'zero'), to('1', 'one'), to('2', 'two'), to('3', 'three'), to('4', 'four'), to('5', 'five'), to('6', 'six'), to('7', 'seven'), to('8', 'eight'), to('9', 'nine')]);
 }
-protoOf(PhraseMatcher).e1l = function (text) {
+protoOf(PhraseMatcher).i1l = function (text) {
   // Inline function 'kotlin.text.lowercase' call
   // Inline function 'kotlin.js.asDynamic' call
   var tmp$ret$1 = text.toLowerCase();
@@ -31966,16 +32083,16 @@ protoOf(PhraseMatcher).e1l = function (text) {
   var _iterator__ex2g4s_0 = destination.l();
   while (_iterator__ex2g4s_0.m()) {
     var item = _iterator__ex2g4s_0.n();
-    var tmp0_elvis_lhs = PhraseMatcher_getInstance().b1l_1.w1(item);
+    var tmp0_elvis_lhs = PhraseMatcher_getInstance().f1l_1.w1(item);
     var tmp$ret$7 = tmp0_elvis_lhs == null ? item : tmp0_elvis_lhs;
     destination_0.g(tmp$ret$7);
   }
   var words = destination_0;
   return joinToString_0(words, ' ');
 };
-protoOf(PhraseMatcher).c1l = function (utterance, phrase) {
-  var u = this.e1l(utterance);
-  var p = this.e1l(phrase);
+protoOf(PhraseMatcher).g1l = function (utterance, phrase) {
+  var u = this.i1l(utterance);
+  var p = this.i1l(phrase);
   var tmp;
   // Inline function 'kotlin.text.isEmpty' call
   if (charSequenceLength(u) === 0) {
@@ -31992,7 +32109,7 @@ protoOf(PhraseMatcher).c1l = function (utterance, phrase) {
   var pTokens = split(p, charArrayOf([_Char___init__impl__6a9atx(32)]));
   if (containsSequence(this, uTokens, pTokens))
     return 0.97;
-  var best = this.n1v(u, p);
+  var best = this.x1v(u, p);
   // Inline function 'kotlin.math.max' call
   var b = pTokens.o() - 1 | 0;
   var inductionVariable = Math.max(1, b);
@@ -32013,11 +32130,11 @@ protoOf(PhraseMatcher).c1l = function (utterance, phrase) {
           var window_0 = joinToString_0(uTokens.q1(start, start + size | 0), ' ');
           var tmp0_0 = best;
           // Inline function 'kotlin.math.max' call
-          var b_1 = this.n1v(window_0, p);
+          var b_1 = this.x1v(window_0, p);
           best = Math.max(tmp0_0, b_1);
           var tmp0_1 = best;
           // Inline function 'kotlin.math.max' call
-          var b_2 = this.n1v(replace(window_0, ' ', ''), replace(p, ' ', ''));
+          var b_2 = this.x1v(replace(window_0, ' ', ''), replace(p, ' ', ''));
           best = Math.max(tmp0_1, b_2);
           if (soundsAlike(this, window_0, p)) {
             // Inline function 'kotlin.math.max' call
@@ -32030,7 +32147,7 @@ protoOf(PhraseMatcher).c1l = function (utterance, phrase) {
      while (!(size === last));
   return best;
 };
-protoOf(PhraseMatcher).o1v = function (utterance, candidates) {
+protoOf(PhraseMatcher).y1v = function (utterance, candidates) {
   var top = null;
   // Inline function 'kotlin.collections.iterator' call
   var _iterator__ex2g4s = candidates.z1().l();
@@ -32043,22 +32160,22 @@ protoOf(PhraseMatcher).o1v = function (utterance, candidates) {
     var _iterator__ex2g4s_0 = phrases.l();
     while (_iterator__ex2g4s_0.m()) {
       var phrase = _iterator__ex2g4s_0.n();
-      var s = this.c1l(utterance, phrase);
-      if (top == null || s > top.m1l_1)
+      var s = this.g1l(utterance, phrase);
+      if (top == null || s > top.q1l_1)
         top = new Match(key, phrase, s);
     }
   }
   return top;
 };
-protoOf(PhraseMatcher).p1v = function (utterance, candidates, threshold) {
-  var tmp0_safe_receiver = this.o1v(utterance, candidates);
+protoOf(PhraseMatcher).z1v = function (utterance, candidates, threshold) {
+  var tmp0_safe_receiver = this.y1v(utterance, candidates);
   var tmp;
   if (tmp0_safe_receiver == null) {
     tmp = null;
   } else {
     // Inline function 'kotlin.takeIf' call
     var tmp_0;
-    if (tmp0_safe_receiver.m1l_1 >= threshold) {
+    if (tmp0_safe_receiver.q1l_1 >= threshold) {
       tmp_0 = tmp0_safe_receiver;
     } else {
       tmp_0 = null;
@@ -32067,11 +32184,11 @@ protoOf(PhraseMatcher).p1v = function (utterance, candidates, threshold) {
   }
   return tmp;
 };
-protoOf(PhraseMatcher).j1l = function (utterance, candidates, threshold, $super) {
+protoOf(PhraseMatcher).n1l = function (utterance, candidates, threshold, $super) {
   threshold = threshold === VOID ? 0.72 : threshold;
-  return $super === VOID ? this.p1v(utterance, candidates, threshold) : $super.p1v.call(this, utterance, candidates, threshold);
+  return $super === VOID ? this.z1v(utterance, candidates, threshold) : $super.z1v.call(this, utterance, candidates, threshold);
 };
-protoOf(PhraseMatcher).q1v = function (utterance, phrases, threshold) {
+protoOf(PhraseMatcher).a1w = function (utterance, phrases, threshold) {
   var tmp$ret$0;
   $l$block_0: {
     // Inline function 'kotlin.collections.any' call
@@ -32088,7 +32205,7 @@ protoOf(PhraseMatcher).q1v = function (utterance, phrases, threshold) {
     var _iterator__ex2g4s = phrases.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
-      if (PhraseMatcher_getInstance().c1l(utterance, element) >= threshold) {
+      if (PhraseMatcher_getInstance().g1l(utterance, element) >= threshold) {
         tmp$ret$0 = true;
         break $l$block_0;
       }
@@ -32097,11 +32214,11 @@ protoOf(PhraseMatcher).q1v = function (utterance, phrases, threshold) {
   }
   return tmp$ret$0;
 };
-protoOf(PhraseMatcher).i1l = function (utterance, phrases, threshold, $super) {
+protoOf(PhraseMatcher).m1l = function (utterance, phrases, threshold, $super) {
   threshold = threshold === VOID ? 0.72 : threshold;
-  return $super === VOID ? this.q1v(utterance, phrases, threshold) : $super.q1v.call(this, utterance, phrases, threshold);
+  return $super === VOID ? this.a1w(utterance, phrases, threshold) : $super.a1w.call(this, utterance, phrases, threshold);
 };
-protoOf(PhraseMatcher).n1v = function (a, b) {
+protoOf(PhraseMatcher).x1v = function (a, b) {
   if (a === b)
     return 1.0;
   var tmp0 = a.length;
@@ -32112,7 +32229,7 @@ protoOf(PhraseMatcher).n1v = function (a, b) {
     return 1.0;
   return 1.0 - levenshtein(this, a, b) / longest;
 };
-protoOf(PhraseMatcher).m1v = function (text) {
+protoOf(PhraseMatcher).w1v = function (text) {
   var out = StringBuilder_init_$Create$_0();
   var last = _Char___init__impl__6a9atx(32);
   var inductionVariable = 0;
@@ -32120,7 +32237,7 @@ protoOf(PhraseMatcher).m1v = function (text) {
   $l$loop: while (inductionVariable < last_0) {
     var ch = charCodeAt(text, inductionVariable);
     inductionVariable = inductionVariable + 1 | 0;
-    var tmp = this.a1l_1.w1(new Char(ch));
+    var tmp = this.e1l_1.w1(new Char(ch));
     var tmp0_elvis_lhs = tmp == null ? null : tmp.e1_1;
     var tmp_0;
     var tmp_1 = tmp0_elvis_lhs;
@@ -32157,11 +32274,11 @@ var GlobalCommand_PAUSE_instance;
 var GlobalCommand_RESUME_instance;
 function Companion_55() {
   Companion_instance_55 = this;
-  this.f1l_1 = mapOf_0([to(GlobalCommand_REPEAT_getInstance(), listOf_0(['repeat', 'say again', 'say that again', 'come again', 'repeat that'])), to(GlobalCommand_HINT_getInstance(), listOf_0(['hint', 'help', 'clue', 'give me a hint', "i'm lost"])), to(GlobalCommand_STATUS_getInstance(), listOf_0(['status', 'where is it', 'how far', 'which way', 'where do i go'])), to(GlobalCommand_PAUSE_getInstance(), listOf_0(['pause', 'hold the signal', 'pause signal'])), to(GlobalCommand_RESUME_getInstance(), listOf_0(['resume', 'unpause', 'resume signal']))]);
+  this.j1l_1 = mapOf_0([to(GlobalCommand_REPEAT_getInstance(), listOf_0(['repeat', 'say again', 'say that again', 'come again', 'repeat that'])), to(GlobalCommand_HINT_getInstance(), listOf_0(['hint', 'help', 'clue', 'give me a hint', "i'm lost"])), to(GlobalCommand_STATUS_getInstance(), listOf_0(['status', 'where is it', 'how far', 'which way', 'where do i go'])), to(GlobalCommand_PAUSE_getInstance(), listOf_0(['pause', 'hold the signal', 'pause signal'])), to(GlobalCommand_RESUME_getInstance(), listOf_0(['resume', 'unpause', 'resume signal']))]);
 }
-protoOf(Companion_55).g1l = function (utterance) {
-  var tmp0_safe_receiver = PhraseMatcher_getInstance().p1v(utterance, this.f1l_1, 0.8);
-  return tmp0_safe_receiver == null ? null : tmp0_safe_receiver.k1l_1;
+protoOf(Companion_55).k1l = function (utterance) {
+  var tmp0_safe_receiver = PhraseMatcher_getInstance().z1v(utterance, this.j1l_1, 0.8);
+  return tmp0_safe_receiver == null ? null : tmp0_safe_receiver.o1l_1;
 };
 var Companion_instance_55;
 function Companion_getInstance_55() {
@@ -32206,7 +32323,7 @@ function GlobalCommand_RESUME_getInstance() {
   return GlobalCommand_RESUME_instance;
 }
 function run($this, event) {
-  return effects($this, $this.s1v_1.p1n(event));
+  return effects($this, $this.c1w_1.t1n(event));
 }
 function effects($this, list) {
   // Inline function 'kotlin.collections.map' call
@@ -32226,8 +32343,8 @@ function effectJson($this, effect) {
     // Inline function 'kotlinx.serialization.json.buildJsonObject' call
     var builder = new JsonObjectBuilder();
     put(builder, 'type', 'speak');
-    put(builder, 'token', effect.m1k_1);
-    put_1(builder, 'interruptible', effect.n1k_1);
+    put(builder, 'token', effect.q1k_1);
+    put_1(builder, 'interruptible', effect.r1k_1);
     putJsonArray(builder, 'utterances', WebGame$effectJson$lambda(effect, $this));
     tmp = builder.z11();
   } else {
@@ -32238,12 +32355,12 @@ function effectJson($this, effect) {
         // Inline function 'kotlinx.serialization.json.buildJsonObject' call
         var builder_0 = new JsonObjectBuilder();
         put(builder_0, 'type', 'sfx');
-        put(builder_0, 'sfx', effect.x1o_1.d2_1);
-        var located = effect.x1o_1.equals(Sfx_SIGNAL_ACQUIRED_getInstance()) || effect.x1o_1.equals(Sfx_LOCK_AVAILABLE_getInstance());
+        put(builder_0, 'sfx', effect.d1p_1.d2_1);
+        var located = effect.d1p_1.equals(Sfx_SIGNAL_ACQUIRED_getInstance()) || effect.d1p_1.equals(Sfx_LOCK_AVAILABLE_getInstance());
         var tmp_0;
         if (located) {
-          var tmp0_safe_receiver = $this.s1v_1.x1e_1;
-          tmp_0 = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.p1h_1;
+          var tmp0_safe_receiver = $this.c1w_1.a1f_1;
+          tmp_0 = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.t1h_1;
         } else {
           tmp_0 = null;
         }
@@ -32254,9 +32371,9 @@ function effectJson($this, effect) {
           // Inline function 'kotlinx.serialization.json.buildJsonObject' call
           var builder_1 = new JsonObjectBuilder();
           put(builder_1, 'type', 'listen');
-          put(builder_1, 'mode', effect.y1o_1.d2_1);
-          put_0(builder_1, 'timeoutMs', toNumber(effect.z1o_1));
-          put(builder_1, 'token', effect.a1p_1);
+          put(builder_1, 'mode', effect.e1p_1.d2_1);
+          put_0(builder_1, 'timeoutMs', toNumber(effect.f1p_1));
+          put(builder_1, 'token', effect.g1p_1);
           putJsonArray(builder_1, 'hints', WebGame$effectJson$lambda_0(effect));
           tmp = builder_1.z11();
         } else {
@@ -32264,12 +32381,12 @@ function effectJson($this, effect) {
             tmp = type($this, 'stopListening');
           } else {
             if (effect instanceof AskCharacter) {
-              var r = effect.c1p_1;
-              var c = r.v1o_1;
+              var r = effect.i1p_1;
+              var c = r.b1p_1;
               // Inline function 'kotlinx.serialization.json.buildJsonObject' call
               var builder_2 = new JsonObjectBuilder();
               put(builder_2, 'type', 'ask');
-              put_0(builder_2, 'requestId', r.r1o_1);
+              put_0(builder_2, 'requestId', r.x1o_1);
               putJsonObject(builder_2, 'body', WebGame$effectJson$lambda_1($this, r, c));
               tmp = builder_2.z11();
             } else {
@@ -32277,8 +32394,8 @@ function effectJson($this, effect) {
                 // Inline function 'kotlinx.serialization.json.buildJsonObject' call
                 var builder_3 = new JsonObjectBuilder();
                 put(builder_3, 'type', 'startRecording');
-                put(builder_3, 'signalId', effect.d1p_1);
-                put_0(builder_3, 'maxSeconds', effect.e1p_1);
+                put(builder_3, 'signalId', effect.j1p_1);
+                put_0(builder_3, 'maxSeconds', effect.k1p_1);
                 tmp = builder_3.z11();
               } else {
                 if (equals(effect, StopRecording_instance)) {
@@ -32288,7 +32405,7 @@ function effectJson($this, effect) {
                     // Inline function 'kotlinx.serialization.json.buildJsonObject' call
                     var builder_4 = new JsonObjectBuilder();
                     put(builder_4, 'type', 'rhythm');
-                    put(builder_4, 'token', effect.g1p_1);
+                    put(builder_4, 'token', effect.m1p_1);
                     putJsonArray(builder_4, 'onsetsBeats', WebGame$effectJson$lambda_2(effect));
                     tmp = builder_4.z11();
                   } else {
@@ -32296,14 +32413,14 @@ function effectJson($this, effect) {
                       // Inline function 'kotlinx.serialization.json.buildJsonObject' call
                       var builder_5 = new JsonObjectBuilder();
                       put(builder_5, 'type', 'unlockStem');
-                      put(builder_5, 'stemId', effect.h1p_1);
+                      put(builder_5, 'stemId', effect.n1p_1);
                       tmp = builder_5.z11();
                     } else {
                       if (effect instanceof Persist) {
                         // Inline function 'kotlinx.serialization.json.buildJsonObject' call
                         var builder_6 = new JsonObjectBuilder();
                         put(builder_6, 'type', 'persist');
-                        builder_6.e13('progress', Companion_getInstance_34().x1q_1.r10(Companion_getInstance_30().k1p(), effect.i1p_1));
+                        builder_6.e13('progress', Companion_getInstance_34().h1r_1.r10(Companion_getInstance_30().q1p(), effect.o1p_1));
                         tmp = builder_6.z11();
                       } else {
                         noWhenBranchMatchedException();
@@ -32330,19 +32447,21 @@ function sceneJson($this, s) {
   // Inline function 'kotlinx.serialization.json.buildJsonObject' call
   var builder = new JsonObjectBuilder();
   putJsonObject(builder, 'stems', WebGame$sceneJson$lambda(s));
-  put_0(builder, 'staticLevel', s.j1e_1);
-  put_0(builder, 'staticBearingDeg', s.k1e_1);
-  var tmp0_safe_receiver = s.l1e_1;
+  put_0(builder, 'staticLevel', s.k1e_1);
+  put_0(builder, 'staticBearingDeg', s.l1e_1);
+  var tmp0_safe_receiver = s.m1e_1;
   put_0(builder, 'pingIntervalMs', tmp0_safe_receiver == null ? null : toNumber(tmp0_safe_receiver));
-  put_0(builder, 'pingBearingDeg', s.m1e_1);
-  put_1(builder, 'paused', s.n1e_1);
-  put_0(builder, 'antagonistLevel', s.o1e_1);
+  put_0(builder, 'pingBearingDeg', s.n1e_1);
+  put_0(builder, 'pingElevationDeg', s.q1e_1);
+  put_0(builder, 'staticElevationDeg', s.r1e_1);
+  put_1(builder, 'paused', s.o1e_1);
+  put_0(builder, 'antagonistLevel', s.p1e_1);
   return builder.z11();
 }
 function WebGame$state$lambda($e) {
   return function ($this$putJsonArray) {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = $e.z1e_1.l();
+    var _iterator__ex2g4s = $e.c1f_1.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       $this$putJsonArray.g13(JsonPrimitive_0(element));
@@ -32353,21 +32472,21 @@ function WebGame$state$lambda($e) {
 function WebGame$state$lambda_0(this$0, $e) {
   return function ($this$putJsonArray) {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = this$0.r1v_1.f1g_1.l();
+    var _iterator__ex2g4s = this$0.b1w_1.i1g_1.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       // Inline function 'kotlinx.serialization.json.buildJsonObject' call
       var builder = new JsonObjectBuilder();
-      put(builder, 'signalId', element.m1g_1);
-      put(builder, 'stem', element.s1g_1);
-      var tmp0 = this$0.r1v_1.c1g_1.f1h_1;
+      put(builder, 'signalId', element.p1g_1);
+      put(builder, 'stem', element.w1g_1);
+      var tmp0 = this$0.b1w_1.f1g_1.j1h_1;
       var tmp$ret$1;
       $l$block: {
         // Inline function 'kotlin.collections.firstOrNull' call
         var _iterator__ex2g4s_0 = tmp0.l();
         while (_iterator__ex2g4s_0.m()) {
           var element_0 = _iterator__ex2g4s_0.n();
-          if (element_0.g1h_1 === element.s1g_1) {
+          if (element_0.k1h_1 === element.w1g_1) {
             tmp$ret$1 = element_0;
             break $l$block;
           }
@@ -32375,9 +32494,9 @@ function WebGame$state$lambda_0(this$0, $e) {
         tmp$ret$1 = null;
       }
       var tmp0_safe_receiver = tmp$ret$1;
-      var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.i1h_1;
-      put(builder, 'name', tmp1_elvis_lhs == null ? element.n1g_1 : tmp1_elvis_lhs);
-      put_1(builder, 'collected', $e.z1e_1.c1(element.m1g_1));
+      var tmp1_elvis_lhs = tmp0_safe_receiver == null ? null : tmp0_safe_receiver.m1h_1;
+      put(builder, 'name', tmp1_elvis_lhs == null ? element.q1g_1 : tmp1_elvis_lhs);
+      put_1(builder, 'collected', $e.c1f_1.c1(element.p1g_1));
       var tmp$ret$3 = builder.z11();
       $this$putJsonArray.g13(tmp$ret$3);
     }
@@ -32387,14 +32506,14 @@ function WebGame$state$lambda_0(this$0, $e) {
 function WebGame$state$lambda_1($e) {
   return function ($this$putJsonArray) {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = takeLast(toList_0($e.b1f_1), 12).l();
+    var _iterator__ex2g4s = takeLast(toList_0($e.e1f_1), 12).l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       // Inline function 'kotlinx.serialization.json.buildJsonObject' call
       var builder = new JsonObjectBuilder();
-      put(builder, 'speaker', element.n1p_1);
-      put(builder, 'text', element.o1p_1);
-      put_1(builder, 'fromPlayer', element.p1p_1);
+      put(builder, 'speaker', element.t1p_1);
+      put(builder, 'text', element.u1p_1);
+      put_1(builder, 'fromPlayer', element.v1p_1);
       var tmp$ret$1 = builder.z11();
       $this$putJsonArray.g13(tmp$ret$1);
     }
@@ -32404,38 +32523,38 @@ function WebGame$state$lambda_1($e) {
 function WebGame$effectJson$lambda($effect, this$0) {
   return function ($this$putJsonArray) {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = $effect.l1k_1.l();
+    var _iterator__ex2g4s = $effect.p1k_1.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
-      var character = this$0.r1v_1.f1m(element.q1m_1);
-      var tmp0_safe_receiver = element.s1m_1;
+      var character = this$0.b1w_1.j1m(element.u1m_1);
+      var tmp0_safe_receiver = element.w1m_1;
       var tmp;
       if (tmp0_safe_receiver == null) {
         tmp = null;
       } else {
         // Inline function 'kotlin.let' call
-        tmp = this$0.r1v_1.l1g(tmp0_safe_receiver);
+        tmp = this$0.b1w_1.o1g(tmp0_safe_receiver);
       }
       var from = tmp;
       // Inline function 'kotlinx.serialization.json.buildJsonObject' call
       var builder = new JsonObjectBuilder();
-      put(builder, 'lineId', element.p1m_1);
-      put(builder, 'speaker', element.q1m_1);
-      var tmp1_elvis_lhs = character == null ? null : character.k1n_1;
-      put(builder, 'speakerName', tmp1_elvis_lhs == null ? element.q1m_1 : tmp1_elvis_lhs);
-      put(builder, 'text', element.r1m_1);
-      put(builder, 'fromSignal', element.s1m_1);
-      var tmp3_safe_receiver = from == null ? null : from.p1g_1;
-      put_0(builder, 'fromLat', tmp3_safe_receiver == null ? null : tmp3_safe_receiver.s1p_1);
-      var tmp5_safe_receiver = from == null ? null : from.p1g_1;
-      put_0(builder, 'fromLon', tmp5_safe_receiver == null ? null : tmp5_safe_receiver.t1p_1);
-      var tmp7_elvis_lhs = character == null ? null : character.o1n_1;
+      put(builder, 'lineId', element.t1m_1);
+      put(builder, 'speaker', element.u1m_1);
+      var tmp1_elvis_lhs = character == null ? null : character.o1n_1;
+      put(builder, 'speakerName', tmp1_elvis_lhs == null ? element.u1m_1 : tmp1_elvis_lhs);
+      put(builder, 'text', element.v1m_1);
+      put(builder, 'fromSignal', element.w1m_1);
+      var tmp3_safe_receiver = from == null ? null : from.s1g_1;
+      put_0(builder, 'fromLat', tmp3_safe_receiver == null ? null : tmp3_safe_receiver.y1p_1);
+      var tmp5_safe_receiver = from == null ? null : from.s1g_1;
+      put_0(builder, 'fromLon', tmp5_safe_receiver == null ? null : tmp5_safe_receiver.z1p_1);
+      var tmp7_elvis_lhs = character == null ? null : character.s1n_1;
       put_0(builder, 'radio', tmp7_elvis_lhs == null ? 0.4 : tmp7_elvis_lhs);
-      var tmp9_safe_receiver = character == null ? null : character.n1n_1;
-      var tmp10_elvis_lhs = tmp9_safe_receiver == null ? null : tmp9_safe_receiver.j1s_1;
+      var tmp9_safe_receiver = character == null ? null : character.r1n_1;
+      var tmp10_elvis_lhs = tmp9_safe_receiver == null ? null : tmp9_safe_receiver.t1s_1;
       put_0(builder, 'pitch', tmp10_elvis_lhs == null ? 1.0 : tmp10_elvis_lhs);
-      var tmp12_safe_receiver = character == null ? null : character.n1n_1;
-      var tmp13_elvis_lhs = tmp12_safe_receiver == null ? null : tmp12_safe_receiver.k1s_1;
+      var tmp12_safe_receiver = character == null ? null : character.r1n_1;
+      var tmp13_elvis_lhs = tmp12_safe_receiver == null ? null : tmp12_safe_receiver.u1s_1;
       put_0(builder, 'rate', tmp13_elvis_lhs == null ? 1.0 : tmp13_elvis_lhs);
       var tmp$ret$3 = builder.z11();
       $this$putJsonArray.g13(tmp$ret$3);
@@ -32446,7 +32565,7 @@ function WebGame$effectJson$lambda($effect, this$0) {
 function WebGame$effectJson$lambda_0($effect) {
   return function ($this$putJsonArray) {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = $effect.b1p_1.l();
+    var _iterator__ex2g4s = $effect.h1p_1.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       $this$putJsonArray.g13(JsonPrimitive_0(element));
@@ -32458,7 +32577,7 @@ function WebGame$effectJson$lambda$lambda$lambda($c) {
   return function ($this$putJsonObject) {
     // Inline function 'kotlin.collections.forEach' call
     // Inline function 'kotlin.collections.iterator' call
-    var _iterator__ex2g4s = $c.p1o_1.z1().l();
+    var _iterator__ex2g4s = $c.v1o_1.z1().l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       // Inline function 'kotlin.collections.component1' call
@@ -32472,29 +32591,29 @@ function WebGame$effectJson$lambda$lambda$lambda($c) {
 }
 function WebGame$effectJson$lambda$lambda($c) {
   return function ($this$putJsonObject) {
-    put($this$putJsonObject, 'phase', $c.h1o_1.d2_1);
-    put($this$putJsonObject, 'objective', $c.i1o_1);
-    put($this$putJsonObject, 'signalName', $c.j1o_1);
-    put($this$putJsonObject, 'place', $c.k1o_1);
-    put($this$putJsonObject, 'distance', $c.l1o_1);
-    put($this$putJsonObject, 'direction', $c.m1o_1);
-    put_0($this$putJsonObject, 'collected', $c.n1o_1);
-    put_0($this$putJsonObject, 'total', $c.o1o_1);
+    put($this$putJsonObject, 'phase', $c.n1o_1.d2_1);
+    put($this$putJsonObject, 'objective', $c.o1o_1);
+    put($this$putJsonObject, 'signalName', $c.p1o_1);
+    put($this$putJsonObject, 'place', $c.q1o_1);
+    put($this$putJsonObject, 'distance', $c.r1o_1);
+    put($this$putJsonObject, 'direction', $c.s1o_1);
+    put_0($this$putJsonObject, 'collected', $c.t1o_1);
+    put_0($this$putJsonObject, 'total', $c.u1o_1);
     putJsonObject($this$putJsonObject, 'flags', WebGame$effectJson$lambda$lambda$lambda($c));
-    put($this$putJsonObject, 'challenge', $c.q1o_1);
+    put($this$putJsonObject, 'challenge', $c.w1o_1);
     return Unit_instance;
   };
 }
 function WebGame$effectJson$lambda$lambda_0($r) {
   return function ($this$putJsonArray) {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = $r.w1o_1.l();
+    var _iterator__ex2g4s = $r.c1p_1.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       // Inline function 'kotlinx.serialization.json.buildJsonObject' call
       var builder = new JsonObjectBuilder();
-      put(builder, 'role', element.f1o_1 ? 'runner' : 'character');
-      put(builder, 'text', element.g1o_1);
+      put(builder, 'role', element.l1o_1 ? 'runner' : 'character');
+      put(builder, 'text', element.m1o_1);
       var tmp$ret$1 = builder.z11();
       $this$putJsonArray.g13(tmp$ret$1);
     }
@@ -32503,10 +32622,10 @@ function WebGame$effectJson$lambda$lambda_0($r) {
 }
 function WebGame$effectJson$lambda_1(this$0, $r, $c) {
   return function ($this$putJsonObject) {
-    put($this$putJsonObject, 'missionId', this$0.r1v_1.x1f_1);
-    put($this$putJsonObject, 'characterId', $r.s1o_1);
-    put($this$putJsonObject, 'signalId', $r.t1o_1);
-    put($this$putJsonObject, 'utterance', take_0($r.u1o_1, 400));
+    put($this$putJsonObject, 'missionId', this$0.b1w_1.a1g_1);
+    put($this$putJsonObject, 'characterId', $r.y1o_1);
+    put($this$putJsonObject, 'signalId', $r.z1o_1);
+    put($this$putJsonObject, 'utterance', take_0($r.a1p_1, 400));
     putJsonObject($this$putJsonObject, 'context', WebGame$effectJson$lambda$lambda($c));
     putJsonArray($this$putJsonObject, 'history', WebGame$effectJson$lambda$lambda_0($r));
     return Unit_instance;
@@ -32515,7 +32634,7 @@ function WebGame$effectJson$lambda_1(this$0, $r, $c) {
 function WebGame$effectJson$lambda_2($effect) {
   return function ($this$putJsonArray) {
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s = $effect.f1p_1.l();
+    var _iterator__ex2g4s = $effect.l1p_1.l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       $this$putJsonArray.g13(JsonPrimitive_1(element));
@@ -32529,6 +32648,7 @@ function WebGame$sceneJson$lambda$lambda($st) {
     put_0($this$putJsonObject, 'bearingDeg', $st.c1e_1);
     put_0($this$putJsonObject, 'distanceM', $st.d1e_1);
     put_0($this$putJsonObject, 'clarity', $st.e1e_1);
+    put_0($this$putJsonObject, 'elevationDeg', $st.f1e_1);
     return Unit_instance;
   };
 }
@@ -32536,7 +32656,7 @@ function WebGame$sceneJson$lambda($s) {
   return function ($this$putJsonObject) {
     // Inline function 'kotlin.collections.forEach' call
     // Inline function 'kotlin.collections.iterator' call
-    var _iterator__ex2g4s = $s.i1e_1.z1().l();
+    var _iterator__ex2g4s = $s.j1e_1.z1().l();
     while (_iterator__ex2g4s.m()) {
       var element = _iterator__ex2g4s.n();
       // Inline function 'kotlin.collections.component1' call
@@ -32549,13 +32669,13 @@ function WebGame$sceneJson$lambda($s) {
   };
 }
 function WebGame(missionJson, routeJson, catalogJson, soundtrackId, completions) {
-  this.t1v_1 = new HeadingFusion();
+  this.d1w_1 = new HeadingFusion();
   var tmp;
   if (routeJson == null) {
     tmp = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp = Companion_getInstance_34().x1q_1.q10(Companion_getInstance_54().k1p(), routeJson);
+    tmp = Companion_getInstance_34().h1r_1.q10(Companion_getInstance_54().q1p(), routeJson);
   }
   var route = tmp;
   var tmp_0;
@@ -32563,26 +32683,26 @@ function WebGame(missionJson, routeJson, catalogJson, soundtrackId, completions)
     tmp_0 = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp_0 = Companion_getInstance_34().x1q_1.q10(Companion_getInstance_51().k1p(), catalogJson);
+    tmp_0 = Companion_getInstance_34().h1r_1.q10(Companion_getInstance_51().q1p(), catalogJson);
   }
   var catalog = tmp_0;
-  var full = Companion_getInstance_34().fh(missionJson).c1s(catalog).k1r(route);
-  this.r1v_1 = full.c1r(Soundtracks_instance.j1v(full, soundtrackId, completions));
+  var full = Companion_getInstance_34().fh(missionJson).m1s(catalog).u1r(route);
+  this.b1w_1 = full.m1r(Soundtracks_instance.t1v(full, soundtrackId, completions));
   var tmp_1 = this;
   // Inline function 'kotlin.collections.flatMap' call
-  var tmp0 = Soundtracks_instance.k1v(this.r1v_1, completions);
+  var tmp0 = Soundtracks_instance.u1v(this.b1w_1, completions);
   // Inline function 'kotlin.collections.flatMapTo' call
   var destination = ArrayList_init_$Create$();
   var _iterator__ex2g4s = tmp0.l();
   while (_iterator__ex2g4s.m()) {
     var element = _iterator__ex2g4s.n();
-    var list = element.h1r_1;
+    var list = element.r1r_1;
     addAll(destination, list);
   }
-  tmp_1.s1v_1 = new GameEngine(this.r1v_1, destination);
+  tmp_1.c1w_1 = new GameEngine(this.b1w_1, destination);
 }
 protoOf(WebGame).missionJson = function () {
-  return Companion_getInstance_34().x1q_1.p10(Companion_getInstance_34().k1p(), this.r1v_1);
+  return Companion_getInstance_34().h1r_1.p10(Companion_getInstance_34().q1p(), this.b1w_1);
 };
 protoOf(WebGame).start = function (nowMs, progressJson) {
   var tmp = numberToLong(nowMs);
@@ -32591,23 +32711,26 @@ protoOf(WebGame).start = function (nowMs, progressJson) {
     tmp_0 = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp_0 = Companion_getInstance_34().x1q_1.q10(Companion_getInstance_30().k1p(), progressJson);
+    tmp_0 = Companion_getInstance_34().h1r_1.q10(Companion_getInstance_30().q1p(), progressJson);
   }
   return run(this, new Start(tmp, tmp_0));
 };
 protoOf(WebGame).position = function (lat, lon, accuracyM, timeMs, speedMps, courseDeg, simulated) {
-  this.t1v_1.u1q(courseDeg, speedMps, numberToLong(timeMs));
+  this.d1w_1.e1r(courseDeg, speedMps, numberToLong(timeMs));
   return run(this, new Position(new GeoFix(new LatLon(lat, lon), accuracyM, numberToLong(timeMs), speedMps, courseDeg, simulated)));
 };
 protoOf(WebGame).phoneHeading = function (deg, nowMs, inHand) {
-  return this.t1v_1.t1q(deg, numberToLong(nowMs), inHand);
+  return this.d1w_1.d1r(deg, numberToLong(nowMs), inHand);
 };
 protoOf(WebGame).listenerHeading = function (nowMs) {
-  return this.t1v_1.v1q(numberToLong(nowMs)).w1n_1;
+  return this.d1w_1.f1r(numberToLong(nowMs)).a1o_1;
+};
+protoOf(WebGame).listenerPitch = function (nowMs) {
+  return this.d1w_1.f1r(numberToLong(nowMs)).d1o_1;
 };
 protoOf(WebGame).tick = function (nowMs) {
   var now = numberToLong(nowMs);
-  var out = plus(this.s1v_1.p1n(new Heading(this.t1v_1.v1q(now))), this.s1v_1.p1n(new Tick(now)));
+  var out = plus(this.c1w_1.t1n(new Heading(this.d1w_1.f1r(now))), this.c1w_1.t1n(new Tick(now)));
   return effects(this, out);
 };
 protoOf(WebGame).input = function (action, nowMs) {
@@ -32666,39 +32789,39 @@ protoOf(WebGame).jumpTo = function (signalIndex) {
   return run(this, new JumpTo(signalIndex));
 };
 protoOf(WebGame).scene = function () {
-  return sceneJson(this, AudioSceneComposer_instance.p1e(this.s1v_1)).toString();
+  return sceneJson(this, AudioSceneComposer_instance.s1e(this.c1w_1)).toString();
 };
 protoOf(WebGame).state = function () {
-  var e = this.s1v_1;
-  var signal = e.m1h();
-  var r = e.x1e_1;
+  var e = this.c1w_1;
+  var signal = e.q1h();
+  var r = e.a1f_1;
   // Inline function 'kotlinx.serialization.json.buildJsonObject' call
   var builder = new JsonObjectBuilder();
-  put(builder, 'phase', e.s1e_1.d2_1);
-  put(builder, 'objective', e.v1n());
-  put_0(builder, 'signalIndex', e.t1e_1);
-  put_0(builder, 'total', e.k1m());
-  put(builder, 'signalId', signal == null ? null : signal.m1g_1);
-  put(builder, 'signalName', signal == null ? null : signal.n1g_1);
-  put(builder, 'signalPlace', signal == null ? null : signal.o1g_1);
-  put_0(builder, 'distanceM', r == null ? null : r.n1h_1);
-  put_0(builder, 'bearingDeg', r == null ? null : r.p1h_1);
-  put_0(builder, 'strength', r == null ? null : r.q1h_1);
-  var tmp7_safe_receiver = r == null ? null : r.r1h_1;
+  put(builder, 'phase', e.v1e_1.d2_1);
+  put(builder, 'objective', e.z1n());
+  put_0(builder, 'signalIndex', e.w1e_1);
+  put_0(builder, 'total', e.o1m());
+  put(builder, 'signalId', signal == null ? null : signal.p1g_1);
+  put(builder, 'signalName', signal == null ? null : signal.q1g_1);
+  put(builder, 'signalPlace', signal == null ? null : signal.r1g_1);
+  put_0(builder, 'distanceM', r == null ? null : r.r1h_1);
+  put_0(builder, 'bearingDeg', r == null ? null : r.t1h_1);
+  put_0(builder, 'strength', r == null ? null : r.u1h_1);
+  var tmp7_safe_receiver = r == null ? null : r.v1h_1;
   put(builder, 'zone', tmp7_safe_receiver == null ? null : tmp7_safe_receiver.d2_1);
   var tmp;
   if (r == null) {
     tmp = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp = e.j1m(r.p1h_1);
+    tmp = e.n1m(r.t1h_1);
   }
   put(builder, 'direction', tmp);
-  put_1(builder, 'lockAvailable', e.v1e_1);
-  put_1(builder, 'paused', e.u1e_1);
-  put(builder, 'speakingKind', e.b1i());
-  put_1(builder, 'recording', e.e1f_1);
-  var tmp9_safe_receiver = e.d1f_1;
+  put_1(builder, 'lockAvailable', e.y1e_1);
+  put_1(builder, 'paused', e.x1e_1);
+  put(builder, 'speakingKind', e.f1i());
+  put_1(builder, 'recording', e.h1f_1);
+  var tmp9_safe_receiver = e.g1f_1;
   var tmp_0;
   if (tmp9_safe_receiver == null) {
     tmp_0 = null;
@@ -32706,22 +32829,24 @@ protoOf(WebGame).state = function () {
     // Inline function 'kotlin.let' call
     // Inline function 'kotlinx.serialization.json.buildJsonObject' call
     var builder_0 = new JsonObjectBuilder();
-    put(builder_0, 'token', tmp9_safe_receiver.c1i_1);
-    put(builder_0, 'mode', tmp9_safe_receiver.e1i_1.d2_1);
-    put(builder_0, 'purpose', tmp9_safe_receiver.d1i_1.d2_1);
+    put(builder_0, 'token', tmp9_safe_receiver.g1i_1);
+    put(builder_0, 'mode', tmp9_safe_receiver.i1i_1.d2_1);
+    put(builder_0, 'purpose', tmp9_safe_receiver.h1i_1.d2_1);
     tmp_0 = builder_0.z11();
   }
   var tmp10_elvis_lhs = tmp_0;
   builder.e13('listening', tmp10_elvis_lhs == null ? JsonNull_getInstance() : tmp10_elvis_lhs);
-  put_0(builder, 'headingDeg', e.y1e_1.w1n_1);
-  put(builder, 'headingSource', e.y1e_1.x1n_1.d2_1);
+  put_0(builder, 'headingDeg', e.b1f_1.a1o_1);
+  put_0(builder, 'pitchDeg', e.b1f_1.d1o_1);
+  put_0(builder, 'rollDeg', e.b1f_1.e1o_1);
+  put(builder, 'headingSource', e.b1f_1.b1o_1.d2_1);
   putJsonArray(builder, 'collected', WebGame$state$lambda(e));
   putJsonArray(builder, 'layers', WebGame$state$lambda_0(this, e));
   putJsonArray(builder, 'transcript', WebGame$state$lambda_1(e));
   return builder.z11().toString();
 };
 protoOf(WebGame).progressJson = function () {
-  return Companion_getInstance_34().x1q_1.p10(Companion_getInstance_30().k1p(), this.s1v_1.e1k());
+  return Companion_getInstance_34().h1r_1.p10(Companion_getInstance_30().q1p(), this.c1w_1.i1k());
 };
 function soundtrackChoices(missionJson, catalogJson, completions) {
   var tmp;
@@ -32729,23 +32854,23 @@ function soundtrackChoices(missionJson, catalogJson, completions) {
     tmp = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp = Companion_getInstance_34().x1q_1.q10(Companion_getInstance_51().k1p(), catalogJson);
+    tmp = Companion_getInstance_34().h1r_1.q10(Companion_getInstance_51().q1p(), catalogJson);
   }
   var catalog = tmp;
-  var m = Companion_getInstance_34().fh(missionJson).c1s(catalog);
+  var m = Companion_getInstance_34().fh(missionJson).m1s(catalog);
   // Inline function 'kotlinx.serialization.json.buildJsonArray' call
   var builder = new JsonArrayBuilder();
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s = Soundtracks_instance.h1v(m, completions).l();
+  var _iterator__ex2g4s = Soundtracks_instance.r1v(m, completions).l();
   while (_iterator__ex2g4s.m()) {
     var element = _iterator__ex2g4s.n();
     // Inline function 'kotlinx.serialization.json.buildJsonObject' call
     var builder_0 = new JsonObjectBuilder();
-    put(builder_0, 'id', element.a1v_1);
-    put(builder_0, 'title', element.b1v_1);
-    put(builder_0, 'description', element.c1v_1);
-    put_1(builder_0, 'unlocked', element.d1v_1);
-    put_0(builder_0, 'unlockAfterCompletions', element.e1v_1);
+    put(builder_0, 'id', element.k1v_1);
+    put(builder_0, 'title', element.l1v_1);
+    put(builder_0, 'description', element.m1v_1);
+    put_1(builder_0, 'unlocked', element.n1v_1);
+    put_0(builder_0, 'unlockAfterCompletions', element.o1v_1);
     var tmp$ret$3 = builder_0.z11();
     builder.g13(tmp$ret$3);
   }
@@ -32757,12 +32882,12 @@ function unlockedByNextCompletion(missionJson, catalogJson, completions) {
     tmp = null;
   } else {
     // Inline function 'kotlin.let' call
-    tmp = Companion_getInstance_34().x1q_1.q10(Companion_getInstance_51().k1p(), catalogJson);
+    tmp = Companion_getInstance_34().h1r_1.q10(Companion_getInstance_51().q1p(), catalogJson);
   }
   var catalog = tmp;
-  var m = Companion_getInstance_34().fh(missionJson).c1s(catalog);
+  var m = Companion_getInstance_34().fh(missionJson).m1s(catalog);
   // Inline function 'kotlin.collections.map' call
-  var this_0 = Soundtracks_instance.k1v(m, completions);
+  var this_0 = Soundtracks_instance.u1v(m, completions);
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.l();
@@ -32770,8 +32895,8 @@ function unlockedByNextCompletion(missionJson, catalogJson, completions) {
     var item = _iterator__ex2g4s.n();
     // Inline function 'kotlinx.serialization.json.buildJsonObject' call
     var builder = new JsonObjectBuilder();
-    put(builder, 'id', item.d1r_1);
-    put(builder, 'title', item.e1r_1);
+    put(builder, 'id', item.n1r_1);
+    put(builder, 'title', item.o1r_1);
     var tmp$ret$4 = builder.z11();
     destination.g(tmp$ret$4);
   }
@@ -32779,7 +32904,7 @@ function unlockedByNextCompletion(missionJson, catalogJson, completions) {
 }
 function validateMission(missionJson) {
   // Inline function 'kotlin.collections.map' call
-  var this_0 = MissionValidator_instance.l1v(Companion_getInstance_34().fh(missionJson));
+  var this_0 = MissionValidator_instance.v1v(Companion_getInstance_34().fh(missionJson));
   // Inline function 'kotlin.collections.mapTo' call
   var destination = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_0, 10));
   var _iterator__ex2g4s = this_0.l();
@@ -32796,7 +32921,7 @@ function distanceAndBearing(lat1, lon1, lat2, lon2) {
   // Inline function 'kotlin.arrayOf' call
   // Inline function 'kotlin.js.unsafeCast' call
   // Inline function 'kotlin.js.asDynamic' call
-  return [Geo_getInstance().d1o(a, b), Geo_getInstance().z1n(a, b)];
+  return [Geo_getInstance().j1o(a, b), Geo_getInstance().f1o(a, b)];
 }
 //region block: post-declaration
 protoOf(InternalHashMap).k5 = containsAllEntries;
@@ -32922,3 +33047,4 @@ export {
 };
 //endregion
 
+//# sourceMappingURL=ghostsignal-core.mjs.map

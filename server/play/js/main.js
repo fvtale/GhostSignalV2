@@ -280,7 +280,7 @@ class Run {
     const now = Date.now();
     this.apply(this.game.tick(now));
     this.audio.setScene(JSON.parse(this.game.scene()));
-    this.audio.setHeading(this.game.listenerHeading(now) ?? null);
+    this.audio.setHeading(this.game.listenerHeading(now) ?? null, this.game.listenerPitch(now) ?? null);
     if (now - this.lastUi > 150) this.render();
   }
 
