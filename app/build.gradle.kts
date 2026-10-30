@@ -38,7 +38,7 @@ android {
   compileSdk = 36
 
   defaultConfig {
-    applicationId = "com.ghostsignal.app"
+    applicationId = "com.ghostsignal.v2"
     minSdk = 31
     targetSdk = 36
     versionCode = 1
@@ -50,7 +50,7 @@ android {
     manifestPlaceholders["mwdat_client_token"] = setting("mwdat_client_token", "0")
 
     // The live server (deploy/, DEPLOY.md). Settings on the phone can point elsewhere.
-    buildConfigField("String", "BACKEND_URL", quoted(setting("ghostsignal.backendUrl", "https://ghostsignal.datarail.org")))
+    buildConfigField("String", "BACKEND_URL", quoted(setting("ghostsignal.backendUrl", "https://ghostsignalv2.datarail.org")))
     buildConfigField("String", "EVENT_TOKEN", quoted(setting("ghostsignal.eventToken")))
     buildConfigField("boolean", "FMOD_ENABLED", fmodEnabled.toString())
 
