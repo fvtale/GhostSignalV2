@@ -1,0 +1,25 @@
+{
+  "defaultAgent": "wonder",
+  "agents": {
+    "claude": { "name": "Claude", "label": "agent:claude", "branchPrefix": "claude/" },
+    "wonder": { "name": "Meta Wonder", "label": "agent:wonder", "branchPrefix": "wonder/" }
+  },
+  "areas": {
+    "Meta models, voice and characters": "wonder",
+    "Story, missions and dialogue": "wonder",
+    "Web player": "wonder",
+    "Android app": "claude",
+    "Server, accounts and payments": "claude",
+    "Deploy, CI and the VPS": "claude",
+    "Agent router and Glimmer": "claude"
+  },
+  "keywords": {
+    "Meta models, voice and characters": "\\b(muse|spark|meta model|model api|voice|stt|transcri\\w*|persona|npc|character replies?)\\b",
+    "Story, missions and dialogue": "\\b(story|mission|dialogue|script|hush|vesper|smartspecs|challenge|signal names?)\\b",
+    "Web player": "\\b(web player|browser|\\/play|speech\\.js|web audio|safari|chrome)\\b",
+    "Android app": "\\b(android|apk|gradle|kotlin|compose|dat|glasses|phone app)\\b",
+    "Server, accounts and payments": "\\b(server|accounts?|sign[- ]?(in|up)|password|premium|payments?|stripe|lemon ?squeezy|webhooks?|admin page)\\b",
+    "Deploy, CI and the VPS": "\\b(deploy\\w*|vps|caddy|systemd|install(er)?|ci|workflows?|github actions|dns|https)\\b",
+    "Agent router and Glimmer": "\\b(router|routing|glimmer|fireworks|agents\\.md|handoff)\\b"
+  }
+}

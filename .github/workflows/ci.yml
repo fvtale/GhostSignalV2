@@ -49,6 +49,16 @@ jobs:
           [ -x /usr/bin/node ] || sudo ln -s "$(command -v node)" /usr/bin/node
           systemd-analyze verify --man=no ghostsignalv2.service
 
+  agent-router:
+    name: Agent router tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node --test .github/agent-router/route.test.cjs
+
   android:
     name: Android APK
     runs-on: ubuntu-latest
@@ -76,7 +86,7 @@ jobs:
   # phone: https://github.com/fvtale/GhostSignalV2/releases/tag/android-latest
   release-apk:
     name: Publish the APK
-    needs: [core, server, android]
+    needs: [core, server, agent-router, android]
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
