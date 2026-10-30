@@ -45,6 +45,36 @@ gh issue list --label agent:wonder --label status:ready   # tasks routed to you
    **Not verified**. The router labels it `review:<other agent>` and moves the issue to
    `status:review`. Its check stays red until those three sections have content.
 
+## Verify a build
+
+Before a PR that touches the app, the server or the engine, check what applies:
+
+| Check | Command | Notes |
+| --- | --- | --- |
+| Engine | `./gradlew -p core jvmTest` | |
+| Server | `cd server && npm test` | Includes the `/health` contract below |
+| App | `./gradlew :app:assembleDebug` | Needs the Android SDK; CI builds it on every push |
+| On the glasses | [docs/FIELD_TEST.md](docs/FIELD_TEST.md) | The acceptance checklist for a build meant for the glasses; list the items you couldn't check under **Not verified** |
+
+`/health` is a contract the app, the web player and the installer read. It always reports `npc`
+(characters on), `stt` (speech transcription on) and `model` (the chat model in use), alongside
+`ok`, `mission` and `tts`. Don't rename or drop those.
+
+## Constraints
+
+- **Meta-only runtime.** The game itself (server, app, web player) calls only Meta's models: Muse
+  Spark and Muse Voice, through `MODEL_API_KEY`. No Anthropic SDK or Claude API calls in the
+  product. The router's Glimmer runs on Fireworks, but that's development tooling, not the game.
+- **The mission JSON is canon.** `app/src/main/assets/mission/ghostsignal.json` holds the story,
+  characters, signals and soundtracks. Change them there, not in code.
+- **Never hand-edit `server/play/engine/ghostsignal-core.mjs`.** Regenerate it from `core/` (the
+  command is under **Hand it back**).
+- **FMOD is optional.** Without the FMOD SDK in `third_party/fmod` the app builds with its own
+  mixer; the SDK never goes in the repository.
+- **APKs are staged by commit** at `/srv/datarail/store/ghostsignal/apks/` on the VPS. This isn't
+  automated yet ([#8](https://github.com/fvtale/GhostSignalV2/issues/8)); until it is, the
+  latest build is on the `android-latest` release.
+
 ## Review the other agent's PR
 
 - Read the handoff, check out the branch, run the checks, and try what's under **Not verified**
