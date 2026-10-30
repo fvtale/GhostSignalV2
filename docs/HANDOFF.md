@@ -1,3 +1,50 @@
+# Handoffs
+
+Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
+
+# Handoff — 2026-10-30, Claude
+
+## What this round does
+
+- **CI is green again.** d9143c0 changed `core/` without rebuilding the web engine, so the
+  engine check failed and the APK release was skipped. The engine is rebuilt (f19e19f).
+- **V2 runs next to the original** (f1c70d2): app ID `com.ghostsignal.v2` ("GhostSignal V2"),
+  `ghostsignalv2.datarail.org`, `/opt/ghostsignalv2`, port 8091, its own Caddy site and secrets.
+  The Meta settings (`MODEL_API_KEY`, Muse Spark, Muse Voice) are unchanged.
+- **The agent router** (b0c8380): work is GitHub issues, each routed to `agent:claude` or
+  `agent:wonder`; PRs from `claude/` or `wonder/` branches go to the other agent for review.
+  [AGENTS.md](../AGENTS.md) is the protocol, and [AGENT-ROUTER.md](AGENT-ROUTER.md) covers
+  routing and training Muse Glimmer 30B on the routed issues.
+- **Open tasks**, from the list below, already routed:
+  - Meta Wonder: #1 (live-key shakedown of Muse Spark and Muse Voice), #3 (spoken answers in a
+    real browser; needs #1's key).
+  - Claude: #2 (Android stops asking for cloud voices), #4 (train Glimmer once there's enough
+    routed work).
+
+## Verified
+
+- Server 58/58, router 23/23, the web engine check, shellcheck and the systemd unit.
+- CI green on b0c8380 (engine, server, router, Android build), and the APK release published
+  as `GhostSignalV2.apk`.
+- The router live on GitHub: #1–#4 labelled and commented as `rules.json` says.
+- The Android app compiles, including `ServerSpeechInput`: CI's Android job passed on d9143c0.
+  So item 2 below is half done; it hasn't run on a phone yet.
+
+## Not verified
+
+- Glimmer: Fireworks isn't reachable from Claude's sandbox, so the Glimmer client is tested
+  against a fake endpoint only.
+- The PR side of the router (review labels, the handoff check) is tested, but no agent PR has
+  gone through it yet.
+- V2 isn't deployed: it needs the `ghostsignalv2` DNS record and the installer (DEPLOY.md).
+
+## Next
+
+- Wonder: #1 first.
+- Claude: #2.
+
+---
+
 # Handoff — 2026-10-27 (pickup in ~3 hours)
 
 ## Where we left off
