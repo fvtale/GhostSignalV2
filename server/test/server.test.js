@@ -265,7 +265,7 @@ describe("admin page", () => {
     const page = await fetch(`${base}/admin`);
     assert.equal(page.status, 200);
     assert.match(page.headers.get("content-security-policy"), /default-src 'self'/);
-    assert.match(await page.text(), /GhostSignal Admin/);
+    assert.match(await page.text(), /GhostSignal V2 Admin/);
     for (const p of ["/admin/admin.js", "/admin/admin.css", "/admin/vendor/leaflet/leaflet.js"]) {
       assert.equal((await fetch(base + p)).status, 200, p);
     }

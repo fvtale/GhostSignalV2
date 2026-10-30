@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Put GhostSignal's site into the VPS's Caddy, and only keep the change if Caddy accepts it.
+# Put GhostSignal V2's site into the VPS's Caddy, and only keep the change if Caddy accepts it.
 #
-#   sudo /opt/ghostsignal/deploy/caddy-site.sh
+#   sudo /opt/ghostsignalv2/deploy/caddy-site.sh
 #
 # Caddy on this host belongs to DataRail Storage: its deploy/Caddyfile is /etc/caddy/Caddyfile.
 # Other apps add sites through files in /etc/caddy/sites.d/, which that Caddyfile imports. This
-# copies deploy/ghostsignal.caddy there, adds the import if the Caddyfile doesn't have it yet,
+# copies deploy/ghostsignalv2.caddy there, adds the import if the Caddyfile doesn't have it yet,
 # validates the whole configuration, and reloads Caddy. If validation fails, both files go back
 # to what they were. Run by install.sh and update.sh; safe to run any time.
 
@@ -14,7 +14,7 @@ set -euo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 MAIN=/etc/caddy/Caddyfile
 SITES=/etc/caddy/sites.d
-SITE=$SITES/ghostsignal.caddy
+SITE=$SITES/ghostsignalv2.caddy
 IMPORT="import $SITES/*.caddy"
 
 [ "$(id -u)" -eq 0 ] || { echo "run this as root (sudo)" >&2; exit 1; }
@@ -23,8 +23,8 @@ command -v caddy >/dev/null || { echo "Caddy isn't installed on this host (DataR
 
 has_import() { grep -qE "^[[:space:]]*import[[:space:]]+$SITES/\*\.caddy[[:space:]]*$" "$MAIN"; }
 
-if cmp -s "$HERE/ghostsignal.caddy" "$SITE" && has_import; then
-    echo "Caddy already serves GhostSignal's site."
+if cmp -s "$HERE/ghostsignalv2.caddy" "$SITE" && has_import; then
+    echo "Caddy already serves GhostSignal V2's site."
     exit 0
 fi
 
@@ -34,14 +34,14 @@ cp -a "$MAIN" "$backup/Caddyfile"
 [ -f "$SITE" ] && cp -a "$SITE" "$backup/site"
 
 install -d -m 755 "$SITES"
-install -m 644 "$HERE/ghostsignal.caddy" "$SITE"
+install -m 644 "$HERE/ghostsignalv2.caddy" "$SITE"
 if ! has_import; then
-    printf '\n# Sites of the other apps on this host, one file each (GhostSignal: /opt/ghostsignal/deploy).\n%s\n' "$IMPORT" >>"$MAIN"
+    printf '\n# Sites of the other apps on this host, one file each (GhostSignal V2: /opt/ghostsignalv2/deploy).\n%s\n' "$IMPORT" >>"$MAIN"
     cat >&2 <<EOF
 Added "$IMPORT" to $MAIN.
 DataRail Storage's update.sh copies its deploy/Caddyfile over that file whenever the two
-differ, so that Caddyfile needs the same line, or the next storage update takes GhostSignal
-offline. See GhostSignal's DEPLOY.md, "Sharing Caddy with DataRail Storage".
+differ, so that Caddyfile needs the same line, or the next storage update takes GhostSignal V2
+offline. See GhostSignal V2's DEPLOY.md, "Sharing Caddy with DataRail Storage".
 EOF
 fi
 

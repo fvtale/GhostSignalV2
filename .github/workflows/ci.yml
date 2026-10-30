@@ -47,7 +47,17 @@ jobs:
           shellcheck -S warning *.sh
           # The unit runs /usr/bin/node, where NodeSource puts it on the server.
           [ -x /usr/bin/node ] || sudo ln -s "$(command -v node)" /usr/bin/node
-          systemd-analyze verify --man=no ghostsignal.service
+          systemd-analyze verify --man=no ghostsignalv2.service
+
+  agent-router:
+    name: Agent router tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node --test .github/agent-router/route.test.cjs
 
   android:
     name: Android APK
@@ -73,10 +83,10 @@ jobs:
 
   # A green build on main, or a run started by hand from the Actions tab, replaces the
   # android-latest pre-release, so the newest APK is always at one address you can open on the
-  # phone: https://github.com/fvtale/ghostsignal/releases/tag/android-latest
+  # phone: https://github.com/fvtale/GhostSignalV2/releases/tag/android-latest
   release-apk:
     name: Publish the APK
-    needs: [core, server, android]
+    needs: [core, server, agent-router, android]
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -92,11 +102,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          mv app-debug.apk GhostSignal.apk
+          mv app-debug.apk GhostSignalV2.apk
           printf '%s\n\n%s\n' \
             "Built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}, $(date -u +%F)." \
-            "To install, open this page on the phone, tap GhostSignal.apk, and let the browser install apps when Android asks. Newer builds install over this one. The app reaches the glasses with Developer Mode on in the Meta AI app." \
+            "To install, open this page on the phone, tap GhostSignalV2.apk, and let the browser install apps when Android asks. Newer builds install over this one. The app reaches the glasses with Developer Mode on in the Meta AI app." \
             > notes.md
           gh release delete android-latest --cleanup-tag --yes 2>/dev/null || true
-          gh release create android-latest GhostSignal.apk --target "$GITHUB_SHA" --prerelease \
-            --title "GhostSignal for Android (latest build)" --notes-file notes.md
+          gh release create android-latest GhostSignalV2.apk --target "$GITHUB_SHA" --prerelease \
+            --title "GhostSignal V2 for Android (latest build)" --notes-file notes.md

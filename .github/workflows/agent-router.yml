@@ -1,0 +1,63 @@
+name: Agent router
+
+# Routes each task between Claude and Meta Wonder, keeps the labels in step as work moves to
+# review, checks every agent PR's handoff, and (run by hand) exports Muse Glimmer training data.
+# How it works, and how to train Glimmer on it: AGENTS.md and docs/AGENT-ROUTER.md.
+
+on:
+  issues:
+    types: [opened, reopened, edited, labeled]
+  pull_request:
+    types: [opened, reopened, edited, synchronize, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: agent-router-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+
+jobs:
+  route:
+    name: Route
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Route the task, or check the PR's handoff
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Optional, once a tuned Glimmer router is deployed (docs/AGENT-ROUTER.md).
+          FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+        run: node .github/agent-router/run.cjs
+
+  glimmer-data:
+    name: Export Glimmer training data
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Export routed issues as chat JSONL
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/agent-router/run.cjs export router-data
+      - name: Score the router on the held-out issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+        run: node .github/agent-router/run.cjs eval router-data/holdout.jsonl
+      - uses: actions/upload-artifact@v5
+        with:
+          name: glimmer-router-data
+          path: router-data
+          if-no-files-found: error

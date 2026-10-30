@@ -1,6 +1,6 @@
 {
-  "name": "GhostSignal",
-  "short_name": "GhostSignal",
+  "name": "GhostSignal V2",
+  "short_name": "GhostSig V2",
   "description": "A spatial audio hunt around Bryant Park, played through your glasses.",
   "start_url": "/play/",
   "scope": "/play/",

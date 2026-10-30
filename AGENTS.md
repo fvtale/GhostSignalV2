@@ -1,0 +1,71 @@
+# Working on GhostSignal V2: two agents
+
+Two coding agents build this repository: **Claude** (Claude Code) and **Meta Wonder** (Muse).
+The agent router decides who takes each task, and the other agent reviews the result. This file
+is the protocol both follow; [docs/AGENT-ROUTER.md](docs/AGENT-ROUTER.md) explains the router
+itself and how Muse Glimmer learns to run it.
+
+| | Claude | Meta Wonder |
+| --- | --- | --- |
+| Your tasks | label `agent:claude` | label `agent:wonder` |
+| Your branches | `claude/<issue>-<name>` | `wonder/<issue>-<name>` |
+| PRs you review | label `review:claude` | label `review:wonder` |
+
+A task moves `status:ready` → `status:in-progress` → `status:review` → closed by its PR.
+
+## Find your work
+
+Reviews first, then tasks, oldest first:
+
+```bash
+gh pr list --label review:wonder                          # PRs waiting on your review
+gh issue list --label agent:wonder --label status:ready   # tasks routed to you
+```
+
+(Swap in `claude` for Claude. Without `gh`, filter the Issues and Pull requests tabs by label.)
+
+## Take a task
+
+1. Claim it: `gh issue edit <n> --remove-label status:ready --add-label status:in-progress`.
+2. Branch from the latest `main` with your prefix, e.g. `wonder/12-stt-keywords`. The prefix is
+   how the router knows who opened the PR. Never commit to the other agent's branch.
+3. Read [docs/HANDOFF.md](docs/HANDOFF.md) first: the newest entry is the current state.
+
+## Hand it back
+
+1. Run the checks you can, and say which ones you couldn't:
+   - `cd server && npm test`
+   - `./gradlew -p core jvmTest`
+   - `tools/check_web_engine.sh`, after any change under `core/`. It rebuilds
+     `server/play/engine`; commit the rebuilt engine with your change, or CI fails.
+   - `node --test .github/agent-router/route.test.cjs`, after any change to the router.
+2. Add a dated entry at the top of `docs/HANDOFF.md`: what changed, what you verified, what you
+   didn't, what's next.
+3. Open a PR to `main` from the template: `Closes #<n>`, then **What changed**, **Verified** and
+   **Not verified**. The router labels it `review:<other agent>` and moves the issue to
+   `status:review`. Its check stays red until those three sections have content.
+
+## Review the other agent's PR
+
+- Read the handoff, check out the branch, run the checks, and try what's under **Not verified**
+  if you can.
+- Approve, or request changes with specific lines and why. Don't push to their branch: suggest
+  the fix, or open a follow-up issue.
+- Merging is the owner's call unless they've said otherwise. CI must be green first: engine,
+  server, Android build and the web engine check.
+
+## New work
+
+- Open an issue with the **Task** form (Issues → New issue → Task) and leave Route as "Router
+  decides" unless there's a reason to pick. Found something outside your task? Open an issue
+  rather than widening your PR.
+- To move a task to the other agent, swap its `agent:` label. The router removes the old one and
+  records the override, and overrides are what Glimmer learns from.
+
+## Ground rules
+
+- **This repository is public.** No keys, tokens or personal data in commits, issues or PRs.
+  Local keys go in `server/.env` (ignored by git); production ones in `/etc/ghostsignalv2.env` on
+  the VPS ([DEPLOY.md](DEPLOY.md)).
+- One task per PR. `main` stays green.
+- Don't rewrite history on `main` or on a branch that isn't yours.

@@ -1,0 +1,45 @@
+name: Task
+description: A piece of work for Claude or Meta Wonder. The agent router sends it to one of them.
+body:
+  - type: textarea
+    attributes:
+      label: Goal
+      description: What should be true when this is done, in a sentence or two.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Done when
+      description: How to check it, e.g. a test that passes, a command's output, what you see on a page or in the glasses.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Area
+      description: Each area has an agent in .github/agent-router/rules.json.
+      options:
+        - Meta models, voice and characters
+        - Story, missions and dialogue
+        - Web player
+        - Android app
+        - Server, accounts and payments
+        - Deploy, CI and the VPS
+        - Agent router and Glimmer
+        - Something else
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Route
+      description: Leave it to the router, or pick an agent.
+      options:
+        - Router decides
+        - Claude
+        - Meta Wonder
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Notes
+      description: Files, links, screenshots, anything the agent should read first.
