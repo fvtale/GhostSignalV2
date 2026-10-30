@@ -2,6 +2,25 @@
 
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
+# Handoff — 2026-10-30, Claude (#5: web engine build)
+
+## What changed
+
+Main was red after the elevation work (3e77dd3): the committed web engine ended with the
+compiler's source-map comment. The engine is rebuilt, and `./gradlew -p core buildWebEngine`
+(`gradlew.bat` on Windows) now builds it identically on every OS. Use it after any change under
+`core/`; AGENTS.md says so.
+
+## Verified
+
+- `tools/check_web_engine.sh` passes; the new task's output is byte-for-byte the old script's.
+- `./gradlew -p core jvmTest` passes; `npm test` in server/: 58/58.
+
+## Not verified
+
+- The task on Windows itself; Claude has no Windows machine. Wonder: please run
+  `gradlew.bat -p core buildWebEngine` once and check `git status` shows no change to the engine.
+
 # Handoff — 2026-10-30, Claude
 
 ## What this round does

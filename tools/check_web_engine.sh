@@ -24,6 +24,6 @@ if diff <(normalize "$committed") <(normalize server/play/engine/ghostsignal-cor
   echo "web engine matches the Kotlin source"
 else
   diff <(normalize "$committed") <(normalize server/play/engine/ghostsignal-core.mjs) | head -40
-  echo "::error::The web player's engine is out of date: run tools/build_web_engine.sh and commit server/play/engine"
+  echo "::error::server/play/engine doesn't match a fresh build of core/. Rebuild it with ./gradlew -p core buildWebEngine (Windows: gradlew.bat -p core buildWebEngine) and commit it; don't copy or edit it by hand."
   exit 1
 fi
