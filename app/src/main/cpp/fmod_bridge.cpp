@@ -70,9 +70,9 @@ int attributesParam(FMOD::DSP* dsp) {
   return -1;
 }
 
-void place(Engine* e, Spatial& s, float x, float z) {
+void place(Engine* e, Spatial& s, float x, float y, float z) {
   if (s.channel == nullptr) return;
-  FMOD_VECTOR pos = {x, 0.0f, z};
+  FMOD_VECTOR pos = {x, y, z};
   FMOD_VECTOR zero = {0.0f, 0.0f, 0.0f};
   if (s.source != nullptr) {
     int idx = attributesParam(s.source);
@@ -231,7 +231,7 @@ JNIEXPORT void JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativeStartStem
 
 JNIEXPORT void JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativeSetStem(JNIEnv*, jclass, jlong h, jint index,
                                                                                jfloat gain, jfloat spatial, jfloat x,
-                                                                               jfloat z, jfloat clarity) {
+                                                                               jfloat y, jfloat z, jfloat clarity) {
   Engine* e = E(h);
   std::lock_guard<std::mutex> guard(e->lock);
   if (index < 0 || index >= static_cast<jint>(e->stems.size())) return;
@@ -241,12 +241,12 @@ JNIEXPORT void JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativeSetStem(J
   s.dry->setVolume(g * (1.0f - spatial));
   s.wet.channel->setVolume(g * spatial * 1.2f);
   s.wet.channel->setLowPassGain(0.15f + 0.85f * clarity * clarity);
-  place(e, s.wet, x, z);
+  place(e, s.wet, x, y, z);
 }
 
 JNIEXPORT void JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativePlayVoice(JNIEnv* env, jclass, jlong h,
                                                                                  jshortArray pcm, jint rate,
-                                                                                 jboolean spatial, jfloat x, jfloat z,
+                                                                                 jboolean spatial, jfloat x, jfloat y, jfloat z,
                                                                                  jfloat radio) {
   Engine* e = E(h);
   std::lock_guard<std::mutex> guard(e->lock);
@@ -257,7 +257,7 @@ JNIEXPORT void JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativePlayVoice
   e->system->playSound(e->voiceSound, e->voices, true, &e->voice.channel);
   if (spatial) {
     makeSpatial(e, e->voice);
-    place(e, e->voice, x, z);
+    place(e, e->voice, x, y, z);
   } else {
     e->voice.channel->set3DLevel(0.0f);
   }
@@ -267,10 +267,10 @@ JNIEXPORT void JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativePlayVoice
 }
 
 JNIEXPORT void JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativeSetVoicePosition(JNIEnv*, jclass, jlong h,
-                                                                                        jfloat x, jfloat z) {
+                                                                                        jfloat x, jfloat y, jfloat z) {
   Engine* e = E(h);
   std::lock_guard<std::mutex> guard(e->lock);
-  place(e, e->voice, x, z);
+  place(e, e->voice, x, y, z);
 }
 
 JNIEXPORT jboolean JNICALL Java_com_ghostsignal_app_audio_FmodNative_nativeVoicePlaying(JNIEnv*, jclass, jlong h) {

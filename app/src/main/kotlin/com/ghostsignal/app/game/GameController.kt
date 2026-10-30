@@ -285,7 +285,7 @@ class GameController(
               fusion.onImu(sample, now)
               fusion.estimate(now)
             }
-            if (est.source == HeadingSource.GLASSES) audio?.setListenerHeading(est.deg)
+            if (est.source == HeadingSource.GLASSES) audio?.setListenerOrientation(est.deg, est.pitchDeg)
           }
         }
     jobs += scope.launch { pollBroadcasts() }
@@ -355,8 +355,8 @@ class GameController(
       fusion.estimate(now)
     }
     if (est.source == HeadingSource.PHONE) {
-      audio?.setListenerHeading(est.deg)
-      testAudio?.setListenerHeading(est.deg)
+      audio?.setListenerOrientation(est.deg, est.pitchDeg)
+      testAudio?.setListenerOrientation(est.deg, est.pitchDeg)
     }
   }
 
@@ -471,7 +471,7 @@ class GameController(
                   u.fromSignal?.let { sid -> m.signal(sid) }?.let { s -> lastFix?.let { Geo.bearingDeg(it.position, s.location) } }
               _ui.update { it.copy(speaking = SpokenLine(character?.name ?: u.speaker, u.text)) }
               suspendCancellableCoroutine { cont ->
-                audio?.playVoice(pcm, VoiceParams(bearing, character?.radio ?: 0.4)) { if (cont.isActive) cont.resume(Unit) }
+                audio?.playVoice(pcm, VoiceParams(bearing, character?.radio ?: 0.4, elevationDeg = u.fromSignal?.let { sid -> m.signal(sid)?.elevationDeg } ?: 0.0)) { if (cont.isActive) cont.resume(Unit) }
                     ?: cont.resume(Unit)
               }
             }
@@ -608,7 +608,7 @@ class GameController(
     }
   }
 
-  /** Plays a sonar ping fixed in the world 90° to your right, to check binaural rendering and head tracking. */
+  /** Plays a sonar ping fixed in the world 90° to your right and 30° up, to check binaural rendering, yaw and pitch tracking. */
   fun startAudioTest() {
     if (running || testAudio != null) return
     val a = createAudio(settings.value.engine)
@@ -616,7 +616,7 @@ class GameController(
     a.start()
     compass.start()
     val start = synchronized(fusion) { fusion.estimate(System.currentTimeMillis()).deg } ?: compass.lastAzimuth ?: 0.0
-    a.setScene(AudioScene(emptyMap(), 0.0, null, 900, Geo.normalizeDeg(start + 90), paused = false))
+    a.setScene(AudioScene(emptyMap(), 0.0, null, 900, Geo.normalizeDeg(start + 90), paused = false, pingElevationDeg = 30.0))
     val job =
         scope.launch {
           glasses.imu.collect { sample ->
@@ -625,7 +625,7 @@ class GameController(
               fusion.onImu(sample, now)
               fusion.estimate(now)
             }
-            a.setListenerHeading(est.deg)
+            a.setListenerOrientation(est.deg, est.pitchDeg)
           }
         }
     testJob = job

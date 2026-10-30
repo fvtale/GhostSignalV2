@@ -34,6 +34,7 @@ class FmodAudioEngine(private val context: Context) : AudioEngine {
   @Volatile private var running = false
   @Volatile private var scene = AudioScene.SILENT
   @Volatile private var heading: Double? = null
+  @Volatile private var listenerPitch: Double? = null
   @Volatile private var comms = CommsMode.NONE
   private var stemIds: List<String> = emptyList()
   private var barMs = 2_000.0
@@ -97,17 +98,18 @@ class FmodAudioEngine(private val context: Context) : AudioEngine {
     effects.setScene(scene.copy(stems = emptyMap()))
   }
 
-  override fun setListenerHeading(deg: Double?) {
-    heading = deg
-    effects.setListenerHeading(deg)
+  override fun setListenerOrientation(yawDeg: Double?, pitchDeg: Double?) {
+    heading = yawDeg
+    listenerPitch = pitchDeg
+    effects.setListenerOrientation(yawDeg, pitchDeg)
   }
 
   @Synchronized
   override fun playVoice(pcm: Pcm, params: VoiceParams, onDone: () -> Unit) {
     finishVoice()
     val mono = pcm.toMono()
-    val (x, z) = position(params.worldBearingDeg, 3.0)
-    FmodNative.nativePlayVoice(handle, mono.data, mono.sampleRate, params.worldBearingDeg != null, x, z, params.radio.toFloat())
+    val (x, y, z) = position(params.worldBearingDeg, 3.0, params.elevationDeg)
+    FmodNative.nativePlayVoice(handle, mono.data, mono.sampleRate, params.worldBearingDeg != null, x, y, z, params.radio.toFloat())
     voiceDone = onDone
     voiceParams = params
   }
@@ -173,12 +175,12 @@ class FmodAudioEngine(private val context: Context) : AudioEngine {
       }
       val s = current + (target - current) * 0.08f
       spatial[id] = s
-      val (x, z) = position(st?.worldBearingDeg, max(2.0, (st?.distanceM ?: 10.0) / 6.0))
-      FmodNative.nativeSetStem(h, i, gain, s, x, z, (st?.clarity ?: 1.0).toFloat())
+      val (x, y, z) = position(st?.worldBearingDeg, max(2.0, (st?.distanceM ?: 10.0) / 6.0), st?.elevationDeg ?: 0.0)
+      FmodNative.nativeSetStem(h, i, gain, s, x, y, z, (st?.clarity ?: 1.0).toFloat())
     }
     voiceParams?.worldBearingDeg?.let { bearing ->
-      val (x, z) = position(bearing, 3.0)
-      FmodNative.nativeSetVoicePosition(h, x, z)
+      val (x, y, z) = position(bearing, 3.0, voiceParams?.elevationDeg ?: 0.0)
+      FmodNative.nativeSetVoicePosition(h, x, y, z)
     }
     val (duckTarget, lofiTarget) =
         when (comms) {
@@ -194,10 +196,12 @@ class FmodAudioEngine(private val context: Context) : AudioEngine {
   }
 
   /** FMOD is left-handed: +x right, +z forward. Sources are placed relative to the head. */
-  private fun position(worldBearing: Double?, distance: Double): Pair<Float, Float> {
-    if (worldBearing == null) return 0f to 1f
+  private fun position(worldBearing: Double?, distance: Double, elevationDeg: Double = 0.0): Triple<Float, Float, Float> {
+    if (worldBearing == null) return Triple(0f, 0f, 1f)
     val rel = Math.toRadians(Geo.deltaDeg(heading ?: 0.0, worldBearing))
-    return (sin(rel) * distance).toFloat() to (cos(rel) * distance).toFloat()
+    val relElev = Math.toRadians(elevationDeg - (listenerPitch ?: 0.0))
+    val horiz = cos(relElev) * distance
+    return Triple((sin(rel) * horiz).toFloat(), (sin(relElev) * distance).toFloat(), (cos(rel) * horiz).toFloat())
   }
 
   companion object {
@@ -238,11 +242,11 @@ object FmodNative {
 
   @JvmStatic external fun nativeStartStems(handle: Long)
 
-  @JvmStatic external fun nativeSetStem(handle: Long, index: Int, gain: Float, spatial: Float, x: Float, z: Float, clarity: Float)
+  @JvmStatic external fun nativeSetStem(handle: Long, index: Int, gain: Float, spatial: Float, x: Float, y: Float, z: Float, clarity: Float)
 
-  @JvmStatic external fun nativePlayVoice(handle: Long, pcm: ShortArray, rate: Int, spatial: Boolean, x: Float, z: Float, radio: Float)
+  @JvmStatic external fun nativePlayVoice(handle: Long, pcm: ShortArray, rate: Int, spatial: Boolean, x: Float, y: Float, z: Float, radio: Float)
 
-  @JvmStatic external fun nativeSetVoicePosition(handle: Long, x: Float, z: Float)
+  @JvmStatic external fun nativeSetVoicePosition(handle: Long, x: Float, y: Float, z: Float)
 
   @JvmStatic external fun nativeVoicePlaying(handle: Long): Boolean
 

@@ -91,6 +91,8 @@ class Binaural {
   private var write = 0
   private val shadowL = OnePoleLp()
   private val shadowR = OnePoleLp()
+  private val elevL = OnePoleLp()
+  private val elevR = OnePoleLp()
   private val rearL = OnePoleLp()
   private val rearR = OnePoleLp()
 
@@ -100,7 +102,7 @@ class Binaural {
   private val gainR = Ramp(0.7f)
 
   /** Sets up the next block for a source [azimuthDeg] to the right of straight ahead. */
-  fun prepare(azimuthDeg: Double, frames: Int) {
+  fun prepare(azimuthDeg: Double, frames: Int, elevationDeg: Double = 0.0) {
     val az = azimuthDeg * PI / 180.0
     val lateral = asin(sin(az)) // -pi/2 .. pi/2, positive = right
     val absLat = abs(lateral)
@@ -124,8 +126,15 @@ class Binaural {
     rearL.setCutoff(rearCut)
     rearR.setCutoff(rearCut)
     rearGain = 1f - 0.22f * behind
+    // Elevation cue (approximation, not HRTF): above reads brighter, below duller and quieter.
+    val elev = elevationDeg.coerceIn(-60.0, 60.0).toFloat()
+    val elevCut = (9_000f + elev * 150f).coerceIn(2_500f, 18_000f)
+    elevL.setCutoff(elevCut)
+    elevR.setCutoff(elevCut)
+    elevGain = 1f - 0.15f * (kotlin.math.abs(elev) / 60f)
   }
 
+  private var elevGain = 1f
   private var rearGain = 1f
 
   /** Adds the processed sample to [out] at stereo frame [i]. */
@@ -134,8 +143,8 @@ class Binaural {
     val l = read(delayL.next())
     val r = read(delayR.next())
     write = (write + 1) % size
-    out[2 * i] += rearL.process(shadowL.process(l)) * gainL.next() * rearGain
-    out[2 * i + 1] += rearR.process(shadowR.process(r)) * gainR.next() * rearGain
+    out[2 * i] += elevL.process(rearL.process(shadowL.process(l))) * gainL.next() * rearGain * elevGain
+    out[2 * i + 1] += elevR.process(rearR.process(shadowR.process(r))) * gainR.next() * rearGain * elevGain
   }
 
   fun finishBlock() {

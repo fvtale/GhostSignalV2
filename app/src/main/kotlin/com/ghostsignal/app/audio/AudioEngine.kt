@@ -28,6 +28,8 @@ data class VoiceParams(
     /** 0 = clean, 1 = crushed walkie-talkie. */
     val radio: Double,
     val gain: Double = 1.0,
+    /** Authored source elevation in degrees (0 = horizontal plane). */
+    val elevationDeg: Double = 0.0,
 )
 
 data class AudioStats(
@@ -62,8 +64,8 @@ interface AudioEngine {
 
   fun setScene(scene: AudioScene)
 
-  /** Called at IMU rate so world-anchored sounds stay put when the head turns. */
-  fun setListenerHeading(deg: Double?)
+  /** Called at IMU rate so world-anchored sounds stay put when the head turns or nods. Pitch is carried for elevation rendering; engines that cannot render it yet still receive it. */
+  fun setListenerOrientation(yawDeg: Double?, pitchDeg: Double?)
 
   /** Plays one line; [onDone] fires once when it ends or is stopped. */
   fun playVoice(pcm: Pcm, params: VoiceParams, onDone: () -> Unit)

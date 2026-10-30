@@ -51,6 +51,7 @@ class BinauralMixer : AudioEngine {
 
   @Volatile private var scene: AudioScene = AudioScene.SILENT
   @Volatile private var heading: Double? = null
+  @Volatile private var pitch: Double? = null
   @Volatile private var comms = CommsMode.NONE
   @Volatile private var masterVolume = 0.9f
 
@@ -195,8 +196,9 @@ class BinauralMixer : AudioEngine {
     this.scene = scene
   }
 
-  override fun setListenerHeading(deg: Double?) {
-    heading = deg
+  override fun setListenerOrientation(yawDeg: Double?, pitchDeg: Double?) {
+    heading = yawDeg
+    pitch = pitchDeg
   }
 
   override fun playVoice(pcm: Pcm, params: VoiceParams, onDone: () -> Unit) {
@@ -297,6 +299,9 @@ class BinauralMixer : AudioEngine {
   private fun relative(worldBearing: Double?, head: Double?): Double? =
       if (worldBearing == null) null else Geo.deltaDeg(head ?: 0.0, worldBearing)
 
+  /** Source elevation relative to where the head is pitched; 0 when pitch is unknown. */
+  private fun relativeElevation(sourceElevationDeg: Double): Double = sourceElevationDeg - (pitch ?: 0.0)
+
   private fun renderStems(sc: AudioScene, head: Double?, pausedFactor: Float) {
     if (stems.isEmpty()) return
     val barFrames = (60.0 / bpm * beatsPerBar * sr).toLong()
@@ -327,7 +332,7 @@ class BinauralMixer : AudioEngine {
       ch.clarityLp.setCutoff(500f + 15_500f * clarity * clarity)
       ch.crushHold = (1 + ((1f - clarity) * 7).toInt())
       val az = relative(st?.worldBearingDeg, head)
-      ch.binaural.prepare(az ?: 0.0, block)
+      ch.binaural.prepare(az ?: 0.0, block, relativeElevation(st?.elevationDeg ?: 0.0))
       val frames = ch.data.size / 2
       var pos = (frame % frames).toInt()
       for (i in 0 until block) {
@@ -381,7 +386,7 @@ class BinauralMixer : AudioEngine {
       staticGain.end()
       return
     }
-    staticPan.prepare(relative(sc.staticBearingDeg, head) ?: 0.0, block)
+    staticPan.prepare(relative(sc.staticBearingDeg, head) ?: 0.0, block, relativeElevation(sc.staticElevationDeg))
     for (i in 0 until block) {
       var n = staticLp.process(noise.next()) * 0.8f
       // Occasional crackles, like a radio between stations.
@@ -411,7 +416,7 @@ class BinauralMixer : AudioEngine {
       nextPingFrame = frame
     }
     if (!ping.active) return
-    ping.binaural.prepare(relative(sc.pingBearingDeg, head) ?: 0.0, block)
+    ping.binaural.prepare(relative(sc.pingBearingDeg, head) ?: 0.0, block, relativeElevation(sc.pingElevationDeg))
     for (i in 0 until block) ping.binaural.process(ping.next() * 0.35f, musicBus, i)
     ping.binaural.finishBlock()
   }
@@ -419,7 +424,7 @@ class BinauralMixer : AudioEngine {
   private fun renderVoice(head: Double?) {
     val v = voice ?: return
     val az = relative(v.params.worldBearingDeg, head)
-    if (az != null) v.binaural.prepare(az, block)
+    if (az != null) v.binaural.prepare(az, block, relativeElevation(v.params.elevationDeg))
     val radio = v.params.radio.toFloat()
     val g = v.params.gain.toFloat() * 1.05f
     for (i in 0 until block) {

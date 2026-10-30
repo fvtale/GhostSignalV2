@@ -203,6 +203,7 @@ fun OperatorScreen(graph: AppGraph, back: () -> Unit) {
 
     Section("Diagnostics") {
       Status("Heading", ui.heading.deg?.let { "${it.toInt()}° ${ui.heading.source.name.lowercase()}" } ?: "none", ui.heading.deg != null)
+      Status("Head pitch", ui.heading.pitchDeg?.let { "${it.toInt()}°" } ?: "none", ui.heading.pitchDeg != null)
       Status("Glasses IMU", if (glasses.imuRateHz > 0) "${glasses.imuRateHz.toInt()} Hz" else "no samples", glasses.imuRateHz > 0)
       Status("Last press", glasses.lastInput ?: "none", glasses.lastInput != null)
       Status("Voice input", ui.voiceInput.ifBlank { settings.voiceInput.label }, null)
