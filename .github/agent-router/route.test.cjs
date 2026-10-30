@@ -37,6 +37,14 @@ describe("reading the issue form", () => {
     assert.equal(f.Notes, "");
   });
 
+  it("caps the task text so a training row fits the Glimmer starter's 2,048 tokens", () => {
+    const text = R.taskText({ title: "Long", body: "x".repeat(20000) });
+    assert.equal(text.length, R.TASK_CHARS);
+    const row = R.trainingRow({ title: "Long", body: "x".repeat(20000) }, { agent: "claude", area: R.OTHER_AREA }, rules);
+    const chars = row.messages.reduce((n, m) => n + m.content.length, 0);
+    assert.ok(chars < 2048 * 3, `about ${chars} characters, well under 2,048 tokens`);
+  });
+
   it("leaves the Route answer out of what the router and Glimmer read", () => {
     const text = R.taskText({ title: "Fix STT", body: formBody({ route: "Meta Wonder" }) });
     assert.match(text, /^Fix STT/);
@@ -246,5 +254,19 @@ describe("training data for Glimmer", () => {
     assert.ok(JSON.parse(lines[0]).messages);
     const evalCode = await main(["eval", path.join(dir, "holdout.jsonl")], {}, { api, rules, glimmer: { enabled: false }, log: quiet });
     assert.equal(evalCode, 0);
+  });
+
+  it("writes glimmer.jsonl for the cookbook starter, held-out rows first, and says how to run it", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "router-data-"));
+    let said = "";
+    const log = { ...quiet, info: (t) => (said += t) };
+    await main(["export", dir], {}, { api: { ...fakeApi(), issues: async () => issues }, rules, glimmer: { enabled: false }, log });
+    const rows = fs.readFileSync(path.join(dir, "glimmer.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    assert.equal(rows.length, 3);
+    assert.match(rows[0].messages[1].content, /^Caddy reload fails/, "issue #10, the held-out one, comes first");
+    assert.match(said, /muse_glimmer_starter prepare --file glimmer\.jsonl --n-eval 1 /);
+    assert.match(said, /--surface serverless --file glimmer\.jsonl --n-eval 1 /);
+    const { starterSteps } = require("./run.cjs");
+    assert.match(starterSteps({ dir, train: 3, holdout: 0 }), /Not enough routed issues/);
   });
 });

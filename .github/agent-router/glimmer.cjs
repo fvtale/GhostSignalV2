@@ -1,14 +1,15 @@
 /**
  * Muse Glimmer 30B as the router's model, on Fireworks. Glimmer left Fireworks' serverless
  * inference in September and is trained, not called as-is: tune it on the export from
- * `run.cjs export` (LoRA SFT, as in the cookbook's muse_glimmer_train_router notebook), deploy
- * the tuned model, and give the workflow its path as GLIMMER_MODEL
- * (accounts/<account>/deployments/<name>) with FIREWORKS_API_KEY as a secret. Until then the
- * router routes by its rules. Fireworks' chat API is OpenAI-shaped.
+ * `run.cjs export` with the cookbook's Glimmer starter (github.com/fw-ai/cookbook,
+ * training/examples/muse_glimmer), deploy the tuned model, and give the workflow the
+ * deployment's path as GLIMMER_MODEL (accounts/<account>/deployments/<id>) with
+ * FIREWORKS_API_KEY as a secret. Until then the router routes by its rules. Fireworks' chat
+ * API is OpenAI-shaped. Steps: docs/AGENT-ROUTER.md.
  */
 "use strict";
 
-const { glimmerSystem } = require("./route.cjs");
+const { glimmerSystem, TASK_CHARS } = require("./route.cjs");
 
 /** The first JSON object in a reply, or null. Tuned routers answer with bare JSON; base models may not. */
 function firstJson(text) {
@@ -49,7 +50,7 @@ function createGlimmer({
             model,
             messages: [
               { role: "system", content: glimmerSystem(rules) },
-              { role: "user", content: String(task).slice(0, 6000) },
+              { role: "user", content: String(task).slice(0, TASK_CHARS) },
             ],
             temperature: 0,
             max_tokens: 512,

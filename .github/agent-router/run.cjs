@@ -160,6 +160,27 @@ function exportRows(issues, rules) {
   return { train, holdout };
 }
 
+/** What to run next with the export, in the cookbook's Glimmer starter (docs/AGENT-ROUTER.md). */
+function starterSteps({ dir, train, holdout }) {
+  const lines = [`### Muse Glimmer training data`, "", `${train} training rows and ${holdout} held-out rows, in \`${dir}/\`.`];
+  if (!holdout || !train) {
+    lines.push("", "Not enough routed issues to train yet: the starter needs held-out and training rows (one issue in ten is held out).");
+    return lines.join("\n");
+  }
+  lines.push(
+    "",
+    "Train with the Fireworks cookbook's Glimmer starter (free LoRA SFT for jobs started before 2026-12-01 00:00 PT), from `cookbook/training`:",
+    "",
+    "```",
+    `python -m examples.sft.muse_glimmer_starter prepare --file glimmer.jsonl --n-eval ${holdout} --run-id <run>`,
+    `python -m examples.sft.muse_glimmer_starter launch --surface serverless --file glimmer.jsonl --n-eval ${holdout} --run-id <run>`,
+    "```",
+    "",
+    `\`--n-eval ${holdout}\` makes the starter hold out the same issues as the table below. A few hundred rows is where the cookbook expects a first signal.`,
+  );
+  return lines.join("\n");
+}
+
 /** Correct-pick rate of a router on held-out rows: { correct, total, misses }. */
 async function evaluate(rows, route) {
   let correct = 0;
@@ -191,7 +212,10 @@ async function main(argv = process.argv.slice(2), env = process.env, deps = {}) 
     const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
     fs.writeFileSync(path.join(dir, "train.jsonl"), jsonl(train));
     fs.writeFileSync(path.join(dir, "holdout.jsonl"), jsonl(holdout));
-    summary(`Exported ${train.length} training rows and ${holdout.length} held-out rows for Muse Glimmer (${dir}/).`);
+    // The cookbook's Glimmer starter holds out the first --n-eval rows of one file: put ours
+    // first, so its base-vs-tuned eval runs on the same held-out issues as `eval` below.
+    fs.writeFileSync(path.join(dir, "glimmer.jsonl"), jsonl([...holdout, ...train]));
+    summary(starterSteps({ dir, train: train.length, holdout: holdout.length }));
     return 0;
   }
 
@@ -223,7 +247,7 @@ async function main(argv = process.argv.slice(2), env = process.env, deps = {}) 
   return 0;
 }
 
-module.exports = { main, onIssue, onPullRequest, exportRows, evaluate, labelSpecs, createApi, MARKER };
+module.exports = { main, onIssue, onPullRequest, exportRows, evaluate, starterSteps, labelSpecs, createApi, MARKER };
 
 if (require.main === module) {
   main().then(

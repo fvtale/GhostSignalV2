@@ -53,19 +53,66 @@ rules only once there are a few hundred.
 
 The run's summary shows how often the rules pick the right agent on the held-out issues.
 
-**3. Train.** Use the Fireworks cookbook's `muse_glimmer_train_router` notebook
-(github.com/fw-ai/cookbook):
-- base model `accounts/fireworks/models/muse-glimmer-30b`, LoRA SFT, pointed at `train.jsonl`;
-- the system prompt in the export gives the answer's shape but not the policy, as in the
-  cookbook, so the model learns the policy from the examples;
-- per the workshop, LoRA SFT jobs started before 2026-12-01 00:00 PT are free, and the eval
-  samples are billed.
+The export also has `glimmer.jsonl`: the held-out rows first, then the training rows. That's the
+file for step 3, and the run's summary prints the exact commands for it.
 
-**4. Deploy and connect.** Deploy the tuned model on Fireworks (an on-demand deployment, billed
-while it runs). In the repo's Settings → Secrets and variables → Actions, add:
+**3. Train**, with the Glimmer starter from the Fireworks cookbook
+([github.com/fw-ai/cookbook](https://github.com/fw-ai/cookbook),
+`training/examples/muse_glimmer`). On your computer, with Python 3.11 or newer and a Fireworks
+API key from <https://app.fireworks.ai/settings/users/api-keys>:
+
+```bash
+git clone --depth 1 https://github.com/fw-ai/cookbook && cd cookbook/training
+python -m venv .venv
+source .venv/bin/activate              # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -e .
+# Put FIREWORKS_API_KEY=... in training/.env (gitignored). Never paste it into a chat.
+python -m examples.sft.muse_glimmer_starter plan     # read-only: account, promotion, cost
+```
+
+Copy `glimmer.jsonl` from the export into `cookbook/training`. Then, with `N` the number of
+held-out rows the summary reported:
+
+```bash
+python -m examples.sft.muse_glimmer_starter prepare --file glimmer.jsonl --n-eval N --run-id router-1
+python -m examples.sft.muse_glimmer_starter launch --surface serverless --file glimmer.jsonl --n-eval N --run-id router-1
+```
+
+What each command does:
+- **`prepare`** is local and free. It checks every row, holds out the first `N` (the same issues
+  this repo holds out), and prints one example as Glimmer will see it.
+- **`launch`** trains a LoRA adapter on `accounts/fireworks/models/muse-glimmer-30b`, then
+  answers the held-out issues with the base and the tuned model.
+
+Results go in `muse_starter_logs/router-1/summary.json`:
+- exact match;
+- accuracy for each field of the answer (`area` and `route`);
+- a paired significance test, base vs tuned.
+
+The tuned adapter is saved as `accounts/<account>/models/muse-starter-sl-router-1`.
+
+Costs: training is free for LoRA jobs started before 2026-12-01 00:00 PT, but the held-out
+answers are billed per token, and `launch` ends with a cost line. The export's system prompt
+gives the answer's shape but not the policy, as in the cookbook's prompt router, so the tuned
+model learns the policy from the examples. When you're done with a run,
+`muse_glimmer_starter cleanup --run-id router-1` deletes what it made.
+
+The cookbook also ships coding-agent skills for these steps (`skills/`, see its
+`skills/GETTING-STARTED.md`). A coding agent running on the computer that holds the Fireworks
+key can run the starter for you.
+
+**4. Deploy and connect.** Muse's public serverless inference was retired on 2026-09-25, so the
+tuned model needs a deployment to answer the router. That's an on-demand deployment of
+`accounts/<account>/models/muse-starter-sl-router-1`, billed per GPU-hour while it's up. The
+cookbook's `case-studies/sft_prompt_router/prompt_router_dedicated.ipynb` creates one with the
+Fireworks SDK, and scales it to zero or deletes it afterwards. In this repo's Settings →
+Secrets and variables → Actions, add:
 - the secret `FIREWORKS_API_KEY`;
-- the variable `GLIMMER_MODEL`, set to the deployment path
-  (`accounts/<account>/deployments/<name>`).
+- the variable `GLIMMER_MODEL`, set to the deployment's path
+  (`accounts/<account>/deployments/<id>`).
+
+A deployment that's always up costs far more than routing a few issues a day needs. Turn it on
+for a demo or a busy week, and delete `GLIMMER_MODEL` while it's off so the rules route.
 
 **5. Compare.** Run the workflow again. With Glimmer configured, the summary shows the rules and
 Glimmer side by side on the held-out issues. Keep Glimmer only if it picks better; to switch it

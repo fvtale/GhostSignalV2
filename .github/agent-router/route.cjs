@@ -17,6 +17,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const OTHER_AREA = "Something else";
+// Long enough for any real task, short enough that a training row stays well inside the
+// Fireworks Glimmer starter's 2,048-token limit (with the system prompt and the answer).
+const TASK_CHARS = 4000;
 
 function loadRules(file = path.join(__dirname, "rules.json")) {
   const rules = JSON.parse(fs.readFileSync(file, "utf8"));
@@ -50,10 +53,13 @@ function routeFromForm(fields, rules) {
   return Object.keys(rules.agents).find((id) => answer === rules.agents[id].name.toLowerCase() || answer === id) ?? null;
 }
 
-/** The task as the router (and Glimmer) reads it: the title and body, without the Route answer. */
+/**
+ * The task as the router (and Glimmer) reads it: the title and body, without the Route answer,
+ * cut to TASK_CHARS. Training rows and live routing both use this, so Glimmer sees the same text.
+ */
 function taskText({ title, body }) {
   const withoutRoute = String(body ?? "").replace(/^### +Route\s*\n[\s\S]*?(?=^### |(?![\s\S]))/m, "");
-  return `${String(title ?? "").trim()}\n\n${withoutRoute.trim()}`.trim();
+  return `${String(title ?? "").trim()}\n\n${withoutRoute.trim()}`.trim().slice(0, TASK_CHARS);
 }
 
 /** The area with the most keyword hits, or null. Ties go to the area listed first in rules.json. */
@@ -159,6 +165,7 @@ function isHoldout(number) {
 
 module.exports = {
   OTHER_AREA,
+  TASK_CHARS,
   HANDOFF_HEADINGS,
   loadRules,
   parseForm,
