@@ -48,6 +48,12 @@ if (typeof Math.clz32 === 'undefined') {
     };
   }(Math.log, Math.LN2);
 }
+if (typeof String.prototype.startsWith === 'undefined') {
+  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
+    position = position || 0;
+    return this.lastIndexOf(searchString, position) === position;
+  }});
+}
 if (typeof String.prototype.endsWith === 'undefined') {
   Object.defineProperty(String.prototype, 'endsWith', {value: function (searchString, position) {
     var subjectString = this.toString();
@@ -57,12 +63,6 @@ if (typeof String.prototype.endsWith === 'undefined') {
     position -= searchString.length;
     var lastIndex = subjectString.indexOf(searchString, position);
     return lastIndex !== -1 && lastIndex === position;
-  }});
-}
-if (typeof String.prototype.startsWith === 'undefined') {
-  Object.defineProperty(String.prototype, 'startsWith', {value: function (searchString, position) {
-    position = position || 0;
-    return this.lastIndexOf(searchString, position) === position;
   }});
 }
 //endregion
@@ -106,7 +106,7 @@ initMetadataForObject(Letter, 'Letter');
 initMetadataForInterface(Comparator, 'Comparator');
 initMetadataForObject(Unit, 'Unit');
 initMetadataForClass(AbstractCollection, 'AbstractCollection', VOID, VOID, [Collection]);
-initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, AbstractCollection, [AbstractCollection, Collection, MutableIterable]);
+initMetadataForClass(AbstractMutableCollection, 'AbstractMutableCollection', VOID, AbstractCollection, [AbstractCollection, MutableIterable, Collection]);
 initMetadataForClass(IteratorImpl, 'IteratorImpl');
 initMetadataForClass(ListIteratorImpl, 'ListIteratorImpl', VOID, IteratorImpl);
 initMetadataForClass(AbstractMutableList, 'AbstractMutableList', VOID, AbstractMutableCollection, [AbstractMutableCollection, MutableIterable, KtList, Collection]);
@@ -114,19 +114,19 @@ initMetadataForInterface(RandomAccess, 'RandomAccess');
 initMetadataForClass(SubList, 'SubList', VOID, AbstractMutableList, [AbstractMutableList, RandomAccess]);
 initMetadataForClass(AbstractMap, 'AbstractMap', VOID, VOID, [KtMap]);
 initMetadataForClass(AbstractMutableMap, 'AbstractMutableMap', VOID, AbstractMap, [AbstractMap, KtMutableMap]);
-initMetadataForClass(AbstractMutableSet, 'AbstractMutableSet', VOID, AbstractMutableCollection, [AbstractMutableCollection, MutableIterable, KtSet, Collection]);
+initMetadataForClass(AbstractMutableSet, 'AbstractMutableSet', VOID, AbstractMutableCollection, [AbstractMutableCollection, KtSet, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_2);
 initMetadataForClass(ArrayList, 'ArrayList', ArrayList_init_$Create$, AbstractMutableList, [AbstractMutableList, MutableIterable, KtList, Collection, RandomAccess]);
 initMetadataForClass(HashMap, 'HashMap', HashMap_init_$Create$, AbstractMutableMap, [AbstractMutableMap, KtMutableMap]);
-initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, AbstractMutableSet, [MutableIterable, KtSet, Collection, AbstractMutableSet]);
-initMetadataForClass(HashMapValues, 'HashMapValues', VOID, AbstractMutableCollection, [Collection, MutableIterable, AbstractMutableCollection]);
-initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, AbstractMutableSet, [MutableIterable, KtSet, Collection, AbstractMutableSet]);
+initMetadataForClass(HashMapKeys, 'HashMapKeys', VOID, AbstractMutableSet, [KtSet, MutableIterable, Collection, AbstractMutableSet]);
+initMetadataForClass(HashMapValues, 'HashMapValues', VOID, AbstractMutableCollection, [MutableIterable, Collection, AbstractMutableCollection]);
+initMetadataForClass(HashMapEntrySetBase, 'HashMapEntrySetBase', VOID, AbstractMutableSet, [KtSet, MutableIterable, Collection, AbstractMutableSet]);
 initMetadataForClass(HashMapEntrySet, 'HashMapEntrySet', VOID, HashMapEntrySetBase);
 initMetadataForClass(HashMapKeysDefault$iterator$1);
 initMetadataForClass(HashMapKeysDefault, 'HashMapKeysDefault', VOID, AbstractMutableSet);
 initMetadataForClass(HashMapValuesDefault$iterator$1);
 initMetadataForClass(HashMapValuesDefault, 'HashMapValuesDefault', VOID, AbstractMutableCollection);
-initMetadataForClass(HashSet, 'HashSet', HashSet_init_$Create$, AbstractMutableSet, [AbstractMutableSet, MutableIterable, KtSet, Collection]);
+initMetadataForClass(HashSet, 'HashSet', HashSet_init_$Create$, AbstractMutableSet, [AbstractMutableSet, KtSet, MutableIterable, Collection]);
 initMetadataForCompanion(Companion_3);
 initMetadataForClass(Itr, 'Itr');
 initMetadataForClass(KeysItr, 'KeysItr', VOID, Itr);
@@ -172,7 +172,7 @@ initMetadataForInterface(InternalMap, 'InternalMap');
 initMetadataForClass(InternalHashMap, 'InternalHashMap', InternalHashMap_init_$Create$, VOID, [InternalMap]);
 initMetadataForObject(EmptyHolder, 'EmptyHolder');
 initMetadataForClass(LinkedHashMap, 'LinkedHashMap', LinkedHashMap_init_$Create$, HashMap, [HashMap, KtMutableMap]);
-initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet_init_$Create$, HashSet, [HashSet, MutableIterable, KtSet, Collection]);
+initMetadataForClass(LinkedHashSet, 'LinkedHashSet', LinkedHashSet_init_$Create$, HashSet, [HashSet, KtSet, MutableIterable, Collection]);
 initMetadataForInterface(Continuation, 'Continuation');
 initMetadataForClass(InterceptedCoroutine, 'InterceptedCoroutine', VOID, VOID, [Continuation]);
 initMetadataForClass(CoroutineImpl, 'CoroutineImpl', VOID, InterceptedCoroutine, [InterceptedCoroutine, Continuation]);
@@ -31247,184 +31247,207 @@ protoOf(MissionValidator).l1v = function (mission) {
     destination_0.g(tmp$ret$4);
   }
   var stemIds = toSet_0(destination_0);
+  if (mission.b1g_1.q()) {
+    // Inline function 'kotlin.collections.plusAssign' call
+    var element = 'mission has no characters';
+    problems.g(element);
+  }
   // Inline function 'kotlin.collections.map' call
-  var this_2 = mission.f1g_1;
+  var this_2 = mission.b1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_1 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_2, 10));
   var _iterator__ex2g4s_1 = this_2.l();
   while (_iterator__ex2g4s_1.m()) {
     var item_1 = _iterator__ex2g4s_1.n();
-    var tmp$ret$7 = item_1.m1g_1;
-    destination_1.g(tmp$ret$7);
+    var tmp$ret$8 = item_1.j1n_1;
+    destination_1.g(tmp$ret$8);
   }
   // Inline function 'kotlin.collections.forEach' call
   var _iterator__ex2g4s_2 = validate$dupes(destination_1).l();
   while (_iterator__ex2g4s_2.m()) {
-    var element = _iterator__ex2g4s_2.n();
+    var element_0 = _iterator__ex2g4s_2.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_0 = "duplicate signal id '" + element + "'";
-    problems.g(element_0);
+    var element_1 = "duplicate character id '" + element_0 + "'";
+    problems.g(element_1);
   }
   // Inline function 'kotlin.collections.map' call
-  var this_3 = mission.c1g_1.f1h_1;
+  var this_3 = mission.f1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_2 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_3, 10));
   var _iterator__ex2g4s_3 = this_3.l();
   while (_iterator__ex2g4s_3.m()) {
     var item_2 = _iterator__ex2g4s_3.n();
-    var tmp$ret$13 = item_2.g1h_1;
-    destination_2.g(tmp$ret$13);
+    var tmp$ret$14 = item_2.m1g_1;
+    destination_2.g(tmp$ret$14);
   }
   // Inline function 'kotlin.collections.forEach' call
   var _iterator__ex2g4s_4 = validate$dupes(destination_2).l();
   while (_iterator__ex2g4s_4.m()) {
-    var element_1 = _iterator__ex2g4s_4.n();
+    var element_2 = _iterator__ex2g4s_4.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_2 = "duplicate stem id '" + element_1 + "'";
-    problems.g(element_2);
+    var element_3 = "duplicate signal id '" + element_2 + "'";
+    problems.g(element_3);
+  }
+  // Inline function 'kotlin.collections.map' call
+  var this_4 = mission.c1g_1.f1h_1;
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination_3 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_4, 10));
+  var _iterator__ex2g4s_5 = this_4.l();
+  while (_iterator__ex2g4s_5.m()) {
+    var item_3 = _iterator__ex2g4s_5.n();
+    var tmp$ret$20 = item_3.g1h_1;
+    destination_3.g(tmp$ret$20);
+  }
+  // Inline function 'kotlin.collections.forEach' call
+  var _iterator__ex2g4s_6 = validate$dupes(destination_3).l();
+  while (_iterator__ex2g4s_6.m()) {
+    var element_4 = _iterator__ex2g4s_6.n();
+    // Inline function 'kotlin.collections.plusAssign' call
+    var element_5 = "duplicate stem id '" + element_4 + "'";
+    problems.g(element_5);
   }
   var allLines = LineCatalog_instance.z1u(mission);
   // Inline function 'kotlin.collections.buildList' call
   // Inline function 'kotlin.collections.buildListInternal' call
   // Inline function 'kotlin.apply' call
-  var this_4 = ArrayList_init_$Create$();
+  var this_5 = ArrayList_init_$Create$();
   // Inline function 'kotlin.collections.map' call
-  var this_5 = mission.d1g_1;
-  // Inline function 'kotlin.collections.mapTo' call
-  var destination_3 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_5, 10));
-  var _iterator__ex2g4s_5 = this_5.l();
-  while (_iterator__ex2g4s_5.m()) {
-    var item_3 = _iterator__ex2g4s_5.n();
-    var tmp$ret$19 = item_3.l1m_1;
-    destination_3.g(tmp$ret$19);
-  }
-  this_4.r(destination_3);
-  // Inline function 'kotlin.collections.map' call
-  var this_6 = mission.e1g_1;
+  var this_6 = mission.d1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_4 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_6, 10));
-  var _iterator__ex2g4s_6 = this_6.l();
-  while (_iterator__ex2g4s_6.m()) {
-    var item_4 = _iterator__ex2g4s_6.n();
-    var tmp$ret$22 = item_4.l1m_1;
-    destination_4.g(tmp$ret$22);
-  }
-  this_4.r(destination_4);
-  // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_7 = mission.f1g_1.l();
+  var _iterator__ex2g4s_7 = this_6.l();
   while (_iterator__ex2g4s_7.m()) {
-    var element_3 = _iterator__ex2g4s_7.n();
-    var c = element_3.x1g_1;
+    var item_4 = _iterator__ex2g4s_7.n();
+    var tmp$ret$26 = item_4.l1m_1;
+    destination_4.g(tmp$ret$26);
+  }
+  this_5.r(destination_4);
+  // Inline function 'kotlin.collections.map' call
+  var this_7 = mission.e1g_1;
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination_5 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_7, 10));
+  var _iterator__ex2g4s_8 = this_7.l();
+  while (_iterator__ex2g4s_8.m()) {
+    var item_5 = _iterator__ex2g4s_8.n();
+    var tmp$ret$29 = item_5.l1m_1;
+    destination_5.g(tmp$ret$29);
+  }
+  this_5.r(destination_5);
+  // Inline function 'kotlin.collections.forEach' call
+  var _iterator__ex2g4s_9 = mission.f1g_1.l();
+  while (_iterator__ex2g4s_9.m()) {
+    var element_6 = _iterator__ex2g4s_9.n();
+    var c = element_6.x1g_1;
     // Inline function 'kotlin.collections.map' call
-    var this_7 = plus(plus(plus(plus(plus(plus(element_3.u1g_1, element_3.v1g_1), element_3.w1g_1), c.r1i()), element_3.y1g_1), element_3.z1g_1), element_3.a1h_1);
+    var this_8 = plus(plus(plus(plus(plus(plus(element_6.u1g_1, element_6.v1g_1), element_6.w1g_1), c.r1i()), element_6.y1g_1), element_6.z1g_1), element_6.a1h_1);
     // Inline function 'kotlin.collections.mapTo' call
-    var destination_5 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_7, 10));
-    var _iterator__ex2g4s_8 = this_7.l();
-    while (_iterator__ex2g4s_8.m()) {
-      var item_5 = _iterator__ex2g4s_8.n();
-      var tmp$ret$25 = item_5.l1m_1;
-      destination_5.g(tmp$ret$25);
+    var destination_6 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_8, 10));
+    var _iterator__ex2g4s_10 = this_8.l();
+    while (_iterator__ex2g4s_10.m()) {
+      var item_6 = _iterator__ex2g4s_10.n();
+      var tmp$ret$32 = item_6.l1m_1;
+      destination_6.g(tmp$ret$32);
     }
-    this_4.r(destination_5);
+    this_5.r(destination_6);
     if (c instanceof Choice) {
       // Inline function 'kotlin.collections.forEach' call
-      var _iterator__ex2g4s_9 = c.e1j_1.l();
-      while (_iterator__ex2g4s_9.m()) {
-        var element_4 = _iterator__ex2g4s_9.n();
+      var _iterator__ex2g4s_11 = c.e1j_1.l();
+      while (_iterator__ex2g4s_11.m()) {
+        var element_7 = _iterator__ex2g4s_11.n();
         // Inline function 'kotlin.collections.map' call
-        var this_8 = element_4.h1j_1;
+        var this_9 = element_7.h1j_1;
         // Inline function 'kotlin.collections.mapTo' call
-        var destination_6 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_8, 10));
-        var _iterator__ex2g4s_10 = this_8.l();
-        while (_iterator__ex2g4s_10.m()) {
-          var item_6 = _iterator__ex2g4s_10.n();
-          var tmp$ret$28 = item_6.l1m_1;
-          destination_6.g(tmp$ret$28);
+        var destination_7 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_9, 10));
+        var _iterator__ex2g4s_12 = this_9.l();
+        while (_iterator__ex2g4s_12.m()) {
+          var item_7 = _iterator__ex2g4s_12.n();
+          var tmp$ret$35 = item_7.l1m_1;
+          destination_7.g(tmp$ret$35);
         }
-        this_4.r(destination_6);
+        this_5.r(destination_7);
       }
     }
     if (c instanceof Ask) {
       // Inline function 'kotlin.collections.map' call
-      var this_9 = c.b1j_1;
+      var this_10 = c.b1j_1;
       // Inline function 'kotlin.collections.mapTo' call
-      var destination_7 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_9, 10));
-      var _iterator__ex2g4s_11 = this_9.l();
-      while (_iterator__ex2g4s_11.m()) {
-        var item_7 = _iterator__ex2g4s_11.n();
-        var tmp$ret$33 = item_7.l1m_1;
-        destination_7.g(tmp$ret$33);
+      var destination_8 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_10, 10));
+      var _iterator__ex2g4s_13 = this_10.l();
+      while (_iterator__ex2g4s_13.m()) {
+        var item_8 = _iterator__ex2g4s_13.n();
+        var tmp$ret$40 = item_8.l1m_1;
+        destination_8.g(tmp$ret$40);
       }
-      this_4.r(destination_7);
+      this_5.r(destination_8);
     }
   }
   // Inline function 'kotlin.collections.map' call
-  var this_10 = plus(mission.g1g_1.f1k_1, mission.g1g_1.g1k_1);
+  var this_11 = plus(mission.g1g_1.f1k_1, mission.g1g_1.g1k_1);
   // Inline function 'kotlin.collections.mapTo' call
-  var destination_8 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_10, 10));
-  var _iterator__ex2g4s_12 = this_10.l();
-  while (_iterator__ex2g4s_12.m()) {
-    var item_8 = _iterator__ex2g4s_12.n();
-    var tmp$ret$38 = item_8.l1m_1;
-    destination_8.g(tmp$ret$38);
+  var destination_9 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_11, 10));
+  var _iterator__ex2g4s_14 = this_11.l();
+  while (_iterator__ex2g4s_14.m()) {
+    var item_9 = _iterator__ex2g4s_14.n();
+    var tmp$ret$45 = item_9.l1m_1;
+    destination_9.g(tmp$ret$45);
   }
-  this_4.r(destination_8);
+  this_5.r(destination_9);
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_13 = mission.i1g_1.l();
-  while (_iterator__ex2g4s_13.m()) {
-    var element_5 = _iterator__ex2g4s_13.n();
-    // Inline function 'kotlin.collections.map' call
-    var this_11 = element_5.h1r_1;
-    // Inline function 'kotlin.collections.mapTo' call
-    var destination_9 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_11, 10));
-    var _iterator__ex2g4s_14 = this_11.l();
-    while (_iterator__ex2g4s_14.m()) {
-      var item_9 = _iterator__ex2g4s_14.n();
-      var tmp$ret$41 = item_9.l1m_1;
-      destination_9.g(tmp$ret$41);
-    }
-    this_4.r(destination_9);
-  }
-  var rawLineIds = this_4.m4();
-  // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_15 = validate$dupes(rawLineIds).l();
+  var _iterator__ex2g4s_15 = mission.i1g_1.l();
   while (_iterator__ex2g4s_15.m()) {
-    var element_6 = _iterator__ex2g4s_15.n();
-    // Inline function 'kotlin.collections.plusAssign' call
-    var element_7 = "line id '" + element_6 + "' is used more than once";
-    problems.g(element_7);
+    var element_8 = _iterator__ex2g4s_15.n();
+    // Inline function 'kotlin.collections.map' call
+    var this_12 = element_8.h1r_1;
+    // Inline function 'kotlin.collections.mapTo' call
+    var destination_10 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_12, 10));
+    var _iterator__ex2g4s_16 = this_12.l();
+    while (_iterator__ex2g4s_16.m()) {
+      var item_10 = _iterator__ex2g4s_16.n();
+      var tmp$ret$48 = item_10.l1m_1;
+      destination_10.g(tmp$ret$48);
+    }
+    this_5.r(destination_10);
   }
-  var _iterator__ex2g4s_16 = allLines.l();
-  while (_iterator__ex2g4s_16.m()) {
-    var line = _iterator__ex2g4s_16.n();
+  var rawLineIds = this_5.m4();
+  // Inline function 'kotlin.collections.forEach' call
+  var _iterator__ex2g4s_17 = validate$dupes(rawLineIds).l();
+  while (_iterator__ex2g4s_17.m()) {
+    var element_9 = _iterator__ex2g4s_17.n();
+    // Inline function 'kotlin.collections.plusAssign' call
+    var element_10 = "line id '" + element_9 + "' is used more than once";
+    problems.g(element_10);
+  }
+  var _iterator__ex2g4s_18 = allLines.l();
+  while (_iterator__ex2g4s_18.m()) {
+    var line = _iterator__ex2g4s_18.n();
     if (!characterIds.c1(line.m1m_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_8 = "line '" + line.l1m_1 + "' has unknown speaker '" + line.m1m_1 + "'";
-      problems.g(element_8);
+      var element_11 = "line '" + line.l1m_1 + "' has unknown speaker '" + line.m1m_1 + "'";
+      problems.g(element_11);
     }
     if (isBlank(line.n1m_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_9 = "line '" + line.l1m_1 + "' is empty";
-      problems.g(element_9);
+      var element_12 = "line '" + line.l1m_1 + "' is empty";
+      problems.g(element_12);
     }
   }
   if (mission.e1g_1.q()) {
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_10 = 'mission has no briefing';
-    problems.g(element_10);
+    var element_13 = 'mission has no briefing';
+    problems.g(element_13);
   }
   var tmp;
   // Inline function 'kotlin.text.isNotBlank' call
-  var this_12 = mission.j1g_1;
-  if (!isBlank(this_12)) {
+  var this_13 = mission.j1g_1;
+  if (!isBlank(this_13)) {
     tmp = mission.f1m(mission.j1g_1) == null;
   } else {
     tmp = false;
   }
   if (tmp) {
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_11 = "handler '" + mission.j1g_1 + "' is not a character";
-    problems.g(element_11);
+    var element_14 = "handler '" + mission.j1g_1 + "' is not a character";
+    problems.g(element_14);
   }
   var tmp0_safe_receiver = mission.k1g_1;
   if (tmp0_safe_receiver == null)
@@ -31433,102 +31456,84 @@ protoOf(MissionValidator).l1v = function (mission) {
     // Inline function 'kotlin.let' call
     if (mission.f1m(tmp0_safe_receiver.x1h_1) == null) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_12 = "antagonist '" + tmp0_safe_receiver.x1h_1 + "' is not a character";
-      problems.g(element_12);
+      var element_15 = "antagonist '" + tmp0_safe_receiver.x1h_1 + "' is not a character";
+      problems.g(element_15);
     }
     if (isBlank(tmp0_safe_receiver.y1h_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_13 = "antagonist '" + tmp0_safe_receiver.x1h_1 + "' has no theme";
-      problems.g(element_13);
+      var element_16 = "antagonist '" + tmp0_safe_receiver.x1h_1 + "' has no theme";
+      problems.g(element_16);
     }
     var containsArg = tmp0_safe_receiver.a1i_1;
     if (!(0.0 <= containsArg ? containsArg <= 1.0 : false)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_14 = 'antagonist duck ' + tmp0_safe_receiver.a1i_1 + ' should be between 0 and 1';
-      problems.g(element_14);
+      var element_17 = 'antagonist duck ' + tmp0_safe_receiver.a1i_1 + ' should be between 0 and 1';
+      problems.g(element_17);
     }
   }
   if (mission.f1g_1.q()) {
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_15 = 'mission has no signals';
-    problems.g(element_15);
+    var element_18 = 'mission has no signals';
+    problems.g(element_18);
   }
   var containsArg_0 = mission.c1g_1.c1h_1;
   if (!(40.0 <= containsArg_0 ? containsArg_0 <= 220.0 : false)) {
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_16 = 'music bpm ' + mission.c1g_1.c1h_1 + ' looks wrong';
-    problems.g(element_16);
+    var element_19 = 'music bpm ' + mission.c1g_1.c1h_1 + ' looks wrong';
+    problems.g(element_19);
   }
   // Inline function 'kotlin.collections.map' call
-  var this_13 = mission.f1g_1;
-  // Inline function 'kotlin.collections.mapTo' call
-  var destination_10 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_13, 10));
-  var _iterator__ex2g4s_17 = this_13.l();
-  while (_iterator__ex2g4s_17.m()) {
-    var item_10 = _iterator__ex2g4s_17.n();
-    var tmp$ret$65 = item_10.s1g_1;
-    destination_10.g(tmp$ret$65);
-  }
-  var signalStems = toSet_0(destination_10);
-  // Inline function 'kotlin.collections.map' call
-  var this_14 = mission.i1g_1;
+  var this_14 = mission.f1g_1;
   // Inline function 'kotlin.collections.mapTo' call
   var destination_11 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_14, 10));
-  var _iterator__ex2g4s_18 = this_14.l();
-  while (_iterator__ex2g4s_18.m()) {
-    var item_11 = _iterator__ex2g4s_18.n();
-    var tmp$ret$68 = item_11.d1r_1;
-    destination_11.g(tmp$ret$68);
+  var _iterator__ex2g4s_19 = this_14.l();
+  while (_iterator__ex2g4s_19.m()) {
+    var item_11 = _iterator__ex2g4s_19.n();
+    var tmp$ret$72 = item_11.s1g_1;
+    destination_11.g(tmp$ret$72);
+  }
+  var signalStems = toSet_0(destination_11);
+  // Inline function 'kotlin.collections.map' call
+  var this_15 = mission.i1g_1;
+  // Inline function 'kotlin.collections.mapTo' call
+  var destination_12 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_15, 10));
+  var _iterator__ex2g4s_20 = this_15.l();
+  while (_iterator__ex2g4s_20.m()) {
+    var item_12 = _iterator__ex2g4s_20.n();
+    var tmp$ret$75 = item_12.d1r_1;
+    destination_12.g(tmp$ret$75);
   }
   // Inline function 'kotlin.collections.forEach' call
-  var _iterator__ex2g4s_19 = validate$dupes(destination_11).l();
-  while (_iterator__ex2g4s_19.m()) {
-    var element_17 = _iterator__ex2g4s_19.n();
+  var _iterator__ex2g4s_21 = validate$dupes(destination_12).l();
+  while (_iterator__ex2g4s_21.m()) {
+    var element_20 = _iterator__ex2g4s_21.n();
     // Inline function 'kotlin.collections.plusAssign' call
-    var element_18 = "duplicate soundtrack id '" + element_17 + "'";
-    problems.g(element_18);
+    var element_21 = "duplicate soundtrack id '" + element_20 + "'";
+    problems.g(element_21);
   }
-  var _iterator__ex2g4s_20 = mission.i1g_1.l();
-  while (_iterator__ex2g4s_20.m()) {
-    var t = _iterator__ex2g4s_20.n();
+  var _iterator__ex2g4s_22 = mission.i1g_1.l();
+  while (_iterator__ex2g4s_22.m()) {
+    var t = _iterator__ex2g4s_22.n();
     if (t.d1r_1 === 'original') {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_19 = "soundtrack id '" + t.d1r_1 + "' is reserved for the mission's own music";
-      problems.g(element_19);
+      var element_22 = "soundtrack id '" + t.d1r_1 + "' is reserved for the mission's own music";
+      problems.g(element_22);
     }
     if (isBlank(t.e1r_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_20 = "soundtrack '" + t.d1r_1 + "' has no title";
-      problems.g(element_20);
+      var element_23 = "soundtrack '" + t.d1r_1 + "' has no title";
+      problems.g(element_23);
     }
     if (t.g1r_1 < 0) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_21 = "soundtrack '" + t.d1r_1 + "' unlock count is negative";
-      problems.g(element_21);
+      var element_24 = "soundtrack '" + t.d1r_1 + "' unlock count is negative";
+      problems.g(element_24);
     }
     var containsArg_1 = t.i1r_1.c1h_1;
     if (!(40.0 <= containsArg_1 ? containsArg_1 <= 220.0 : false)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_22 = "soundtrack '" + t.d1r_1 + "' bpm " + t.i1r_1.c1h_1 + ' looks wrong';
-      problems.g(element_22);
-    }
-    // Inline function 'kotlin.collections.map' call
-    var this_15 = t.i1r_1.f1h_1;
-    // Inline function 'kotlin.collections.mapTo' call
-    var destination_12 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_15, 10));
-    var _iterator__ex2g4s_21 = this_15.l();
-    while (_iterator__ex2g4s_21.m()) {
-      var item_12 = _iterator__ex2g4s_21.n();
-      var tmp$ret$78 = item_12.g1h_1;
-      destination_12.g(tmp$ret$78);
-    }
-    // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s_22 = validate$dupes(destination_12).l();
-    while (_iterator__ex2g4s_22.m()) {
-      var element_23 = _iterator__ex2g4s_22.n();
-      // Inline function 'kotlin.collections.plusAssign' call
-      var element_24 = "soundtrack '" + t.d1r_1 + "' has duplicate stem id '" + element_23 + "'";
-      problems.g(element_24);
+      var element_25 = "soundtrack '" + t.d1r_1 + "' bpm " + t.i1r_1.c1h_1 + ' looks wrong';
+      problems.g(element_25);
     }
     // Inline function 'kotlin.collections.map' call
     var this_16 = t.i1r_1.f1h_1;
@@ -31537,118 +31542,136 @@ protoOf(MissionValidator).l1v = function (mission) {
     var _iterator__ex2g4s_23 = this_16.l();
     while (_iterator__ex2g4s_23.m()) {
       var item_13 = _iterator__ex2g4s_23.n();
-      var tmp$ret$84 = item_13.g1h_1;
-      destination_13.g(tmp$ret$84);
+      var tmp$ret$85 = item_13.g1h_1;
+      destination_13.g(tmp$ret$85);
     }
-    var ids = toSet_0(destination_13);
     // Inline function 'kotlin.collections.forEach' call
-    var _iterator__ex2g4s_24 = sorted(minus(signalStems, ids)).l();
+    var _iterator__ex2g4s_24 = validate$dupes(destination_13).l();
     while (_iterator__ex2g4s_24.m()) {
-      var element_25 = _iterator__ex2g4s_24.n();
+      var element_26 = _iterator__ex2g4s_24.n();
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_26 = "soundtrack '" + t.d1r_1 + "' has no stem '" + element_25 + "'";
-      problems.g(element_26);
+      var element_27 = "soundtrack '" + t.d1r_1 + "' has duplicate stem id '" + element_26 + "'";
+      problems.g(element_27);
+    }
+    // Inline function 'kotlin.collections.map' call
+    var this_17 = t.i1r_1.f1h_1;
+    // Inline function 'kotlin.collections.mapTo' call
+    var destination_14 = ArrayList_init_$Create$_0(collectionSizeOrDefault(this_17, 10));
+    var _iterator__ex2g4s_25 = this_17.l();
+    while (_iterator__ex2g4s_25.m()) {
+      var item_14 = _iterator__ex2g4s_25.n();
+      var tmp$ret$91 = item_14.g1h_1;
+      destination_14.g(tmp$ret$91);
+    }
+    var ids = toSet_0(destination_14);
+    // Inline function 'kotlin.collections.forEach' call
+    var _iterator__ex2g4s_26 = sorted(minus(signalStems, ids)).l();
+    while (_iterator__ex2g4s_26.m()) {
+      var element_28 = _iterator__ex2g4s_26.n();
+      // Inline function 'kotlin.collections.plusAssign' call
+      var element_29 = "soundtrack '" + t.d1r_1 + "' has no stem '" + element_28 + "'";
+      problems.g(element_29);
     }
   }
   // Inline function 'kotlin.collections.mutableSetOf' call
   var usedStems = LinkedHashSet_init_$Create$();
-  var _iterator__ex2g4s_25 = mission.f1g_1.l();
-  while (_iterator__ex2g4s_25.m()) {
-    var s = _iterator__ex2g4s_25.n();
+  var _iterator__ex2g4s_27 = mission.f1g_1.l();
+  while (_iterator__ex2g4s_27.m()) {
+    var s = _iterator__ex2g4s_27.n();
     if (!stemIds.c1(s.s1g_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_27 = "signal '" + s.m1g_1 + "' unlocks unknown stem '" + s.s1g_1 + "'";
-      problems.g(element_27);
+      var element_30 = "signal '" + s.m1g_1 + "' unlocks unknown stem '" + s.s1g_1 + "'";
+      problems.g(element_30);
     }
     if (!usedStems.g(s.s1g_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_28 = "stem '" + s.s1g_1 + "' is unlocked by more than one signal";
-      problems.g(element_28);
+      var element_31 = "stem '" + s.s1g_1 + "' is unlocked by more than one signal";
+      problems.g(element_31);
     }
     if (!characterIds.c1(s.t1g_1)) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_29 = "signal '" + s.m1g_1 + "' has unknown speaker '" + s.t1g_1 + "'";
-      problems.g(element_29);
+      var element_32 = "signal '" + s.m1g_1 + "' has unknown speaker '" + s.t1g_1 + "'";
+      problems.g(element_32);
     }
     if (s.r1g_1 > s.q1g_1) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_30 = "signal '" + s.m1g_1 + "' lock radius is larger than its near radius";
-      problems.g(element_30);
+      var element_33 = "signal '" + s.m1g_1 + "' lock radius is larger than its near radius";
+      problems.g(element_33);
     }
     if (s.r1g_1 < 10) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_31 = "signal '" + s.m1g_1 + "' lock radius under 10 m will be unreliable on phone GPS";
-      problems.g(element_31);
+      var element_34 = "signal '" + s.m1g_1 + "' lock radius under 10 m will be unreliable on phone GPS";
+      problems.g(element_34);
     }
     if (abs_1(this, s.p1g_1.s1p_1) > 90 || abs_1(this, s.p1g_1.t1p_1) > 180) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_32 = "signal '" + s.m1g_1 + "' has invalid coordinates";
-      problems.g(element_32);
+      var element_35 = "signal '" + s.m1g_1 + "' has invalid coordinates";
+      problems.g(element_35);
     }
     if (s.x1g_1.r1i().q()) {
       // Inline function 'kotlin.collections.plusAssign' call
-      var element_33 = "signal '" + s.m1g_1 + "' challenge has no prompt";
-      problems.g(element_33);
+      var element_36 = "signal '" + s.m1g_1 + "' challenge has no prompt";
+      problems.g(element_36);
     }
     var c_0 = s.x1g_1;
     if (c_0 instanceof Command) {
       if (c_0.m1j_1.q()) {
         // Inline function 'kotlin.collections.plusAssign' call
-        var element_34 = "signal '" + s.m1g_1 + "' command has no phrases";
-        problems.g(element_34);
+        var element_37 = "signal '" + s.m1g_1 + "' command has no phrases";
+        problems.g(element_37);
       }
     } else {
       if (c_0 instanceof Passphrase) {
         if (c_0.j1j_1.q()) {
           // Inline function 'kotlin.collections.plusAssign' call
-          var element_35 = "signal '" + s.m1g_1 + "' passphrase has no phrases";
-          problems.g(element_35);
+          var element_38 = "signal '" + s.m1g_1 + "' passphrase has no phrases";
+          problems.g(element_38);
         }
       } else {
         if (c_0 instanceof Choice) {
           if (c_0.e1j_1.o() < 2) {
             // Inline function 'kotlin.collections.plusAssign' call
-            var element_36 = "signal '" + s.m1g_1 + "' choice needs at least two options";
-            problems.g(element_36);
+            var element_39 = "signal '" + s.m1g_1 + "' choice needs at least two options";
+            problems.g(element_39);
           }
           // Inline function 'kotlin.collections.forEach' call
-          var _iterator__ex2g4s_26 = c_0.e1j_1.l();
-          while (_iterator__ex2g4s_26.m()) {
-            var element_37 = _iterator__ex2g4s_26.n();
-            if (element_37.g1j_1.q()) {
+          var _iterator__ex2g4s_28 = c_0.e1j_1.l();
+          while (_iterator__ex2g4s_28.m()) {
+            var element_40 = _iterator__ex2g4s_28.n();
+            if (element_40.g1j_1.q()) {
               // Inline function 'kotlin.collections.plusAssign' call
-              var element_38 = "signal '" + s.m1g_1 + "' option '" + element_37.f1j_1 + "' has no phrases";
-              problems.g(element_38);
+              var element_41 = "signal '" + s.m1g_1 + "' option '" + element_40.f1j_1 + "' has no phrases";
+              problems.g(element_41);
             }
           }
         } else {
           if (c_0 instanceof Ask) {
             if (c_0.c1j_1.q()) {
               // Inline function 'kotlin.collections.plusAssign' call
-              var element_39 = "signal '" + s.m1g_1 + "' ask has no offline fallback replies";
-              problems.g(element_39);
+              var element_42 = "signal '" + s.m1g_1 + "' ask has no offline fallback replies";
+              problems.g(element_42);
             }
           } else {
             if (c_0 instanceof Rhythm) {
               if (c_0.v1i_1.o() < 3) {
                 // Inline function 'kotlin.collections.plusAssign' call
-                var element_40 = "signal '" + s.m1g_1 + "' rhythm needs at least three taps";
-                problems.g(element_40);
+                var element_43 = "signal '" + s.m1g_1 + "' rhythm needs at least three taps";
+                problems.g(element_43);
               }
             } else {
               if (c_0 instanceof Record) {
                 var containsArg_2 = c_0.t1i_1;
                 if (!(3 <= containsArg_2 ? containsArg_2 <= 60 : false)) {
                   // Inline function 'kotlin.collections.plusAssign' call
-                  var element_41 = "signal '" + s.m1g_1 + "' record length should be 3-60 s";
-                  problems.g(element_41);
+                  var element_44 = "signal '" + s.m1g_1 + "' record length should be 3-60 s";
+                  problems.g(element_44);
                 }
               } else {
                 if (c_0 instanceof Tune) {
                   if (Geo_getInstance().d1o(s.p1g_1, c_0.z1l_1) < 150) {
                     // Inline function 'kotlin.collections.plusAssign' call
-                    var element_42 = "signal '" + s.m1g_1 + "' tune target is too close to aim at";
-                    problems.g(element_42);
+                    var element_45 = "signal '" + s.m1g_1 + "' tune target is too close to aim at";
+                    problems.g(element_45);
                   }
                 } else {
                   noWhenBranchMatchedException();
@@ -31677,8 +31700,8 @@ protoOf(MissionValidator).l1v = function (mission) {
       var d = Geo_getInstance().d1o(a.p1g_1, next.p1g_1);
       if (d < 35) {
         // Inline function 'kotlin.collections.plusAssign' call
-        var element_43 = "signals '" + a.m1g_1 + "' and '" + next.m1g_1 + "' are only " + numberToInt(d) + ' m apart';
-        problems.g(element_43);
+        var element_46 = "signals '" + a.m1g_1 + "' and '" + next.m1g_1 + "' are only " + numberToInt(d) + ' m apart';
+        problems.g(element_46);
       }
       result.g(Unit_instance);
       current = next;
