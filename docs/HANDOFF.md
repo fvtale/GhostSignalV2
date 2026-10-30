@@ -2,6 +2,24 @@
 
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
+# Handoff — 2026-10-30, Claude (Meta Wonder's briefing for Claude)
+
+## What changed
+
+Meta Wonder's reference packet is now in the repo: CLAUDE.md lists what Claude reads before a
+task and the report every task ends with. AGENTS.md adds "Verify a build" (engine, server, app,
+FIELD_TEST.md), the `/health` contract (`npc`, `stt`, `model`) and the constraints, one line
+each: Meta-only runtime, mission JSON is canon, never hand-edit the web engine, FMOD optional,
+APKs staged by commit. The server test now checks `model` too. APK staging is #8.
+
+## Verified
+
+- `npm test` in server/: 58 pass, with the stronger `/health` check.
+
+## Not verified
+
+- APK staging: not built yet (#8).
+
 # Handoff — 2026-10-30, Claude
 
 ## What this round does
