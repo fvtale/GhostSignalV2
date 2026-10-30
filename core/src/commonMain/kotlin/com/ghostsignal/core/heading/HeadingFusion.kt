@@ -3,6 +3,7 @@ package com.ghostsignal.core.heading
 import com.ghostsignal.core.geo.Geo
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -44,7 +45,15 @@ enum class HeadingSource {
   NONE,
 }
 
-data class HeadingEstimate(val deg: Double?, val source: HeadingSource, val glassesAligned: Boolean)
+data class HeadingEstimate(
+    val deg: Double?,
+    val source: HeadingSource,
+    val glassesAligned: Boolean,
+    /** Head pitch in degrees: positive = looking up, negative = looking down. Glasses-derived. */
+    val pitchDeg: Double? = null,
+    /** Head roll in degrees: positive = tilted toward the right shoulder. Glasses-derived. */
+    val rollDeg: Double? = null,
+)
 
 /**
  * Estimates where the runner's head is pointing, in degrees clockwise from true north.
@@ -63,6 +72,8 @@ class HeadingFusion(
     var mode: YawMode = YawMode.GYRO,
     /** Flip if turning right moves the in-app needle left. Checked during the field test. */
     var invertYaw: Boolean = false,
+    /** Flip if nodding down reads as pitch up. Checked during the field test, like [invertYaw]. */
+    var invertPitch: Boolean = false,
 ) {
   enum class YawMode {
     /** Integrate gyro around gravity. Frame-agnostic; drifts slowly, corrected by GPS course. */
@@ -91,7 +102,13 @@ class HeadingFusion(
   val glassesAligned: Boolean
     get() = offsetDeg != null
 
+  private var lastPitchDeg: Double? = null
+  private var lastRollDeg: Double? = null
+  private var pitchGravity: Vec3? = null
+
   fun onImu(sample: ImuSample, wallMs: Long) {
+    updatePitch(sample)
+    lastImuWallMs = wallMs
     val yaw = when (mode) {
       YawMode.GYRO -> integrateGyro(sample)
       YawMode.QUATERNION -> sample.orientation?.let { quaternionYawDeg(it) }
@@ -137,6 +154,54 @@ class HeadingFusion(
     return -atan2(sinyCosp, cosyCosp) * 180.0 / PI
   }
 
+  /**
+   * Pitch and roll from the same sample. Device convention (as the gyro tests assume): X is
+   * ear-to-ear, Y points up out of the top of the glasses, Z points forward out of the face.
+   * The orientation quaternion wins when present; otherwise the smoothed gravity vector gives
+   * tilt against the horizon, which needs no world anchor and never drifts.
+   */
+  private fun updatePitch(sample: ImuSample) {
+    val q = sample.orientation
+    if (q != null) {
+      val (p, r) = quaternionPitchRollDeg(q)
+      lastPitchDeg = p
+      lastRollDeg = r
+      return
+    }
+    val a = sample.accel ?: return
+    val g = pitchGravity?.let { it * 0.92 + a * 0.08 } ?: a
+    pitchGravity = g
+    if (g.norm() < 1e-9) return
+    val u = g.unit()
+    lastPitchDeg = -atan2(u.z, u.y) * 180.0 / PI
+    lastRollDeg = atan2(u.x, u.y) * 180.0 / PI
+  }
+
+  /** Pitch/roll of a fused orientation quaternion. World up is +Y in the quaternion frame. */
+  fun quaternionPitchRollDeg(q: Quat): Pair<Double, Double> {
+    val f = rotate(q, Vec3(0.0, 0.0, 1.0))
+    val u = rotate(q, Vec3(0.0, 1.0, 0.0))
+    val up = Vec3(0.0, 1.0, 0.0)
+    val pitch = asin((f.dot(up)).coerceIn(-1.0, 1.0)) * 180.0 / PI
+    val fu = f * f.dot(up)
+    val uu = u * u.dot(up)
+    val fHoriz = (f - fu).let { if (it.norm() < 1e-9) it else it.unit() }
+    val uHoriz = (u - uu).let { if (it.norm() < 1e-9) it else it.unit() }
+    val rollRef = uHoriz
+    val roll = atan2(cross(rollRef, u).dot(fHoriz), rollRef.dot(u).coerceIn(-1.0, 1.0)) * 180.0 / PI
+    return pitch to roll
+  }
+
+  private fun rotate(q: Quat, v: Vec3): Vec3 {
+    val u = Vec3(q.x, q.y, q.z)
+    val uv = cross(u, v)
+    val uuv = cross(u, uv)
+    return v + (uv * q.w + uuv) * 2.0
+  }
+
+  private fun cross(a: Vec3, b: Vec3) =
+      Vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+
   fun onPhoneAzimuth(deg: Double, wallMs: Long, inHand: Boolean) {
     phoneAzimuthDeg = Geo.normalizeDeg(deg)
     phoneAzimuthMs = wallMs
@@ -172,15 +237,15 @@ class HeadingFusion(
   fun estimate(wallMs: Long): HeadingEstimate {
     val offset = offsetDeg
     if (offset != null && glassesFresh(wallMs)) {
-      return HeadingEstimate(Geo.normalizeDeg(signed(relYawDeg) + offset), HeadingSource.GLASSES, true)
+      return HeadingEstimate(Geo.normalizeDeg(signed(relYawDeg) + offset), HeadingSource.GLASSES, true, pitchNow(wallMs), rollNow(wallMs))
     }
     if (phoneInHand && wallMs - phoneAzimuthMs <= FRESH_MS) {
-      return HeadingEstimate(phoneAzimuthDeg, HeadingSource.PHONE, glassesAligned)
+      return HeadingEstimate(phoneAzimuthDeg, HeadingSource.PHONE, glassesAligned, pitchNow(wallMs), rollNow(wallMs))
     }
     if (wallMs - courseMs <= COURSE_FRESH_MS && speedMps >= WALKING_MPS) {
-      return HeadingEstimate(courseDeg, HeadingSource.COURSE, glassesAligned)
+      return HeadingEstimate(courseDeg, HeadingSource.COURSE, glassesAligned, pitchNow(wallMs), rollNow(wallMs))
     }
-    return HeadingEstimate(null, HeadingSource.NONE, glassesAligned)
+    return HeadingEstimate(null, HeadingSource.NONE, glassesAligned, pitchNow(wallMs), rollNow(wallMs))
   }
 
   private fun absoluteReference(wallMs: Long): Double? =
@@ -191,6 +256,11 @@ class HeadingFusion(
       }
 
   private fun glassesFresh(wallMs: Long) = lastImuWallMs?.let { wallMs - it <= FRESH_MS } ?: false
+
+  private fun pitchNow(wallMs: Long): Double? =
+      if (glassesFresh(wallMs)) lastPitchDeg?.let { if (invertPitch) -it else it } else null
+
+  private fun rollNow(wallMs: Long): Double? = if (glassesFresh(wallMs)) lastRollDeg else null
 
   private fun signed(yaw: Double) = if (invertYaw) -yaw else yaw
 

@@ -8,6 +8,7 @@ import com.ghostsignal.core.geo.LatLon
 import com.ghostsignal.core.heading.HeadingFusion
 import com.ghostsignal.core.heading.HeadingSource
 import com.ghostsignal.core.heading.ImuSample
+import com.ghostsignal.core.heading.Quat
 import com.ghostsignal.core.heading.Vec3
 import com.ghostsignal.core.model.LineCatalog
 import com.ghostsignal.core.model.MissionValidator
@@ -172,6 +173,34 @@ class HeadingFusionTest {
   }
 
   @Test
+  fun pitchFromGravityTilt() {
+    val f = HeadingFusion()
+    // Upright, gravity along +Y: level head, no pitch, no roll.
+    f.onImu(ImuSample(1_000_000_000L, Vec3(0.0, 9.81, 0.0), Vec3(0.0, 0.0, 0.0), null), 10_000)
+    var est = f.estimate(10_000)
+    assertEquals(0.0, est.pitchDeg!!, 1.0)
+    assertEquals(0.0, est.rollDeg!!, 1.0)
+    // Nod down 30 degrees: gravity tips toward +Z in the device frame.
+    val down = Math.toRadians(30.0)
+    val g = Vec3(0.0, 9.81 * kotlin.math.cos(down), 9.81 * kotlin.math.sin(down))
+    repeat(30) { i -> f.onImu(ImuSample(1_000_000_000L + (i + 1) * 33_333_333L, g, Vec3(0.0, 0.0, 0.0), null), 10_033L + i * 33) }
+    est = f.estimate(11_000)
+    assertEquals(-30.0, est.pitchDeg!!, 3.0)
+  }
+
+  @Test
+  fun pitchFromOrientationQuaternion() {
+    val f = HeadingFusion(HeadingFusion.YawMode.QUATERNION)
+    // Pitch up 25 degrees about the X axis (Z-up world): q = (sin(12.5 deg), 0, 0, cos(12.5 deg)).
+    val half = Math.toRadians(12.5)
+    val q = Quat(-kotlin.math.sin(half), 0.0, 0.0, kotlin.math.cos(half))
+    f.onImu(ImuSample(1_000_000_000L, Vec3(0.0, 0.0, 9.81), null, q), 10_000)
+    val est = f.estimate(10_000)
+    assertEquals(25.0, est.pitchDeg!!, 1.0)
+    assertEquals(0.0, est.rollDeg!!, 1.0)
+  }
+
+  @Test
   fun walkingCourseCorrectsGyroDrift() {
     val f = HeadingFusion()
     var (ns, wall) = feed(f, 0.5, 0.0, 0, 10_000)
@@ -198,6 +227,15 @@ class MissionTest {
     assertTrue(problems.isEmpty(), problems.joinToString("\n"))
     assertEquals(8, mission.signals.size)
     assertEquals(8, mission.music.stems.size)
+  }
+
+  @Test
+  fun signalElevationsAreAuthoredAndChecked() {
+    assertEquals(35.0, mission.signal("spire")!!.elevationDeg, 1e-9)
+    assertEquals(-25.0, mission.signal("undertow")!!.elevationDeg, 1e-9)
+    assertEquals(0.0, mission.signal("heartbeat")!!.elevationDeg, 1e-9)
+    val bad = mission.copy(signals = mission.signals.map { if (it.id == "spire") it.copy(elevationDeg = 90.0) else it })
+    assertTrue(MissionValidator.validate(bad).any { "elevation" in it })
   }
 
   @Test

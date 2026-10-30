@@ -18,6 +18,8 @@ data class StemState(
     val distanceM: Double,
     /** 0 = buried in radio mush, 1 = clean. */
     val clarity: Double,
+    /** Authored source elevation in degrees (0 = horizontal plane). */
+    val elevationDeg: Double = 0.0,
 )
 
 data class AudioScene(
@@ -30,6 +32,9 @@ data class AudioScene(
     val paused: Boolean,
     /** How much the antagonist's theme holds the frequency: 0 = absent, 1 = in full. */
     val antagonistLevel: Double = 0.0,
+    /** Elevation of the sonar ping / static source in degrees. */
+    val pingElevationDeg: Double = 0.0,
+    val staticElevationDeg: Double = 0.0,
 ) {
   companion object {
     val SILENT = AudioScene(emptyMap(), 0.0, null, null, null, paused = false)
@@ -67,7 +72,7 @@ object AudioSceneComposer {
             if (reading != null) {
               val clarity = reading.strength.pow(0.8)
               stems[signal.stem] =
-                  StemState(signal.stem, 0.35 + 0.65 * reading.strength, reading.bearingDeg, reading.distanceM, clarity)
+                  StemState(signal.stem, 0.35 + 0.65 * reading.strength, reading.bearingDeg, reading.distanceM, clarity, signal.elevationDeg)
               staticLevel = (1 - clarity) * 0.5
               staticBearing = reading.bearingDeg
               ping = SignalField.pingIntervalMs(reading.strength)
@@ -87,7 +92,7 @@ object AudioSceneComposer {
             staticBearing = null
           }
           stems[signal.stem] =
-              StemState(signal.stem, 0.85, reading?.bearingDeg, min(reading?.distanceM ?: 6.0, 8.0), clarity)
+              StemState(signal.stem, 0.85, reading?.bearingDeg, min(reading?.distanceM ?: 6.0, 8.0), clarity, signal.elevationDeg)
         }
         Phase.BRIEFING -> staticLevel = 0.12
         else -> Unit
@@ -113,6 +118,6 @@ object AudioSceneComposer {
     val duck = 1.0 - (antagonist?.duck ?: 0.0) * level
     val ducked = if (level > 0) stems.mapValues { (_, st) -> st.copy(gain = st.gain * duck) } else stems
 
-    return AudioScene(ducked, staticLevel, staticBearing, ping, pingBearing, engine.paused, level)
+    return AudioScene(ducked, staticLevel, staticBearing, ping, pingBearing, engine.paused, level, signal?.elevationDeg ?: 0.0, if (staticBearing != null) signal?.elevationDeg ?: 0.0 else 0.0)
   }
 }

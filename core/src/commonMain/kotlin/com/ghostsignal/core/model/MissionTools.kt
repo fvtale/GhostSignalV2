@@ -121,6 +121,7 @@ object MissionValidator {
       if (s.speaker !in characterIds) problems += "signal '${s.id}' has unknown speaker '${s.speaker}'"
       if (s.lockRadiusM > s.radiusM) problems += "signal '${s.id}' lock radius is larger than its near radius"
       if (s.lockRadiusM < 10) problems += "signal '${s.id}' lock radius under 10 m will be unreliable on phone GPS"
+      if (s.elevationDeg !in -60.0..60.0) problems += "signal '${s.id}' elevation ${s.elevationDeg} should be between -60 and 60 degrees"
       if (abs(s.location.lat) > 90 || abs(s.location.lon) > 180) problems += "signal '${s.id}' has invalid coordinates"
       if (s.challenge.prompt.isEmpty()) problems += "signal '${s.id}' challenge has no prompt"
       when (val c = s.challenge) {

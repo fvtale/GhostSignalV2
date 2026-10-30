@@ -119,6 +119,7 @@
     },
     {
       "id": "stacks",
+      "elevationDeg": 15,
       "name": "The Stacks",
       "place": "the Reading Room on the Forty-Second Street side of the park",
       "location": { "lat": 40.75419, "lon": -73.982961 },
@@ -160,6 +161,7 @@
     },
     {
       "id": "undertow",
+      "elevationDeg": -25,
       "name": "The Undertow",
       "place": "the fountain at the Sixth Avenue end of the park",
       "location": { "lat": 40.75398, "lon": -73.98412 },
@@ -197,6 +199,7 @@
     },
     {
       "id": "bucketline",
+      "elevationDeg": -10,
       "name": "Bucket Line",
       "place": "Le Carrousel, on the Fortieth Street side",
       "location": { "lat": 40.753494, "lon": -73.984486 },
@@ -235,6 +238,7 @@
     },
     {
       "id": "fog",
+      "elevationDeg": 10,
       "name": "The Fog",
       "place": "the walkway along the Forty-Second Street side of the lawn",
       "location": { "lat": 40.754217, "lon": -73.983416 },
@@ -287,6 +291,7 @@
     },
     {
       "id": "spire",
+      "elevationDeg": 35,
       "name": "The Spire",
       "place": "the terrace by Forty-Second Street, behind the Library",
       "location": { "lat": 40.753887, "lon": -73.982802 },

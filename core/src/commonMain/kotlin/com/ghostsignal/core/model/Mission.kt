@@ -142,6 +142,8 @@ data class Signal(
     val radiusM: Double = 45.0,
     /** Within this radius a capture press locks the signal. */
     val lockRadiusM: Double = 28.0,
+    /** Authored height of the source in degrees (-60..60): rendered elevation for spatial audio. */
+    val elevationDeg: Double = 0.0,
     /** Music stem this signal unlocks. */
     val stem: String,
     val speaker: String,
