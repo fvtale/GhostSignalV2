@@ -158,6 +158,39 @@ function trainingRow(issue, { agent, area }, rules) {
   };
 }
 
+/** The agent that owns an area under rules.json; "Something else" goes to the default agent. */
+function agentForArea(area, rules) {
+  return rules.areas[area] ?? rules.defaultAgent;
+}
+
+/**
+ * The seed examples (seeds.jsonl): tasks written to give Glimmer enough to learn from before
+ * there are hundreds of real issues. Each has an area and where it came from ("history":
+ * rephrased from real GhostSignal work; "planned": plausible upcoming work), never an agent:
+ * the agent comes from rules.json at export, so the examples always follow the current policy.
+ */
+function loadSeeds(rules, file = path.join(__dirname, "seeds.jsonl")) {
+  if (!fs.existsSync(file)) return [];
+  return fs
+    .readFileSync(file, "utf8")
+    .split("\n")
+    .filter((l) => l.trim())
+    .map((line, i) => {
+      const seed = JSON.parse(line);
+      const where = `seeds.jsonl line ${i + 1}`;
+      if (!(seed.area in rules.areas) && seed.area !== OTHER_AREA) throw new Error(`${where}: unknown area "${seed.area}"`);
+      if (!["history", "planned"].includes(seed.from)) throw new Error(`${where}: "from" is history or planned`);
+      if (!String(seed.text ?? "").trim() || seed.text.length > TASK_CHARS) throw new Error(`${where}: text is empty or too long`);
+      return seed;
+    });
+}
+
+/** A seed in the shape of an issue: its first line is the title, the rest the body. */
+function seedIssue(seed) {
+  const [title, ...rest] = seed.text.split("\n");
+  return { title, body: rest.join("\n").trim() };
+}
+
 /** Held out of training for the eval: about one issue in ten, the same ones every export. */
 function isHoldout(number) {
   return Number(number) % 10 === 0;
@@ -181,4 +214,7 @@ module.exports = {
   glimmerSystem,
   trainingRow,
   isHoldout,
+  agentForArea,
+  loadSeeds,
+  seedIssue,
 };

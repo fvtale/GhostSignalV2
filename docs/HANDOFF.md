@@ -2,6 +2,25 @@
 
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
+# Handoff — 2026-10-30, Claude (#4: seed examples for Glimmer)
+
+## What changed
+
+`.github/agent-router/seeds.jsonl` adds 219 example tasks for training Muse Glimmer: 73
+rephrased from real GhostSignal work and 146 planned V2 tasks, across every area. Each carries
+an area; the export gives it the agent `rules.json` assigns, and holds out one in ten. The export
+summary now says how many rows came from issues and how many from seeds. docs/AGENT-ROUTER.md
+explains what the seeds teach and what they don't.
+
+## Verified
+
+- Router tests: 29 pass (seeds load, cover every area, follow rules.json, stable holdout).
+- The keyword rules route 167 of 219 seeds correctly (76%): the baseline Glimmer has to beat.
+
+## Not verified
+
+- Training on Fireworks: blocked from Claude's sandbox. The owner runs the starter (docs/AGENT-ROUTER.md).
+
 # Handoff — 2026-10-30, Claude
 
 ## What this round does
