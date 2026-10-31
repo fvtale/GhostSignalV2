@@ -3,18 +3,18 @@
 # way. Safe to run again: every step checks what is already there. Run it as root. Copy it to
 # the server and run it there (the same two commands work in PowerShell, Terminal and bash):
 #
-#   scp -i $HOME/.ssh/datarail_storage_vps install.sh root@162.35.99.105:/root/install-v2.sh
-#   ssh -i $HOME/.ssh/datarail_storage_vps root@162.35.99.105 "bash /root/install-v2.sh --admin you@example.com"
+#   scp -i $HOME/.ssh/datarail_storage_vps install.sh root@162.35.99.105:/root/ghostsignal-install.sh
+#   ssh -i $HOME/.ssh/datarail_storage_vps root@162.35.99.105 "bash /root/ghostsignal-install.sh --admin you@example.com"
 #
-# or on the server, once the checkout exists:  sudo /opt/ghostsignalv2/deploy/install.sh
+# or on the server, once the checkout exists:  sudo /opt/ghostsignal/deploy/install.sh
 #
 #   --admin EMAIL       make this the first admin account, before the site is public
 #   --branch NAME       the branch this host follows (default: the repository's default branch)
 #   --skip-dns-check    put the Caddy site in place without checking that DNS points here
 #
-# In order: Node.js 22, a ghostsignalv2 user, a read-only deploy key, the checkout, the server's
-# tests, /etc/ghostsignalv2.env with fresh tokens, the systemd service on 127.0.0.1:8091, the
-# first admin account, and last the Caddy site, once ghostsignalv2.datarail.org points here.
+# In order: Node.js 22, a ghostsignal user, a read-only deploy key, the checkout, the server's
+# tests, /etc/ghostsignal.env with fresh tokens, the systemd service on 127.0.0.1:8090, the
+# first admin account, and last the Caddy site, once ghostsignal.datarail.org points here.
 # See DEPLOY.md.
 
 main() {
@@ -25,8 +25,8 @@ main() {
     cd /
 
     local repo=${GHOSTSIGNAL_REPO:-git@github.com:fvtale/GhostSignalV2.git}
-    local app=/opt/ghostsignalv2 data=/srv/ghostsignalv2/data env_file=/etc/ghostsignalv2.env
-    local health=http://127.0.0.1:8091
+    local app=/opt/ghostsignal data=/srv/ghostsignal/data env_file=/etc/ghostsignal.env
+    local health=http://127.0.0.1:8090
     local admin="" branch="" dns_check=1
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -44,7 +44,7 @@ main() {
     fi
 
     step() { printf '\n== %s\n' "$*"; }
-    as_app() { sudo -u ghostsignalv2 -H "$@"; }
+    as_app() { sudo -u ghostsignal -H "$@"; }
     token() { node -e 'process.stdout.write(require("crypto").randomBytes(32).toString("base64url"))'; }
 
     step "Node.js 22"
@@ -67,20 +67,20 @@ main() {
     command -v git >/dev/null || apt-get install -yq git
 
     step "User and folders"
-    id -u ghostsignalv2 >/dev/null 2>&1 ||
-        useradd --system --create-home --home-dir /home/ghostsignalv2 --shell /usr/sbin/nologin ghostsignalv2
-    install -d -o ghostsignalv2 -g ghostsignalv2 -m 755 "$app"
-    install -d -o ghostsignalv2 -g ghostsignalv2 -m 700 /srv/ghostsignalv2 "$data"
+    id -u ghostsignal >/dev/null 2>&1 ||
+        useradd --system --create-home --home-dir /home/ghostsignal --shell /usr/sbin/nologin ghostsignal
+    install -d -o ghostsignal -g ghostsignal -m 755 "$app"
+    install -d -o ghostsignal -g ghostsignal -m 700 /srv/ghostsignal "$data"
     echo "code $app · data $data"
 
     step "Read-only access to the repository"
-    local ssh_dir=/home/ghostsignalv2/.ssh
+    local ssh_dir=/home/ghostsignal/.ssh
     local key=$ssh_dir/github_deploy
     # GitHub's published ed25519 host key (SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU),
     # pinned rather than taken on trust from ssh-keyscan.
     local github_key="github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
-    install -d -o ghostsignalv2 -g ghostsignalv2 -m 700 "$ssh_dir"
-    [ -f "$key" ] || as_app ssh-keygen -q -t ed25519 -N "" -C "ghostsignalv2@$(hostname)" -f "$key"
+    install -d -o ghostsignal -g ghostsignal -m 700 "$ssh_dir"
+    [ -f "$key" ] || as_app ssh-keygen -q -t ed25519 -N "" -C "ghostsignal@$(hostname)" -f "$key"
     grep -qxF "$github_key" "$ssh_dir/known_hosts" 2>/dev/null || echo "$github_key" | as_app tee -a "$ssh_dir/known_hosts" >/dev/null
     local git_ssh="ssh -i $key -o IdentitiesOnly=yes"
     if [[ $repo == git@* ]] && ! as_app env GIT_SSH_COMMAND="$git_ssh" git ls-remote "$repo" HEAD >/dev/null 2>&1; then
@@ -112,7 +112,7 @@ EOF
 
     step "Dependencies and the server's tests"
     (cd "$app/server" && as_app npm ci --omit=dev --no-audit --no-fund --loglevel=error)
-    local log=/tmp/ghostsignalv2-install-tests.log
+    local log=/tmp/ghostsignal-install-tests.log
     (cd "$app/server" && as_app npm test >"$log" 2>&1) || { tail -30 "$log" >&2; echo "!! the tests failed; nothing is running yet" >&2; exit 1; }
     echo "$(grep -E '^# (pass|fail) ' "$log" | tr '\n' ' ')"
 
@@ -121,9 +121,9 @@ EOF
         (
             umask 077
             cat >"$env_file" <<EOF
-# GhostSignal V2's secrets and settings, read by the ghostsignalv2 service. Root-only.
+# GhostSignal V2's secrets and settings, read by the ghostsignal service. Root-only.
 # Every variable is explained in server/.env.example. After a change:
-#   systemctl restart ghostsignalv2
+#   systemctl restart ghostsignal
 
 # App builds made for an event carry EVENT_TOKEN (local.properties: ghostsignal.eventToken);
 # signed-in players don't need it. OPERATOR_TOKEN signs in to /admin when nothing else can.
@@ -163,19 +163,19 @@ EOF
     fi
 
     step "Service"
-    if ! cmp -s "$app/deploy/ghostsignalv2.service" /etc/systemd/system/ghostsignalv2.service; then
-        install -m 644 "$app/deploy/ghostsignalv2.service" /etc/systemd/system/ghostsignalv2.service
+    if ! cmp -s "$app/deploy/ghostsignal.service" /etc/systemd/system/ghostsignal.service; then
+        install -m 644 "$app/deploy/ghostsignal.service" /etc/systemd/system/ghostsignal.service
         systemctl daemon-reload
     fi
-    systemctl enable -q ghostsignalv2
-    systemctl restart ghostsignalv2
+    systemctl enable -q ghostsignal
+    systemctl restart ghostsignal
     local up=0
     for _ in $(seq 1 20); do
         if [[ $(curl -fsS "$health/health" 2>/dev/null) == *'"ok":true'* ]]; then up=1; break; fi
         sleep 1
     done
     if [ "$up" -ne 1 ]; then
-        journalctl -u ghostsignalv2 -n 30 --no-pager >&2 || true
+        journalctl -u ghostsignal -n 30 --no-pager >&2 || true
         echo "!! the service didn't come up on $health" >&2
         exit 1
     fi
@@ -209,7 +209,7 @@ EOF
 
     step "HTTPS through Caddy"
     local domain there
-    domain=$(awk 'NF && $1 !~ /^#/ && /\{/ {print $1; exit}' "$app/deploy/ghostsignalv2.caddy")
+    domain=$(awk 'NF && $1 !~ /^#/ && /\{/ {print $1; exit}' "$app/deploy/ghostsignal.caddy")
     there=$(getent ahostsv4 "$domain" | awk 'NR == 1 {print $1}' || true)
     local mine
     mine=" $(hostname -I) "
@@ -242,7 +242,7 @@ GhostSignal V2: https://$domain
 Updates from now on:  sudo $app/deploy/update.sh
 EOF
     grep -q '^MODEL_API_KEY=.' "$env_file" ||
-        echo "Characters and speech are off until MODEL_API_KEY is in $env_file (then: systemctl restart ghostsignalv2)."
+        echo "Characters and speech are off until MODEL_API_KEY is in $env_file (then: systemctl restart ghostsignal)."
 }
 
 main "$@"

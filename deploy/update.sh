@@ -2,8 +2,8 @@
 # Bring GhostSignal V2 on this host up to the latest commit of the branch it follows, and only
 # keep it if it works.
 #
-#   sudo /opt/ghostsignalv2/deploy/update.sh           # update if the branch moved
-#   sudo /opt/ghostsignalv2/deploy/update.sh --force   # re-run the checks anyway
+#   sudo /opt/ghostsignal/deploy/update.sh           # update if the branch moved
+#   sudo /opt/ghostsignal/deploy/update.sh --force   # re-run the checks anyway
 #
 # The same order as DataRail Storage's update.sh on this VPS: pull, install anything new, run
 # the server's tests, restart, then ask the running service if it is healthy. A failure at the
@@ -12,16 +12,16 @@
 
 set -euo pipefail
 
-APP=/opt/ghostsignalv2
-SERVICE=ghostsignalv2
-HEALTH=http://127.0.0.1:8091/health
-LOG=/tmp/ghostsignalv2-update-tests.log
+APP=/opt/ghostsignal
+SERVICE=ghostsignal
+HEALTH=http://127.0.0.1:8090/health
+LOG=/tmp/ghostsignal-update-tests.log
 
 [ "$(id -u)" -eq 0 ] || { echo "run this as root (sudo)" >&2; exit 1; }
 cd "$APP"
 
 # Git and npm run as the service user, so nothing in the checkout ends up owned by root.
-as_app() { sudo -u ghostsignalv2 -H "$@"; }
+as_app() { sudo -u ghostsignal -H "$@"; }
 deps() { (cd server && as_app npm ci --omit=dev --no-audit --no-fund --loglevel=error); }
 
 branch=$(as_app git rev-parse --abbrev-ref HEAD)
@@ -53,14 +53,14 @@ fi
 echo "Tests: $(grep -E '^# (pass|fail) ' "$LOG" | tr '\n' ' ')"
 
 # Host config that lives in the repo: pick it up when it changed.
-if ! cmp -s deploy/ghostsignalv2.service /etc/systemd/system/$SERVICE.service; then
-    install -m 644 deploy/ghostsignalv2.service /etc/systemd/system/$SERVICE.service
+if ! cmp -s deploy/ghostsignal.service /etc/systemd/system/$SERVICE.service; then
+    install -m 644 deploy/ghostsignal.service /etc/systemd/system/$SERVICE.service
     systemctl daemon-reload
     echo "Service unit updated."
 fi
 # Once install.sh has put the site in place (it waits for DNS), keep it current.
-if [ -f /etc/caddy/sites.d/ghostsignalv2.caddy ]; then
-    deploy/caddy-site.sh || rollback "Caddy rejected deploy/ghostsignalv2.caddy"
+if [ -f /etc/caddy/sites.d/ghostsignal.caddy ]; then
+    deploy/caddy-site.sh || rollback "Caddy rejected deploy/ghostsignal.caddy"
 fi
 
 systemctl restart "$SERVICE"
