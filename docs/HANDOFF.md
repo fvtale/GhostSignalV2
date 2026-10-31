@@ -2,6 +2,50 @@
 
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
+# Handoff — 2026-10-31, Claude
+
+## What this round does
+
+- **The deploy files match the live server again.** The VPS never got f1c70d2's `ghostsignalv2`
+  layout. V2's code runs in the original's place instead: unit `ghostsignal`, `/opt/ghostsignal`
+  (on `main`), port 8090, `/etc/ghostsignal.env`, `/srv/ghostsignal/data`,
+  ghostsignal.datarail.org. So the server's own `update.sh` failed at `cd /opt/ghostsignalv2`.
+  - `deploy/ghostsignal.service` and `deploy/ghostsignal.caddy` are back, byte for byte the
+    files the server runs, so the first update leaves the unit and the Caddy site alone.
+  - `update.sh`, `install.sh` and `caddy-site.sh` use the `ghostsignal` user, folders, unit,
+    port and site. The installer still clones this repository; it now lands as
+    `/root/ghostsignal-install.sh`.
+  - DEPLOY.md describes that layout, plus a one-time command for the first update, because the
+    copy of `update.sh` on the server can't run.
+  - CI's unit check, the env path in AGENTS.md and the app's default `BACKEND_URL`
+    (`https://ghostsignal.datarail.org`) follow.
+- Unchanged: app ID `com.ghostsignal.v2`, the "GhostSignal V2" name, `GhostSignalV2.apk`.
+
+## Verified
+
+- Server 58/58 (Node 24 locally; CI runs 22).
+- `shellcheck -S warning *.sh` in `deploy/`, as CI runs it: clean. The one-time command in
+  DEPLOY.md gets SC2024 (root does the redirect), which is intended.
+- With the owner's OK, a read-only SSH check of the live unit and Caddy site: their sha256
+  matches the staged `deploy/ghostsignal.service` and `deploy/ghostsignal.caddy`. The checkout is
+  clean on `main` at 3e77dd3, and the Caddyfile imports `sites.d/*.caddy`.
+
+## Not verified
+
+- Neither `update.sh` nor the one-time command has run on the server. Running either restarts
+  `ghostsignal` for a few seconds.
+- `systemd-analyze verify` (no systemd here; CI runs it). The unit is the one the server runs.
+- `install.sh` on a fresh host, and whether the server's deploy key can read this repository
+  over SSH (the installer checks it; `update.sh` fetches through the checkout's own remote).
+- The Android build with the new default URL (CI builds it).
+
+## Next
+
+- Owner: merge, then run the one-time command under "Updating" in DEPLOY.md.
+- If a `ghostsignalv2` A record was ever added in the IONOS DNS, it can go.
+
+---
+
 # Handoff — 2026-10-30, Claude
 
 ## What this round does

@@ -65,7 +65,7 @@ gh issue list --label agent:wonder --label status:ready   # tasks routed to you
 ## Ground rules
 
 - **This repository is public.** No keys, tokens or personal data in commits, issues or PRs.
-  Local keys go in `server/.env` (ignored by git); production ones in `/etc/ghostsignalv2.env` on
+  Local keys go in `server/.env` (ignored by git); production ones in `/etc/ghostsignal.env` on
   the VPS ([DEPLOY.md](DEPLOY.md)).
 - One task per PR. `main` stays green.
 - Don't rewrite history on `main` or on a branch that isn't yours.
