@@ -79,6 +79,8 @@ const npcBody = {
 describe("health and auth", () => {
   it("reports configured features without a token", async () => {
     const res = await fetch(`${base}/health`);
+    const seen = await res.clone().json();
+    assert.equal(seen.npcHost, "api.meta.ai", "/health says where character replies go");
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.mission, mission.id);

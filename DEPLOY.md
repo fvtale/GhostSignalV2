@@ -95,6 +95,10 @@ variable), then `systemctl restart ghostsignalv2`:
   transcription (Muse Voice). Without it, characters use their written fallback lines and
   speech falls back to the on-device recognizers. Character voices are always rendered on
   the device (Android TTS, browser speech synthesis); the server keeps no voice keys.
+- `NPC_API_KEY` and `NPC_API_BASE` (optional): character replies on their own key and service,
+  with transcription staying on `MODEL_API_KEY`. `NPC_MODEL` then names a model on that service.
+  `/health` shows where replies go as `npcHost`. `npc: true` only means a key is set, not that it
+  works.
 - Payments: paste the payment link on the admin page (Players tab), or set `PAYMENT_LINK_URL`.
   For premium to switch on by itself, point the provider's webhook at
   `https://ghostsignalv2.datarail.org/v1/billing/stripe` (or `/v1/billing/lemonsqueezy`) and put its

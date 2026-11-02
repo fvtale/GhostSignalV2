@@ -2,7 +2,7 @@ import { createAccounts } from "./accounts.js";
 import { createAdmin } from "./admin.js";
 import { loadEnvFile } from "./env.js";
 import { loadMission } from "./mission.js";
-import { createMeta } from "./meta.js";
+import { createChatClient, createMeta } from "./meta.js";
 import { createNpc } from "./npc.js";
 import { createServer } from "./server.js";
 import { createStore } from "./store.js";
@@ -15,7 +15,7 @@ if (envFileKeys.length) console.log(`loaded ${envFileKeys.length} setting(s) fro
 
 const mission = loadMission();
 const meta = createMeta();
-const npc = createNpc({ meta });
+const npc = createNpc({ meta: createChatClient({ shared: meta }) });
 const stt = createStt({ meta });
 const tts = createTts();
 const eventToken = process.env.EVENT_TOKEN ?? "";
@@ -24,7 +24,7 @@ const operatorToken = process.env.OPERATOR_TOKEN ?? "";
 if (!eventToken) console.warn("EVENT_TOKEN is not set: anyone who finds this server can use the character agent and speech transcription.");
 const datarailApi = process.env.DATARAIL_API ?? "";
 if (!operatorToken && !datarailApi) console.warn("Neither OPERATOR_TOKEN nor DATARAIL_API is set: nobody can sign in to /admin, publish routes or send broadcasts.");
-console.log(`mission ${mission.id} · characters ${npc.enabled ? `on ${npc.model}` : "OFF (no MODEL_API_KEY)"} · speech ${stt.enabled ? `on ${stt.model}` : "OFF (no MODEL_API_KEY)"} · voices on-device · admin sign-in ${["admin accounts", operatorToken && "operator token", datarailApi && "DataRail admins"].filter(Boolean).join(" + ") || "OFF"}`);
+console.log(`mission ${mission.id} · characters ${npc.enabled ? `on ${npc.model} at ${npc.host}` : "OFF (no MODEL_API_KEY or NPC_API_KEY)"} · speech ${stt.enabled ? `on ${stt.model}` : "OFF (no MODEL_API_KEY)"} · voices on-device · admin sign-in ${["admin accounts", operatorToken && "operator token", datarailApi && "DataRail admins"].filter(Boolean).join(" + ") || "OFF"}`);
 
 const list = (v) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const store = createStore();

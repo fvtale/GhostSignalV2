@@ -9,6 +9,14 @@ export const DEFAULT_STT_MODEL = "muse-voice-transcribe-1.0";
 
 const fail = (status, message) => Object.assign(new Error(message), { status });
 
+function hostOf(url) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "";
+  }
+}
+
 export function createMeta({
   apiKey = process.env.MODEL_API_KEY || process.env.META_API_KEY || "",
   baseUrl = process.env.META_API_BASE || "https://api.meta.ai/v1",
@@ -38,6 +46,8 @@ export function createMeta({
 
   return {
     enabled: Boolean(apiKey),
+    /** Where this client's calls go, for /health and the startup log. */
+    host: hostOf(base),
 
     /** One character reply: system persona + the per-request game state, as a chat completion. */
     async chat({ model, system, user, effort = "low" }) {
@@ -70,4 +80,15 @@ export function createMeta({
       return typeof data.transcript === "string" ? data.transcript : "";
     },
   };
+}
+
+/**
+ * The client for character replies. With NPC_API_KEY set, characters run on their own key and
+ * OpenAI-shaped service (NPC_API_BASE, e.g. Fireworks) while everything else stays on `shared`:
+ * transcription only exists on the Meta Model API. Without it, characters share `shared`.
+ */
+export function createChatClient({ shared, env = process.env, fetchImpl = globalThis.fetch, log = console } = {}) {
+  if (!env.NPC_API_KEY) return shared;
+  const baseUrl = env.NPC_API_BASE ? { baseUrl: env.NPC_API_BASE } : {};
+  return createMeta({ apiKey: env.NPC_API_KEY, ...baseUrl, fetchImpl, log });
 }
