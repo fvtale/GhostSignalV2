@@ -2,6 +2,40 @@
 
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
+# Handoff — 2026-11-02, Claude
+
+## What this round does
+
+Character replies can run on their own key and service, with transcription staying on the Meta
+Model API. Set `NPC_API_KEY`, `NPC_API_BASE` and `NPC_MODEL`. Without `NPC_API_KEY` nothing changes.
+`/health` gains `npcHost`, because `npc: true` only says a key is set.
+
+Why: from the VPS, the Meta Model API answers chat with 404 `model_not_found` every time, for every
+model tried, while the same key and request answer from a home connection, and transcription works
+from the VPS. The cause isn't known yet. `GET /v1/models` doesn't help: it returned different lists
+at random from both places. So live characters can't reach a model today, though `/health` says
+`npc: true`. The plan is Fireworks' `muse-spark-open` for characters until that's understood.
+
+## Verified
+
+- `cd server && npm test`, including new tests that characters and transcription go to the right
+  service with the right key.
+- Fireworks' API reference accepts every field `chat()` sends.
+
+## Not verified
+
+- A real character reply through Fireworks: it needs a Fireworks key on the server. `reasoning_effort:
+  "low"` is accepted by its API, but valid values depend on the model. If the reply comes back empty,
+  the written fallback lines play; look at `max_completion_tokens` (400) first, as a reasoning model
+  can spend it on thinking.
+- Nothing has been deployed. This needs #6 and #10 first, or the server has no working update path.
+
+## Next
+
+- Owner: after merging, update the server, then seal the Fireworks key.
+
+---
+
 # Handoff — 2026-10-30, Claude
 
 ## What this round does

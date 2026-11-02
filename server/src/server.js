@@ -189,6 +189,8 @@ export function createServer({
         tts: tts.enabled,
         stt: stt.enabled,
         model: npc.model,
+        // Where character replies go. `npc` only says a key is set: a key can be set and not work.
+        npcHost: npc.host,
         admin: { operatorToken: Boolean(operatorToken), datarail: admin.datarail, accounts: true },
         payments: players.health(),
       });

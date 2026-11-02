@@ -89,6 +89,7 @@ export function createNpc({
   return {
     enabled: client.enabled,
     model,
+    host: client.host,
 
     async reply(mission, body) {
       const character = findCharacter(mission, body.characterId);
