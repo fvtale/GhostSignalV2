@@ -50,6 +50,9 @@ const PAGE_DIRS = {
 /** Domain-root landing page (signature circuitry), served at `/`. */
 const LANDING_DIR = path.resolve(MODULE_DIR, "../landing");
 
+/** Sideloadable Android builds, served at `/download/ghostsignal.apk` (binaries stay out of git). */
+const DOWNLOADS_DIR = path.resolve(MODULE_DIR, "../downloads");
+
 /** The app's bundled mission/music folder, shared with the web player. */
 export const DEFAULT_ASSETS_DIR = path.resolve(MODULE_DIR, "../../app/src/main/assets");
 
@@ -172,7 +175,7 @@ export function createServer({
   trustProxy = false,
   log = console,
 }) {
-  const serveStaticFiles = createStatic({ pages: PAGE_DIRS, assetsDir, landingDir: LANDING_DIR });
+  const serveStaticFiles = createStatic({ pages: PAGE_DIRS, assetsDir, landingDir: LANDING_DIR, downloadsDir: DOWNLOADS_DIR });
   accounts ??= createAccounts({ dir: store.dir, adminEmails: billing.adminEmails ?? [] });
   stt ??= createStt({ log });
   admin ??= createAdmin({ operatorToken, accounts });

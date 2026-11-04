@@ -20,6 +20,7 @@ const MIME_TYPES = {
   ogg: "audio/ogg",
   wav: "audio/wav",
   flac: "audio/flac",
+  apk: "application/vnd.android.package-archive",
 };
 
 const SERVED_PAGE_EXTENSIONS = new Set(["html", "js", "mjs", "css", "json", "webmanifest", "svg", "png"]);
@@ -52,7 +53,7 @@ function extensionOf(name) {
   return name.split(".").pop();
 }
 
-export function createStatic({ pages, assetsDir, landingDir }) {
+export function createStatic({ pages, assetsDir, landingDir, downloadsDir }) {
   const gzipCache = new Map();
 
   // The domain root is the signature landing page (datarail.org/library
@@ -67,6 +68,12 @@ export function createStatic({ pages, assetsDir, landingDir }) {
     if (landingDir && pathname.startsWith("/") && LANDING_FILES.has(pathname.slice(1))) {
       const file = path.join(landingDir, pathname.slice(1));
       return fs.existsSync(file) ? { file, prefix: "/", isAsset: false } : null;
+    }
+    if (downloadsDir && pathname === "/download/ghostsignal.apk") {
+      // The sideloadable Android build. The binary itself is not in git
+      // (it is ~70 MB); it is uploaded beside the server code on deploy.
+      const file = path.join(downloadsDir, "ghostsignal.apk");
+      return fs.existsSync(file) ? { file, prefix: null, isAsset: false, download: true } : null;
     }
     if (pathname.startsWith("/play/assets/")) {
       const relative = pathname.slice("/play/assets/".length);
@@ -112,6 +119,9 @@ export function createStatic({ pages, assetsDir, landingDir }) {
       "x-content-type-options": "nosniff",
       "referrer-policy": "no-referrer",
     };
+    if (found.download) {
+      headers["content-disposition"] = `attachment; filename="${path.basename(found.file)}"`;
+    }
     if (kind === "html") {
       headers["content-security-policy"] = CSP_BY_PREFIX[found.prefix] ?? BASE_CSP_DIRECTIVES.join("; ");
       headers["permissions-policy"] = "geolocation=(self), microphone=(self), camera=()";
