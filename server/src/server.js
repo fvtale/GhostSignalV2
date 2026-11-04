@@ -47,6 +47,9 @@ const PAGE_DIRS = {
   "/play": path.resolve(MODULE_DIR, "../play"),
 };
 
+/** Domain-root landing page (signature circuitry), served at `/`. */
+const LANDING_DIR = path.resolve(MODULE_DIR, "../landing");
+
 /** The app's bundled mission/music folder, shared with the web player. */
 export const DEFAULT_ASSETS_DIR = path.resolve(MODULE_DIR, "../../app/src/main/assets");
 
@@ -169,7 +172,7 @@ export function createServer({
   trustProxy = false,
   log = console,
 }) {
-  const serveStaticFiles = createStatic({ pages: PAGE_DIRS, assetsDir });
+  const serveStaticFiles = createStatic({ pages: PAGE_DIRS, assetsDir, landingDir: LANDING_DIR });
   accounts ??= createAccounts({ dir: store.dir, adminEmails: billing.adminEmails ?? [] });
   stt ??= createStt({ log });
   admin ??= createAdmin({ operatorToken, accounts });
@@ -228,11 +231,6 @@ export function createServer({
     }
 
     if (serveStaticFiles(req, res, url.pathname)) return;
-
-    if (url.pathname === "/") {
-      res.writeHead(302, { location: "/play/" });
-      return res.end();
-    }
 
     if (routeKey === "POST /v1/admin/login") {
       if (!loginPerAddress(ip)) {

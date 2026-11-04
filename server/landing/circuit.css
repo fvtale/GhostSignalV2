@@ -1,0 +1,320 @@
+/* ==========================================================================
+   DataRail circuit field
+   Decorative rail/trace layer shared by every page on datarail.org.
+
+   Pair with assets/circuit.js, which injects the fixed edge-rail layer and
+   drives colour and route switching. A page only needs the two includes;
+   .rail-divider blocks are optional and placed by hand between sections.
+
+   Everything inherits from a single `color` on .circuit-field, so the whole
+   layer recolours by changing one custom property.
+   ========================================================================== */
+
+:root {
+  /* Cycled by circuit.js. Falls back to the brand cyan if the script never
+     runs, so the layer is still correct with JavaScript disabled. */
+  --circuit: var(--accent, #42f5ff);
+
+  --circuit-cyan: #42f5ff;
+  --circuit-green: #35ffa0;
+  --circuit-pink: #ff3d9a;
+  --circuit-ash: #b8c4cc;
+  --circuit-lavender: #b98cff;
+  --circuit-cherry: #c71d36;
+  --circuit-yellow: #b7ff00;   /* neon yellow-green */
+
+  --circuit-pass: 13s;   /* one full run of the train */
+}
+
+/* ---------- Per-page tint ----------------------------------------------
+   The palette above is the datarail.org/events look: seven unrelated colours
+   cycling at random. That is the house default and most pages should use it â
+   include the two files and stop.
+
+   A page built around one brand colour used to restate all seven tokens by
+   hand. Those blocks were the same recipe with a single value changed, copied
+   four times. This replaces them:
+
+     <html lang="en" class="circuit-tint" style="--circuit-tint:#ff8a1e">
+
+   The rest of the ramp is derived from that one colour. Any individual step
+   can still be pinned when the derived value is not the one you want:
+
+     style="--circuit-tint:#ff8a1e; --circuit-tint-light:#ffb163"
+
+   It must sit on <html>, not <body>. circuit.js sets --circuit on the root
+   element, so `var(--circuit-cyan)` is resolved in root scope; tokens defined
+   further down the tree are never consulted. Same reason --circuit-pass is
+   read off documentElement.
+
+   Omit the class to get the full events palette.
+   ---------------------------------------------------------------------- */
+
+:root.circuit-tint {
+  --circuit-cyan:     var(--circuit-tint);
+  --circuit-green:    var(--circuit-tint-light, color-mix(in srgb, var(--circuit-tint) 62%, #ffffff));
+  --circuit-pink:     var(--circuit-tint-white, #ffffff);
+  --circuit-ash:      var(--circuit-tint-ash,   #c8c8d0);
+  --circuit-lavender: var(--circuit-tint-dark,  color-mix(in srgb, var(--circuit-tint) 72%, #000000));
+  --circuit-cherry:   var(--circuit-tint);
+  --circuit-yellow:   var(--circuit-tint-pale,  #f3f3f4);
+}
+
+/* ---------- The fixed layer ---------- */
+
+.circuit-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  color: var(--circuit);
+  /* Slow crossfade when the colour changes. */
+  transition: color 1.2s ease-in-out;
+}
+
+/* Anything that should sit above the layer. Pages add their own selectors
+   here if they use different landmarks. */
+body > header,
+body > main,
+body > footer,
+.syncbar,
+main,
+.site-footer { position: relative; z-index: 1; }
+
+/* ---------- Edge rails ---------- */
+
+.circuit-rail {
+  position: absolute;
+  top: 0;
+  width: 132px;
+  height: 100%;
+  display: none;
+  /* A soft column of light behind the track, so the rail sits in a glow
+     rather than floating on flat black. */
+  background: radial-gradient(120px 55% at 50% 45%,
+              color-mix(in srgb, var(--circuit) 8%, transparent), transparent 72%);
+}
+.circuit-rail.is-left { left: 0; }
+.circuit-rail.is-right { right: 0; transform: scaleX(-1); }
+
+/* Side rails need margin outside the 1120px shell to live in. */
+@media (min-width: 1260px) {
+  .circuit-rail { display: block; }
+}
+
+.circuit-rail path,
+.circuit-rail line {
+  fill: none;
+  stroke: currentColor;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The permanent track network. Every route the train can take is drawn
+   faintly, so a switch reads as choosing an existing line. */
+.circuit-rail .trace-static path { stroke-width: 1; stroke-opacity: 0.20; }
+.circuit-rail .ties line { stroke-width: 1; stroke-opacity: 0.12; }
+
+/* Junction nodes â the switch points. Coloured core inside a soft white ring,
+   so the node reads as a lit fitting rather than a flat dot. */
+.circuit-rail .nodes circle {
+  fill: currentColor;
+  fill-opacity: 0.42;
+  stroke: rgba(255, 255, 255, 0.5);
+  stroke-width: 0.7;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.55))
+          drop-shadow(0 0 7px currentColor);
+  animation: circuitNode 4.2s ease-in-out infinite;
+}
+.circuit-rail .nodes circle.d1 { animation-delay: -1.1s; }
+.circuit-rail .nodes circle.d2 { animation-delay: -2.3s; }
+.circuit-rail .nodes circle.d3 { animation-delay: -3.4s; }
+
+/* A node lights harder for a moment when the train has just chosen its
+   branch. circuit.js adds .is-thrown, then removes it. */
+.circuit-rail .nodes circle.is-thrown {
+  animation: circuitThrow 1.5s ease-out;
+}
+
+@keyframes circuitNode {
+  0%, 100% { fill-opacity: 0.33; }
+  50%      { fill-opacity: 0.90; }
+}
+
+@keyframes circuitThrow {
+  0%   { fill-opacity: 1; r: 4.4; }
+  100% { fill-opacity: 0.42; r: 2.6; }
+}
+
+/* ---------- The train ----------
+   Every route is a full-length path with pathLength="1000", so the dash maths
+   is identical on all of them. Only the route carrying .is-running animates.
+
+   Two paths per route. `.trail` draws itself from the top and the lit track
+   stays behind the train as it descends; `.head` is a short bright dash riding
+   the leading edge. Both hold at full extent, then fade together and the cycle
+   restarts â which is also why a route switch at the boundary is invisible. */
+
+.circuit-rail .routes path {
+  stroke-linecap: round;
+  stroke-opacity: 0;
+  animation-duration: var(--circuit-pass);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* The lit track left behind. */
+.circuit-rail .routes path.trail {
+  stroke-width: 1.5;
+  stroke-dasharray: 1000 1000;
+  stroke-dashoffset: 1000;
+  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 9px currentColor);
+}
+.circuit-rail .routes path.trail.is-running { animation-name: circuitTrail; }
+
+/* The train itself. */
+.circuit-rail .routes path.head {
+  stroke-width: 2.2;
+  stroke-dasharray: 40 960;
+  stroke-dashoffset: 40;
+  filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 12px currentColor);
+}
+.circuit-rail .routes path.head.is-running { animation-name: circuitHead; }
+
+/* 70% drawing, a 10% beat at full extent, then a 20% fade. */
+@keyframes circuitTrail {
+  0%   { stroke-dashoffset: 1000; stroke-opacity: 0; }
+  4%   { stroke-opacity: 0.45; }
+  70%  { stroke-dashoffset: 0; stroke-opacity: 0.45; }
+  80%  { stroke-dashoffset: 0; stroke-opacity: 0.45; }
+  100% { stroke-dashoffset: 0; stroke-opacity: 0; }
+}
+
+@keyframes circuitHead {
+  0%   { stroke-dashoffset: 40; stroke-opacity: 0; }
+  4%   { stroke-opacity: 0.85; }
+  70%  { stroke-dashoffset: -960; stroke-opacity: 0.85; }
+  80%  { stroke-dashoffset: -960; stroke-opacity: 0.85; }
+  100% { stroke-dashoffset: -960; stroke-opacity: 0; }
+}
+
+/* ---------- Horizontal divider ----------
+   Placed by hand between sections. Works at every width. */
+
+.rail-divider {
+  position: relative;
+  height: 13px;
+  margin: 0;
+  color: var(--circuit);
+  transition: color 1.2s ease-in-out;
+}
+
+.rail-divider::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.24;
+}
+
+/* The horizontal counterpart of the train: the line draws itself left to
+   right, holds lit, then fades â the same 70/10/20 cycle as the rails. The
+   white tip on the gradient is the head, and scaling from the left keeps it
+   on the leading edge. */
+.rail-divider::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+              currentColor 0%, currentColor 92%, #fff 100%);
+  filter: drop-shadow(0 0 4px currentColor);
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0;
+  animation: railDraw var(--circuit-pass) linear infinite;
+}
+
+@keyframes railDraw {
+  0%   { transform: scaleX(0); opacity: 0; }
+  4%   { opacity: 0.6; }
+  70%  { transform: scaleX(1); opacity: 0.6; }
+  80%  { transform: scaleX(1); opacity: 0.6; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+.rail-divider .rd-node {
+  position: absolute;
+  z-index: 1;          /* above ::after, which paints as the last child */
+  top: 3px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: var(--bg, #05070b);
+  opacity: 0.55;
+  /* Coloured ring, soft white halo outside it. */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22),
+              0 0 3px rgba(255, 255, 255, 0.45),
+              0 0 7px currentColor;
+  animation: circuitNodeGlow 4.6s ease-in-out infinite;
+}
+.rail-divider .rd-node:nth-child(1) { left: 12%; }
+.rail-divider .rd-node:nth-child(2) { left: 38%; animation-delay: -1.4s; }
+.rail-divider .rd-node:nth-child(3) { left: 61%; animation-delay: -2.6s; }
+.rail-divider .rd-node:nth-child(4) { left: 87%; animation-delay: -3.7s; }
+
+@keyframes circuitNodeGlow {
+  0%, 100% { opacity: 0.42; }
+  50%      { opacity: 1; }
+}
+
+/* ---------- Mobile ----------
+   Edge rails need side margin that a narrow viewport does not have, so below
+   the breakpoint only the dividers and their travelling highlight remain. */
+@media (max-width: 1259px) {
+  .circuit-field { display: none; }
+}
+
+/* ---------- The UI echo ----------
+   Two peripheral touches follow the circuit colour so the page feels of a
+   piece. Deliberately not the wordmark, buttons, or event times â those stay
+   brand cyan and yellow. */
+.syncbar .sync-dot[data-state="live"] {
+  background: var(--circuit-echo, var(--circuit));
+  box-shadow: 0 0 8px var(--circuit-echo, var(--circuit));
+  transition: background 1.2s ease-in-out, box-shadow 1.2s ease-in-out;
+}
+
+.event-list .row:hover {
+  background: color-mix(in srgb, var(--circuit-echo, var(--circuit)) 7%, transparent);
+}
+
+/* ---------- Light theme ----------
+   Neon on white vibrates, so the layer is dimmed and the colours are darkened
+   by circuit.js picking from the same palette at lower lightness. */
+html[data-theme="light"] .circuit-field { opacity: 0.5; }
+html[data-theme="light"] .rail-divider::before { opacity: 0.3; }
+html[data-theme="light"] .rail-divider .rd-node { background: #fff; }
+
+/* ---------- Reduced motion ----------
+   Motion stops, but the layer keeps its glow and whatever colour was chosen,
+   so the setting gets a designed still frame rather than a dead layer. */
+@media (prefers-reduced-motion: reduce) {
+  .circuit-rail .nodes circle,
+  .circuit-rail .routes path,
+  .rail-divider::after,
+  .rail-divider .rd-node {
+    animation: none !important;
+  }
+  .circuit-rail .routes path.trail.is-running { stroke-dashoffset: 0; stroke-opacity: 0.45; }
+  .circuit-rail .routes path.head.is-running { stroke-dashoffset: -960; stroke-opacity: 0.85; }
+  .rail-divider::after { transform: scaleX(1); opacity: 0.6; }
+  .circuit-field, .rail-divider { transition: none !important; }
+}

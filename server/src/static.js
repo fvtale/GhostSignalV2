@@ -52,10 +52,22 @@ function extensionOf(name) {
   return name.split(".").pop();
 }
 
-export function createStatic({ pages, assetsDir }) {
+export function createStatic({ pages, assetsDir, landingDir }) {
   const gzipCache = new Map();
 
+  // The domain root is the signature landing page (datarail.org/library
+  // circuitry), with its two vendored assets at root paths.
+  const LANDING_FILES = new Set(["circuit.css", "circuit.js", "landing.css"]);
+
   function locate(pathname) {
+    if (landingDir && pathname === "/") {
+      const index = path.join(landingDir, "index.html");
+      return fs.existsSync(index) ? { file: index, prefix: "/", isAsset: false } : null;
+    }
+    if (landingDir && pathname.startsWith("/") && LANDING_FILES.has(pathname.slice(1))) {
+      const file = path.join(landingDir, pathname.slice(1));
+      return fs.existsSync(file) ? { file, prefix: "/", isAsset: false } : null;
+    }
     if (pathname.startsWith("/play/assets/")) {
       const relative = pathname.slice("/play/assets/".length);
       const allowed = isSafeRelative(relative) &&

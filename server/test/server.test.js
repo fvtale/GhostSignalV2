@@ -656,7 +656,15 @@ describe("web player", () => {
     const stem = await fetch(`${base}/play/assets/music/01_kick.ogg`);
     assert.equal(stem.status, 200);
     assert.equal(stem.headers.get("content-type"), "audio/ogg");
-    assert.equal((await fetch(`${base}/`, { redirect: "manual" })).headers.get("location"), "/play/");
+    const landing = await fetch(`${base}/`);
+        assert.equal(landing.status, 200);
+        assert.match(landing.headers.get("content-type"), /text\/html/);
+        const landingHtml = await landing.text();
+        assert.match(landingHtml, /GhostSignal/);
+        assert.match(landingHtml, /circuit\.css/);
+        assert.equal((await fetch(`${base}/circuit.css`)).status, 200);
+        assert.equal((await fetch(`${base}/circuit.js`)).status, 200);
+        assert.equal((await fetch(`${base}/landing.css`)).status, 200);
   });
 
   it("serves nothing outside the player and its assets", async () => {

@@ -1,0 +1,122 @@
+/* GhostSignal landing page. House tokens and shell from datarail.org
+   (see /assets/circuit.css there); the circuit field itself is the
+   vendored circuit.css on this page. Dark only, like the game. */
+:root {
+  --bg: #05070b;
+  --bg-soft: #0b0f16;
+  --bg-raised: #10151e;
+  --fg: #f5f5f7;
+  --muted: #9ca3af;
+  --dim: #7d8694;
+  --accent: #42f5ff;
+  --accent-strong: #42ffb3;
+  --warm: #e0b25c;
+  --bad: #ff8098;
+  --line: #1c232f;
+  --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --radius: 10px;
+  --shell: 980px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background: radial-gradient(circle at 50% -6%, #0d1622 0, var(--bg) 58%, #03050a 100%);
+  background-attachment: fixed;
+  color: var(--fg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+h1, h2, h3 { margin: 0; line-height: 1.14; font-weight: 600; letter-spacing: -0.02em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 5px; }
+
+.shell { max-width: var(--shell); margin: 0 auto; padding: 0 20px; }
+.label {
+  font-family: var(--font-mono); font-size: 0.67rem;
+  text-transform: uppercase; letter-spacing: 0.18em; color: var(--dim);
+  margin: 0 0 10px;
+}
+.muted { color: var(--muted); }
+.fineprint { color: var(--dim); font-size: 0.85rem; }
+
+/* Header, as on the library. */
+.site-header {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(5, 7, 11, 0.9);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line);
+}
+.header-inner {
+  max-width: var(--shell); margin: 0 auto; padding: 11px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.brand { display: flex; align-items: center; gap: 9px; margin-right: auto; text-decoration: none; font-weight: 650; }
+.brand-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent);
+}
+.site-nav { display: flex; gap: 18px; }
+.site-nav a { color: var(--muted); text-decoration: none; font-size: 0.92rem; }
+.site-nav a:hover { color: var(--fg); }
+
+/* Hero */
+.hero { padding: 72px 0 40px; }
+.hero h1 { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 700; }
+.lede { color: var(--muted); font-size: 1.12rem; max-width: 62ch; margin: 18px 0 0; }
+.cta { display: flex; gap: 12px; flex-wrap: wrap; margin: 26px 0 10px; }
+.btn {
+  font: 600 0.95rem var(--font-main); text-decoration: none; border-radius: 999px;
+  padding: 12px 22px; background: var(--accent); color: #05070b; border: 1px solid var(--accent);
+}
+.btn.ghost { background: transparent; color: var(--fg); border-color: #2a3444; }
+
+/* Sections */
+section { padding: 34px 0 8px; }
+section h2 { font-size: 1.7rem; margin-bottom: 16px; }
+
+.stops { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.stops li {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px;
+}
+.stop-num { font: 600 0.8rem var(--font-mono); color: var(--warm); letter-spacing: 0.1em; padding-top: 3px; }
+.stops h3 { font-size: 1.02rem; }
+.stops p { margin: 4px 0 0; color: var(--muted); }
+
+/* The route, set like a line diagram: node dot, name, spoken place. */
+.route { list-style: none; margin: 0 0 14px; padding: 0; }
+.route li {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  padding: 9px 2px; border-bottom: 1px solid var(--line);
+}
+.route li::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none;
+  background: var(--bg); border: 1.5px solid var(--accent); transform: translateY(-1px);
+}
+.route span { font-weight: 600; }
+.route em { color: var(--dim); font-style: normal; font-size: 0.9rem; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.card {
+  display: block; text-decoration: none;
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px;
+}
+.card:hover { border-color: #2a3444; }
+.card h3 { font-size: 1.05rem; }
+.card p { color: var(--muted); margin: 6px 0 12px; font-size: 0.94rem; }
+.card .go { font: 600 0.8rem var(--font-mono); color: var(--accent); }
+@media (max-width: 760px) { .cards { grid-template-columns: 1fr; } }
+
+/* Footer */
+.site-footer { border-top: 1px solid var(--line); margin-top: 48px; padding: 22px 0 30px; }
+.foot-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.site-footer .brand-dot { display: inline-block; margin-right: 8px; }
+.site-footer nav { display: flex; gap: 16px; flex-wrap: wrap; }
+.site-footer nav a { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+.site-footer nav a:hover { color: var(--fg); }
