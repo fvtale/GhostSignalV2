@@ -112,7 +112,10 @@ class LineVoices(context: Context, private val backend: BackendClient) {
 
   private fun cacheFile(mission: Mission, utterance: Utterance, sourceTag: String): File {
     val character = mission.character(utterance.speaker)
-    val keyMaterial = "${mission.id}|${utterance.speaker}|${character?.voice}|${utterance.text}|$sourceTag"
+    // VOICE_CACHE_VERSION forces a full re-render when voice treatment
+    // changes: without it, lines rendered under an older build keep
+    // playing in the old voice even though their text and spec moved on.
+    val keyMaterial = "v$VOICE_CACHE_VERSION|${mission.id}|${utterance.speaker}|${character?.voice}|${utterance.text}|$sourceTag"
     val digest = MessageDigest.getInstance("SHA-1").digest(keyMaterial.toByteArray())
     val hexDigest = digest.joinToString("") { "%02x".format(it) }
     return File(cacheDir, "${sourceTag}_$hexDigest.wav")
@@ -120,6 +123,9 @@ class LineVoices(context: Context, private val backend: BackendClient) {
 
   private companion object {
     const val TAG = "GhostSignalVoices"
+
+    /** Bump whenever character voice specs change, so every line re-renders. */
+    const val VOICE_CACHE_VERSION = 2
   }
 }
 

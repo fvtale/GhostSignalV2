@@ -32,13 +32,13 @@
       "id": "kilo",
       "name": "Kilo",
       "role": "Teenage relay keeper and antenna rigger",
-      "persona": "Fast-talking, paranoid, funny teenage hacker who hides in the trees and rigs antennas. Uses tech slang, distrusts strangers until they prove themselves. Loyal to Vesper.",
+      "persona": "Fast-talking, paranoid, funny teenage girl hacker who hides in the trees and rigs antennas. Uses tech slang, distrusts strangers until they prove themselves. Loyal to Vesper.",
       "voice": { "ttsVoice": "", "pitch": 1.25, "rate": 1.15 },
       "radio": 0.7
     },
     {
       "id": "mari",
-      "name": "Mari",
+      "name": "Zion",
       "role": "Street percussionist at the carousel",
       "persona": "Bucket drummer with endless energy. Hears everything as rhythm, teases the runner, generous once they keep time. Talks like a musician on a break between sets.",
       "voice": { "ttsVoice": "", "pitch": 1.05, "rate": 1.05 },
@@ -153,7 +153,7 @@
         ]
       },
       "success": [
-        { "id": "stacks.success", "speaker": "archivist", "text": "The hi-hats. Mind them, they are brittle. And when the boy at the fountain asks, the word is the right-hand lion's name." }
+        { "id": "stacks.success", "speaker": "archivist", "text": "The hi-hats. Mind them, they are brittle. And when the girl at the fountain asks, the word is the right-hand lion's name." }
       ],
       "hint": [
         { "id": "stacks.hint", "speaker": "archivist", "text": "Ask me anything at all. Then say accept." }
@@ -213,7 +213,7 @@
       "stem": "perc",
       "speaker": "mari",
       "teaser": [
-        { "id": "bucketline.teaser.1", "speaker": "vesper", "text": "Mari is drumming by the carousel on the Fortieth Street side. She only trades with people who can keep time." },
+        { "id": "bucketline.teaser.1", "speaker": "vesper", "text": "Zion is drumming by the carousel on the Fortieth Street side. He only trades with people who can keep time." },
         { "id": "bucketline.teaser.2", "speaker": "mari", "text": "Boom, ka, boom boom, ka!" }
       ],
       "approach": [
@@ -330,14 +330,14 @@
       "stem": "arp",
       "speaker": "kilo",
       "teaser": [
-        { "id": "spire.teaser.1", "speaker": "vesper", "text": "Kilo moved up to the terrace by Forty-Second Street, behind the Library. He's rigging a repeater." },
+        { "id": "spire.teaser.1", "speaker": "vesper", "text": "Kilo moved up to the terrace by Forty-Second Street, behind the Library. She's rigging a repeater." },
         { "id": "spire.teaser.2", "speaker": "kilo", "text": "Over here! Up by the terrace!" }
       ],
       "approach": [
-        { "id": "spire.approach", "speaker": "kilo", "text": "Good, good. Bring your head. I need your head." }
+        { "id": "spire.approach", "speaker": "kilo", "text": "Good, good. I'm upgrading your glasses to broadcast." }
       ],
       "arrival": [
-        { "id": "spire.arrival", "speaker": "kilo", "text": "Your glasses are an antenna now. Don't ask." }
+        { "id": "spire.arrival", "speaker": "kilo", "text": "Your glasses are now an antenna. Don't ask." }
       ],
       "challenge": {
         "type": "tune",
