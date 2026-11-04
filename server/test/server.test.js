@@ -85,6 +85,10 @@ describe("health and auth", () => {
     assert.equal(body.npc, true);
     assert.equal(body.tts, false, "voices are rendered on the device");
     assert.equal(body.stt, true);
+    // The contract the app, the web player and the installer read (AGENTS.md, "Verify a build").
+    assert.equal(typeof body.model, "string");
+    assert.ok(body.model.length > 0, "names the chat model in use");
+    assert.equal(body.ok, true);
   });
 
   it("takes the client address from the proxy only when told to, and only from loopback", () => {
