@@ -24,143 +24,197 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * The bundled mission, plus what the server adds to it: the venue route (positions captured with
- * the route editor, names set on the admin page) and the soundtracks deployed from the admin page,
- * whose stems are downloaded once and kept on the phone.
+ * The mission as this phone plays it: the bundled mission plus everything
+ * the server adds — the venue route (placements from the route editor,
+ * names from the admin page) and deployed soundtracks whose stems are
+ * downloaded once and kept on the phone.
  */
-class MissionRepository(private val context: Context, private val backend: BackendClient) {
-  private val base: Mission by lazy {
-    Mission.parse(context.assets.open(MISSION_ASSET).bufferedReader().use { it.readText() })
-  }
-  private val routeFile: File
-    get() = File(context.filesDir, "route_${base.id}.json")
-  private val catalogFile: File
-    get() = File(context.filesDir, "tracks_${base.id}.json")
-  private val tracksDir: File
-    get() = File(context.filesDir, "tracks").apply { mkdirs() }
-  private val syncLock = Mutex()
-  @Volatile private var lastSyncMs = 0L
+class MissionRepository(
+    private val context: Context,
+    private val backend: BackendClient,
+) {
 
-  private val _mission = MutableStateFlow(load())
-  val mission: StateFlow<Mission> = _mission
-  private val _locked = MutableStateFlow(catalog()?.locked ?: emptyList())
-  /** Premium soundtracks this player doesn't have, as of the last sync. */
-  val locked: StateFlow<List<LockedTrack>> = _locked
+  private val bundledMission: Mission by lazy {
+    val missionText = context.assets.open(MISSION_ASSET).bufferedReader().use { it.readText() }
+    Mission.parse(missionText)
+  }
+
+  private val routeFile: File
+    get() = File(context.filesDir, "route_${bundledMission.id}.json")
+
+  private val catalogFile: File
+    get() = File(context.filesDir, "tracks_${bundledMission.id}.json")
+
+  private val downloadedTracksDir: File
+    get() = File(context.filesDir, "tracks").apply { mkdirs() }
+
+  private val syncMutex = Mutex()
+
+  @Volatile
+  private var lastSyncAtMs: Long = 0L
+
+  private val mutableMission = MutableStateFlow(loadMission())
+  val mission: StateFlow<Mission> = mutableMission
+
+  private val mutableLocked = MutableStateFlow(storedCatalog()?.locked ?: emptyList())
+
+  /** Premium soundtracks this player does not have, as of the last sync. */
+  val locked: StateFlow<List<LockedTrack>> = mutableLocked
 
   val baseMission: Mission
-    get() = base
+    get() = bundledMission
 
   val problems: List<String>
-    get() = MissionValidator.validate(_mission.value)
+    get() = MissionValidator.validate(mutableMission.value)
 
-  fun route(): RouteOverride? =
-      runCatching { Mission.json.decodeFromString(RouteOverride.serializer(), routeFile.readText()) }.getOrNull()
+  fun route(): RouteOverride? = readJsonFile(routeFile) { text ->
+    Mission.json.decodeFromString(RouteOverride.serializer(), text)
+  }
 
-  fun catalog(): TrackCatalog? =
-      runCatching { Mission.json.decodeFromString(TrackCatalog.serializer(), catalogFile.readText()) }.getOrNull()
+  fun catalog(): TrackCatalog? = storedCatalog()
 
-  /** Where a deployed stem is kept on this phone, or null for one bundled with the app. */
-  fun localFile(stem: StemSpec): File? = TrackCatalog.blobOf(stem)?.let { File(tracksDir, it) }
+  private fun storedCatalog(): TrackCatalog? = readJsonFile(catalogFile) { text ->
+    Mission.json.decodeFromString(TrackCatalog.serializer(), text)
+  }
 
-  private fun onPhone(stem: StemSpec): Boolean =
-      localFile(stem)?.let { it.isFile && (stem.bytes <= 0 || it.length() == stem.bytes) } ?: true
+  private fun <T> readJsonFile(file: File, decode: (String) -> T): T? =
+      runCatching { decode(file.readText()) }.getOrNull()
 
-  // Tracks first, then the route, so a renamed signal renames its layer in deployed tracks too.
-  private fun load(): Mission = base.withTracks(catalog(), ::onPhone).withRoute(route())
+  /** On-phone file for a deployed stem, or null for a bundled stem. */
+  fun localFile(stem: StemSpec): File? =
+      TrackCatalog.blobOf(stem)?.let { blobName -> File(downloadedTracksDir, blobName) }
+
+  private fun stemReady(stem: StemSpec): Boolean {
+    val file = localFile(stem) ?: return true // Bundled stems are always ready.
+    return file.isFile && (stem.bytes <= 0 || file.length() == stem.bytes)
+  }
+
+  // Tracks compose before the route, so a renamed signal also renames its
+  // layer inside deployed tracks.
+  private fun loadMission(): Mission =
+      bundledMission.withTracks(storedCatalog(), ::stemReady).withRoute(route())
 
   fun place(signalId: String, placement: SignalPlacement) {
-    val current = route() ?: RouteOverride(base.id, "Venue route")
-    save(current.copy(placements = current.placements + (signalId to placement), updatedAtMs = System.currentTimeMillis()))
+    val current = route() ?: RouteOverride(bundledMission.id, "Venue route")
+    saveRoute(current.copy(
+        placements = current.placements + (signalId to placement),
+        updatedAtMs = System.currentTimeMillis(),
+    ))
   }
 
   fun placeAll(placements: Map<String, SignalPlacement>) {
-    val current = route() ?: RouteOverride(base.id, "Venue route")
-    save(current.copy(placements = current.placements + placements, updatedAtMs = System.currentTimeMillis()))
+    val current = route() ?: RouteOverride(bundledMission.id, "Venue route")
+    saveRoute(current.copy(
+        placements = current.placements + placements,
+        updatedAtMs = System.currentTimeMillis(),
+    ))
   }
 
-  fun save(route: RouteOverride) {
+  fun saveRoute(route: RouteOverride) {
     routeFile.writeText(Mission.json.encodeToString(RouteOverride.serializer(), route))
-    _mission.value = load()
+    mutableMission.value = loadMission()
   }
 
   fun resetRoute() {
     routeFile.delete()
-    _mission.value = load()
+    mutableMission.value = loadMission()
   }
 
   /**
-   * Pulls the shared route and the deployed soundtracks, downloading stems this phone doesn't have
-   * yet and deleting ones no track uses any more. [manual] is the operator's Pull and always takes
-   * the server's route; an automatic sync keeps a local route edited more recently than the
-   * server's, so an operator mid-placement doesn't lose work. Returns a short status line.
+   * Pulls the shared route and deployed soundtracks, downloading missing
+   * stems and deleting orphaned ones. [manual] (the operator's Pull)
+   * always takes the server's route; automatic syncs keep a local route
+   * edited more recently than the server's, so mid-placement work is not
+   * lost. Returns a one-line status for the operator screen.
    */
-  suspend fun sync(manual: Boolean): String =
-      syncLock.withLock {
-        withContext(Dispatchers.IO) {
-          if (!backend.configured) return@withContext "No server set"
-          val parts = mutableListOf<String>()
-          try {
-            val remote = backend.getRoute(base.id)
-            val local = route()
-            when {
-              remote == null -> parts += "no shared route yet"
-              !manual && local != null && local.updatedAtMs > remote.updatedAtMs -> parts += "kept this phone's newer route"
-              else -> {
-                save(remote)
-                parts += "route '${remote.name}': ${remote.placements.size} placed, ${remote.labels.size} renamed"
-              }
-            }
-          } catch (e: Exception) {
-            Log.w(TAG, "route pull failed", e)
-            parts += "route failed: ${e.message}"
-          }
-          try {
-            val catalog = backend.getTracks(base.id)
-            var fetched = 0
-            var failed = 0
-            for (stem in catalog.soundtracks.flatMap { it.music.stems }.distinctBy { it.file }) {
-              val file = localFile(stem) ?: continue
-              if (onPhone(stem)) continue
-              try {
-                backend.downloadBlob(file.name, stem.sha256, file)
-                fetched++
-              } catch (e: Exception) {
-                Log.w(TAG, "stem ${file.name} failed to download", e)
-                failed++
-              }
-            }
-            catalogFile.writeText(Mission.json.encodeToString(TrackCatalog.serializer(), catalog))
-            _locked.value = catalog.locked
-            val keep = catalog.soundtracks.flatMap { t -> t.music.stems.mapNotNull { localFile(it)?.name } }.toSet()
-            tracksDir.listFiles()?.forEach { if (it.name !in keep) it.delete() }
-            _mission.value = load()
-            val ready = catalog.soundtracks.count { t -> _mission.value.soundtracks.any { it.id == t.id } }
-            parts +=
-                "${catalog.soundtracks.size} deployed soundtracks, $ready ready" +
-                    (if (fetched > 0) ", $fetched stems downloaded" else "") +
-                    (if (failed > 0) ", $failed failed" else "")
-          } catch (e: Exception) {
-            Log.w(TAG, "soundtrack sync failed", e)
-            parts += "soundtracks failed: ${e.message}"
-          }
-          lastSyncMs = System.currentTimeMillis()
-          parts.joinToString(" · ").replaceFirstChar { it.uppercase() }
+  suspend fun sync(manual: Boolean): String = syncMutex.withLock {
+    withContext(Dispatchers.IO) {
+      if (!backend.configured) return@withContext "No server set"
+      val statusParts = mutableListOf<String>()
+      syncRoute(manual, statusParts)
+      syncTracks(statusParts)
+      lastSyncAtMs = System.currentTimeMillis()
+      statusParts.joinToString(" · ").replaceFirstChar { it.uppercase() }
+    }
+  }
+
+  private suspend fun syncRoute(manual: Boolean, statusParts: MutableList<String>) {
+    try {
+      val remoteRoute = backend.getRoute(bundledMission.id)
+      val localRoute = route()
+      when {
+        remoteRoute == null -> statusParts += "no shared route yet"
+        !manual && localRoute != null && localRoute.updatedAtMs > remoteRoute.updatedAtMs ->
+          statusParts += "kept this phone's newer route"
+        else -> {
+          saveRoute(remoteRoute)
+          statusParts += "route '${remoteRoute.name}': " +
+            "${remoteRoute.placements.size} placed, ${remoteRoute.labels.size} renamed"
+        }
+      }
+    } catch (error: Exception) {
+      Log.w(TAG, "route pull failed", error)
+      statusParts += "route failed: ${error.message}"
+    }
+  }
+
+  private suspend fun syncTracks(statusParts: MutableList<String>) {
+    try {
+      val remoteCatalog = backend.getTracks(bundledMission.id)
+      var downloaded = 0
+      var failed = 0
+      val uniqueStems = remoteCatalog.soundtracks
+          .flatMap { it.music.stems }
+          .distinctBy { it.file }
+      for (stem in uniqueStems) {
+        val targetFile = localFile(stem) ?: continue
+        if (stemReady(stem)) continue
+        try {
+          backend.downloadBlob(targetFile.name, stem.sha256, targetFile)
+          downloaded++
+        } catch (error: Exception) {
+          Log.w(TAG, "stem ${targetFile.name} failed to download", error)
+          failed++
         }
       }
 
-  /** A quiet automatic sync, at most every few minutes: on start and whenever setup opens. */
+      catalogFile.writeText(Mission.json.encodeToString(TrackCatalog.serializer(), remoteCatalog))
+      mutableLocked.value = remoteCatalog.locked
+
+      val stillUsed = remoteCatalog.soundtracks
+          .flatMap { track -> track.music.stems.mapNotNull { stem -> localFile(stem)?.name } }
+          .toSet()
+      downloadedTracksDir.listFiles()?.forEach { file ->
+        if (file.name !in stillUsed) file.delete()
+      }
+
+      mutableMission.value = loadMission()
+      val readyCount = remoteCatalog.soundtracks.count { track ->
+        mutableMission.value.soundtracks.any { it.id == track.id }
+      }
+      statusParts += "${remoteCatalog.soundtracks.size} deployed soundtracks, $readyCount ready" +
+        (if (downloaded > 0) ", $downloaded stems downloaded" else "") +
+        (if (failed > 0) ", $failed failed" else "")
+    } catch (error: Exception) {
+      Log.w(TAG, "soundtrack sync failed", error)
+      statusParts += "soundtracks failed: ${error.message}"
+    }
+  }
+
+  /** Quiet automatic sync, throttled: at start and when setup opens. */
   fun syncIfStale(scope: CoroutineScope) {
-    if (!backend.configured || System.currentTimeMillis() - lastSyncMs < STALE_MS || syncLock.isLocked) return
+    val stale = System.currentTimeMillis() - lastSyncAtMs >= STALE_MS
+    if (!backend.configured || !stale || syncMutex.isLocked) return
     scope.launch { Log.i(TAG, "sync: ${sync(manual = false)}") }
   }
 
   suspend fun push(operatorToken: String): String {
-    val r = route() ?: return "Nothing to push: no venue placements yet"
+    val localRoute = route() ?: return "Nothing to push: no venue placements yet"
     return try {
-      backend.putRoute(r, operatorToken)
-      "Pushed ${r.placements.size} placements"
-    } catch (e: Exception) {
-      "Push failed: ${e.message}"
+      backend.putRoute(localRoute, operatorToken)
+      "Pushed ${localRoute.placements.size} placements"
+    } catch (error: Exception) {
+      "Push failed: ${error.message}"
     }
   }
 
@@ -171,65 +225,95 @@ class MissionRepository(private val context: Context, private val backend: Backe
   }
 }
 
-/** What this phone has earned: how many runs it has finished, and the soundtrack picked for the next one. */
-data class Rewards(val completions: Int = 0, val soundtrack: String = Soundtracks.ORIGINAL)
+/** What this phone has earned: finished runs, and the chosen soundtrack. */
+data class Rewards(
+    val completions: Int = 0,
+    val soundtrack: String = Soundtracks.ORIGINAL,
+)
 
 /**
- * Finished runs unlock alternative soundtracks (see [Soundtracks]). Kept apart from [ProgressStore]
- * so starting a new run never takes a reward away; the operator can re-lock a shared event phone
+ * Earned progress, kept apart from run progress so starting a new run can
+ * never take a reward away. The operator can re-lock a shared event phone
  * from Settings.
  */
 class RewardsStore(context: Context) {
-  private val prefs = context.getSharedPreferences("ghostsignal_rewards", Context.MODE_PRIVATE)
-  private val _rewards = MutableStateFlow(read())
-  val rewards: StateFlow<Rewards> = _rewards
+
+  private val preferences =
+      context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+  private val mutableRewards = MutableStateFlow(readRewards())
+  val rewards: StateFlow<Rewards> = mutableRewards
+
   val value: Rewards
-    get() = _rewards.value
+    get() = mutableRewards.value
 
-  private fun read() =
-      Rewards(prefs.getInt("completions", 0), prefs.getString("soundtrack", null) ?: Soundtracks.ORIGINAL)
+  private fun readRewards(): Rewards = Rewards(
+      completions = preferences.getInt(KEY_COMPLETIONS, 0),
+      soundtrack = preferences.getString(KEY_SOUNDTRACK, null) ?: Soundtracks.ORIGINAL,
+  )
 
-  private fun write(r: Rewards) {
-    prefs.edit().putInt("completions", r.completions).putString("soundtrack", r.soundtrack).apply()
-    _rewards.value = r
+  private fun writeRewards(rewards: Rewards) {
+    preferences.edit()
+        .putInt(KEY_COMPLETIONS, rewards.completions)
+        .putString(KEY_SOUNDTRACK, rewards.soundtrack)
+        .apply()
+    mutableRewards.value = rewards
   }
 
-  /** Counts a finished run. Whatever it unlocks becomes the soundtrack for the next run. */
+  /** Counts a finished run; its unlock becomes the next run's soundtrack. */
   fun recordCompletion(mission: Mission): List<Soundtrack> {
-    val r = _rewards.value
-    val unlocked = Soundtracks.unlockedByNextCompletion(mission, r.completions)
-    write(r.copy(completions = r.completions + 1, soundtrack = unlocked.lastOrNull()?.id ?: r.soundtrack))
-    return unlocked
+    val current = mutableRewards.value
+    val newlyUnlocked = Soundtracks.unlockedByNextCompletion(mission, current.completions)
+    writeRewards(current.copy(
+        completions = current.completions + 1,
+        soundtrack = newlyUnlocked.lastOrNull()?.id ?: current.soundtrack,
+    ))
+    return newlyUnlocked
   }
 
-  fun choose(soundtrackId: String) = write(_rewards.value.copy(soundtrack = soundtrackId))
+  fun choose(soundtrackId: String) {
+    writeRewards(mutableRewards.value.copy(soundtrack = soundtrackId))
+  }
 
-  /** Takes a higher count from the runner's account (signing in on another phone). Keeps the soundtrack choice. */
+  /** Adopts a higher count from the account (signed in on another phone). */
   fun atLeast(completions: Int) {
-    val r = _rewards.value
-    if (completions > r.completions) write(r.copy(completions = completions))
+    val current = mutableRewards.value
+    if (completions > current.completions) {
+      writeRewards(current.copy(completions = completions))
+    }
   }
 
-  /** Back to a first-time runner: nothing unlocked, the original soundtrack. */
-  fun relock() = write(Rewards())
+  /** Back to a first-time runner: nothing unlocked, original soundtrack. */
+  fun relock() {
+    writeRewards(Rewards())
+  }
+
+  private companion object {
+    const val PREFS_NAME = "ghostsignal_rewards"
+    const val KEY_COMPLETIONS = "completions"
+    const val KEY_SOUNDTRACK = "soundtrack"
+  }
 }
 
-/** Saves progress so a crash, reboot or dead battery doesn't cost a runner their fragments. */
+/** Run progress, so a crash, reboot, or dead battery loses nothing. */
 class ProgressStore(context: Context) {
-  private val file = File(context.filesDir, "progress.json")
-  private val _progress = MutableStateFlow(read())
-  val progress: StateFlow<Progress?> = _progress
 
-  private fun read(): Progress? =
-      runCatching { Mission.json.decodeFromString(Progress.serializer(), file.readText()) }.getOrNull()
+  private val progressFile = File(context.filesDir, "progress.json")
 
-  fun save(p: Progress) {
-    file.writeText(Mission.json.encodeToString(Progress.serializer(), p))
-    _progress.value = p
+  private val mutableProgress = MutableStateFlow<Progress?>(readProgress())
+  val progress: StateFlow<Progress?> = mutableProgress
+
+  private fun readProgress(): Progress? = runCatching {
+    Mission.json.decodeFromString(Progress.serializer(), progressFile.readText())
+  }.getOrNull()
+
+  fun save(progress: Progress) {
+    progressFile.writeText(Mission.json.encodeToString(Progress.serializer(), progress))
+    mutableProgress.value = progress
   }
 
   fun clear() {
-    file.delete()
-    _progress.value = null
+    progressFile.delete()
+    mutableProgress.value = null
   }
 }

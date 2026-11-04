@@ -39,7 +39,11 @@ import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.launch
 
-/** Tools for whoever runs the event: placing the route, simulating, forcing steps, live messages. */
+/**
+ * Event-operator tools: placing the venue route, simulating a runner,
+ * forcing game steps, enrolling event glasses, and sending live
+ * transmissions. Kept off the runner's path; reached from setup.
+ */
 @Composable
 fun OperatorScreen(graph: AppGraph, back: () -> Unit) {
   val game = graph.game
@@ -48,31 +52,40 @@ fun OperatorScreen(graph: AppGraph, back: () -> Unit) {
   val settings by graph.settings.flow.collectAsStateWithLifecycle()
   val glasses by graph.glasses.state.collectAsStateWithLifecycle()
   val scope = rememberCoroutineScope()
+
   var status by remember { mutableStateOf<String?>(null) }
   var broadcastText by remember { mutableStateOf("") }
   var broadcastSpeaker by remember { mutableStateOf(mission.briefing.first().speaker) }
   var mockSpeech by remember { mutableStateOf("") }
-  var lockRadius by remember(mission) { mutableStateOf(mission.signals.first().lockRadiusM.toFloat()) }
+  var lockRadiusM by remember(mission) { mutableStateOf(mission.signals.first().lockRadiusM.toFloat()) }
 
   Column(
       Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-      Label("OPERATOR", Neon.Amber, 16, FontWeight.Bold, Modifier.weight(1f))
+      Label("OPERATOR", Rail.Brass, 16, FontWeight.Bold, Modifier.weight(1f))
       GhostButton("Back", back)
     }
-    status?.let { Label(it, Neon.Amber, 12) }
+    status?.let { Label(it, Rail.Brass, 12) }
 
     Section("Location") {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Label("Simulated runner", Neon.Text, 13, modifier = Modifier.weight(1f))
+        Label("Simulated runner", Rail.Text, 13, modifier = Modifier.weight(1f))
         Switch(
             checked = settings.locationMode == LocationMode.SIMULATED,
-            onCheckedChange = { game.setLocationMode(if (it) LocationMode.SIMULATED else LocationMode.GPS) })
+            onCheckedChange = { simulated ->
+              game.setLocationMode(if (simulated) LocationMode.SIMULATED else LocationMode.GPS)
+            },
+        )
       }
-      ui.fix?.let {
-        Status("Fix", "%.6f, %.6f ±%d m".format(it.position.lat, it.position.lon, it.accuracyM.toInt()), it.accuracyM < 20, warn = it.accuracyM >= 20)
+      ui.fix?.let { fix ->
+        Status(
+            "Fix",
+            "%.6f, %.6f ±%d m".format(fix.position.lat, fix.position.lon, fix.accuracyM.toInt()),
+            fix.accuracyM < 20,
+            warn = fix.accuracyM >= 20,
+        )
       }
       if (settings.locationMode == LocationMode.SIMULATED) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -80,8 +93,8 @@ fun OperatorScreen(graph: AppGraph, back: () -> Unit) {
           GhostButton("Start point", { game.sim.teleport(game.simulatedStart()) })
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          listOf("N" to 0.0, "E" to 90.0, "S" to 180.0, "W" to 270.0).forEach { (label, b) ->
-            GhostButton("$label 10m", { game.sim.nudge(b, 10.0) }, Modifier.weight(1f))
+          listOf("N" to 0.0, "E" to 90.0, "S" to 180.0, "W" to 270.0).forEach { (label, bearing) ->
+            GhostButton("$label 10m", { game.sim.nudge(bearing, 10.0) }, Modifier.weight(1f))
           }
         }
       }
@@ -92,43 +105,69 @@ fun OperatorScreen(graph: AppGraph, back: () -> Unit) {
         GhostButton("Force lock", { game.forceLock() }, Modifier.weight(1f), enabled = ui.running)
         GhostButton("Force solve", { game.forceSolve() }, Modifier.weight(1f), enabled = ui.running)
       }
-      Label("Jump to signal (collects everything before it):", Neon.Dim, 11)
+      Label("Jump to signal (collects everything before it):", Rail.Dim, 11)
       Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        mission.signals.indices.forEach { i ->
-          GhostButton("${i + 1}", { game.jumpTo(i) }, Modifier.weight(1f), enabled = ui.running)
+        mission.signals.indices.forEach { index ->
+          GhostButton("${index + 1}", { game.jumpTo(index) }, Modifier.weight(1f), enabled = ui.running)
         }
       }
     }
 
     Section("Venue route") {
-      Label("Stand on each spot and press Place. GPS fix: ${ui.fix?.accuracyM?.toInt()?.let { "±$it m" } ?: "none"}", Neon.Dim, 11)
-      mission.signals.forEachIndexed { i, s ->
+      Label(
+          "Stand on each spot and press Place. GPS fix: ${ui.fix?.accuracyM?.toInt()?.let { "±$it m" } ?: "none"}",
+          Rail.Dim,
+          11,
+      )
+      mission.signals.forEachIndexed { index, signal ->
         Row(verticalAlignment = Alignment.CenterVertically) {
           Column(Modifier.weight(1f)) {
-            Label("${i + 1}. ${s.name}", Neon.Text, 13, FontWeight.Bold)
-            val dist = ui.fix?.let { "${Geo.distanceM(it.position, s.location).toInt()} m away" } ?: ""
-            Label("%.5f, %.5f · r%d/%d m %s".format(s.location.lat, s.location.lon, s.radiusM.toInt(), s.lockRadiusM.toInt(), dist), Neon.Dim, 11)
+            Label("${index + 1}. ${signal.name}", Rail.Text, 13, FontWeight.Bold)
+            val distanceNote = ui.fix?.let { fix ->
+              "${Geo.distanceM(fix.position, signal.location).toInt()} m away"
+            } ?: ""
+            Label(
+                "%.5f, %.5f · r%d/%d m %s".format(
+                    signal.location.lat, signal.location.lon,
+                    signal.radiusM.toInt(), signal.lockRadiusM.toInt(), distanceNote,
+                ),
+                Rail.Dim,
+                11,
+            )
           }
           GhostButton("Place", {
             val fix = game.currentFix()
-            if (fix == null) status = "No GPS fix yet"
-            else {
-              graph.missions.place(s.id, SignalPlacement(fix.position, s.radiusM, s.lockRadiusM))
-              status = "Placed ${s.name} (±${fix.accuracyM.toInt()} m). Restart the run to use it."
+            if (fix == null) {
+              status = "No GPS fix yet"
+            } else {
+              graph.missions.place(
+                  signal.id,
+                  SignalPlacement(fix.position, signal.radiusM, signal.lockRadiusM),
+              )
+              status = "Placed ${signal.name} (±${fix.accuracyM.toInt()} m). Restart the run to use it."
             }
           })
         }
       }
-      Label("Lock radius: ${lockRadius.toInt()} m (all signals; wider is more forgiving of bad GPS)", Neon.Dim, 11)
+      Label(
+          "Lock radius: ${lockRadiusM.toInt()} m (all signals; wider is more forgiving of bad GPS)",
+          Rail.Dim,
+          11,
+      )
       Slider(
-          value = lockRadius,
-          onValueChange = { lockRadius = it },
+          value = lockRadiusM,
+          onValueChange = { lockRadiusM = it },
           onValueChangeFinished = {
             graph.missions.placeAll(
-                mission.signals.associate { s ->
-                  s.id to SignalPlacement(s.location, maxOf(s.radiusM, lockRadius + 15.0), lockRadius.toDouble())
-                })
-            status = "Lock radius set to ${lockRadius.toInt()} m"
+                mission.signals.associate { signal ->
+                  signal.id to SignalPlacement(
+                      signal.location,
+                      maxOf(signal.radiusM, lockRadiusM + 15.0),
+                      lockRadiusM.toDouble(),
+                  )
+                },
+            )
+            status = "Lock radius set to ${lockRadiusM.toInt()} m"
           },
           valueRange = 12f..45f,
       )
@@ -143,68 +182,112 @@ fun OperatorScreen(graph: AppGraph, back: () -> Unit) {
     }
 
     Section("Live transmission") {
-      Label("Voice a message to every runner, e.g. a hint or a story twist.", Neon.Dim, 11)
+      Label("Voice a message to every runner, e.g. a hint or a story twist.", Rail.Dim, 11)
       Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        mission.characters.forEach { c ->
-          val selected = c.id == broadcastSpeaker
-          if (selected) NeonButton(c.name.take(8), { broadcastSpeaker = c.id }, Modifier.weight(1f), Neon.Amber)
-          else GhostButton(c.name.take(8), { broadcastSpeaker = c.id }, Modifier.weight(1f))
+        mission.characters.forEach { character ->
+          if (character.id == broadcastSpeaker) {
+            RailButton(character.name.take(8), { broadcastSpeaker = character.id }, Modifier.weight(1f), Rail.Brass)
+          } else {
+            GhostButton(character.name.take(8), { broadcastSpeaker = character.id }, Modifier.weight(1f))
+          }
         }
       }
-      OutlinedTextField(broadcastText, { broadcastText = it }, Modifier.fillMaxWidth(), label = { Text("Message") })
+      OutlinedTextField(
+          broadcastText,
+          { broadcastText = it },
+          Modifier.fillMaxWidth(),
+          label = { Text("Message") },
+      )
       Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        NeonButton("Send to all", {
-          scope.launch {
-            status =
-                runCatching { graph.backend.sendBroadcast(broadcastSpeaker, broadcastText, settings.operatorToken) }
-                    .fold({ "Sent" }, { "Send failed: ${it.message}" })
-          }
-        }, enabled = broadcastText.isNotBlank() && graph.backend.configured)
-        GhostButton("Play here", { game.send(GameEvent.Broadcast(broadcastSpeaker, broadcastText)) }, enabled = broadcastText.isNotBlank() && ui.running)
+        RailButton(
+            "Send to all",
+            {
+              scope.launch {
+                status = runCatching {
+                  graph.backend.sendBroadcast(broadcastSpeaker, broadcastText, settings.operatorToken)
+                }.fold({ "Sent" }, { error -> "Send failed: ${error.message}" })
+              }
+            },
+            enabled = broadcastText.isNotBlank() && graph.backend.configured,
+        )
+        GhostButton(
+            "Play here",
+            { game.send(GameEvent.Broadcast(broadcastSpeaker, broadcastText)) },
+            enabled = broadcastText.isNotBlank() && ui.running,
+        )
       }
     }
 
     Section("Event glasses") {
       Label(
           "Enroll the pair connected to this phone: any runner who links it gets premium straight away, without waiting for approval. Needs the operator token.",
-          Neon.Dim,
-          11)
-      val deviceId = glasses.deviceId
-      NeonButton(
-          if (deviceId == null) "Connect a pair first" else "Enroll ${glasses.deviceName ?: "this pair"}",
+          Rail.Dim,
+          11,
+      )
+      val connectedDeviceId = glasses.deviceId
+      RailButton(
+          if (connectedDeviceId == null) "Connect a pair first" else "Enroll ${glasses.deviceName ?: "this pair"}",
           {
-            if (deviceId != null) {
+            if (connectedDeviceId != null) {
               scope.launch {
                 val note = "Enrolled ${DateFormat.getDateInstance().format(Date())} from the operator phone"
-                status =
-                    runCatching {
-                          graph.backend.enrollGlasses(
-                              GlassesEvidence(deviceId, glasses.deviceType ?: "UNKNOWN", glasses.deviceName.orEmpty(), glasses.firmware.orEmpty(), note = note),
-                              settings.operatorToken)
-                        }
-                        .fold({ "Enrolled ${glasses.deviceName ?: "the pair"}" }, { "Enroll failed: ${it.message}" })
+                status = runCatching {
+                  graph.backend.enrollGlasses(
+                      GlassesEvidence(
+                          identifier = connectedDeviceId,
+                          deviceType = glasses.deviceType ?: "UNKNOWN",
+                          name = glasses.deviceName.orEmpty(),
+                          firmware = glasses.firmware.orEmpty(),
+                          note = note,
+                      ),
+                      settings.operatorToken,
+                  )
+                }.fold(
+                    { "Enrolled ${glasses.deviceName ?: "the pair"}" },
+                    { error -> "Enroll failed: ${error.message}" },
+                )
               }
             }
           },
-          enabled = deviceId != null && !glasses.mock && settings.operatorToken.isNotBlank() && graph.backend.configured)
+          enabled = connectedDeviceId != null && !glasses.mock &&
+            settings.operatorToken.isNotBlank() && graph.backend.configured,
+      )
     }
 
     if (glasses.mock) {
       Section("Mock glasses") {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-          listOf(PlayerAction.SCAN, PlayerAction.TALK, PlayerAction.TAP, PlayerAction.HINT).forEach { a ->
-            GhostButton(a.name.lowercase(), { graph.glasses.mockInput(a) }, Modifier.weight(1f))
-          }
+          listOf(PlayerAction.SCAN, PlayerAction.TALK, PlayerAction.TAP, PlayerAction.HINT)
+              .forEach { action ->
+                GhostButton(action.name.lowercase(), { graph.glasses.mockInput(action) }, Modifier.weight(1f))
+              }
         }
-        OutlinedTextField(mockSpeech, { mockSpeech = it }, Modifier.fillMaxWidth(), label = { Text("Say through mock glasses") })
+        OutlinedTextField(
+            mockSpeech,
+            { mockSpeech = it },
+            Modifier.fillMaxWidth(),
+            label = { Text("Say through mock glasses") },
+        )
         GhostButton("Speak", { graph.glasses.mockSpeech(mockSpeech) })
       }
     }
 
     Section("Diagnostics") {
-      Status("Heading", ui.heading.deg?.let { "${it.toInt()}° ${ui.heading.source.name.lowercase()}" } ?: "none", ui.heading.deg != null)
-      Status("Head pitch", ui.heading.pitchDeg?.let { "${it.toInt()}°" } ?: "none", ui.heading.pitchDeg != null)
-      Status("Glasses IMU", if (glasses.imuRateHz > 0) "${glasses.imuRateHz.toInt()} Hz" else "no samples", glasses.imuRateHz > 0)
+      Status(
+          "Heading",
+          ui.heading.deg?.let { "${it.toInt()}° ${ui.heading.source.name.lowercase()}" } ?: "none",
+          ui.heading.deg != null,
+      )
+      Status(
+          "Head pitch",
+          ui.heading.pitchDeg?.let { "${it.toInt()}°" } ?: "none",
+          ui.heading.pitchDeg != null,
+      )
+      Status(
+          "Glasses IMU",
+          if (glasses.imuRateHz > 0) "${glasses.imuRateHz.toInt()} Hz" else "no samples",
+          glasses.imuRateHz > 0,
+      )
       Status("Last press", glasses.lastInput ?: "none", glasses.lastInput != null)
       Status("Voice input", ui.voiceInput.ifBlank { settings.voiceInput.label }, null)
       Status("Audio", ui.audioEngine.ifBlank { "not running" }, ui.running)
@@ -212,13 +295,24 @@ fun OperatorScreen(graph: AppGraph, back: () -> Unit) {
   }
 }
 
+/** Single-choice row used across settings: a filled button when selected. */
+@Composable
+internal fun ChoiceRow(label: String, selected: Boolean, onSelect: () -> Unit) {
+  if (selected) {
+    RailButton("● $label", onSelect, Modifier.fillMaxWidth())
+  } else {
+    GhostButton(label, onSelect, Modifier.fillMaxWidth())
+  }
+}
+
 @Composable
 fun SettingsScreen(graph: AppGraph, back: () -> Unit) {
   val settings by graph.settings.flow.collectAsStateWithLifecycle()
   val rewards by graph.rewards.rewards.collectAsStateWithLifecycle()
-  var url by remember { mutableStateOf(settings.backendUrl) }
-  var token by remember { mutableStateOf(settings.eventToken) }
-  var operator by remember { mutableStateOf(settings.operatorToken) }
+
+  var backendUrl by remember { mutableStateOf(settings.backendUrl) }
+  var eventToken by remember { mutableStateOf(settings.eventToken) }
+  var operatorToken by remember { mutableStateOf(settings.operatorToken) }
   var note by remember { mutableStateOf<String?>(null) }
 
   Column(
@@ -226,51 +320,91 @@ fun SettingsScreen(graph: AppGraph, back: () -> Unit) {
       verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-      Label("SETTINGS", Neon.Cyan, 16, FontWeight.Bold, Modifier.weight(1f))
+      Label("SETTINGS", Rail.Signal, 16, FontWeight.Bold, Modifier.weight(1f))
       GhostButton("Back", back)
     }
-    note?.let { Label(it, Neon.Amber, 12) }
+    note?.let { Label(it, Rail.Brass, 12) }
+
     Section("Backend") {
-      OutlinedTextField(url, { url = it }, Modifier.fillMaxWidth(), label = { Text("Backend URL") }, singleLine = true)
-      OutlinedTextField(token, { token = it }, Modifier.fillMaxWidth(), label = { Text("Event token") }, singleLine = true)
-      OutlinedTextField(operator, { operator = it }, Modifier.fillMaxWidth(), label = { Text("Operator token") }, singleLine = true)
-      NeonButton("Save", {
-        graph.settings.update { it.copy(backendUrl = url, eventToken = token, operatorToken = operator) }
+      OutlinedTextField(
+          backendUrl, { backendUrl = it }, Modifier.fillMaxWidth(),
+          label = { Text("Backend URL") }, singleLine = true,
+      )
+      OutlinedTextField(
+          eventToken, { eventToken = it }, Modifier.fillMaxWidth(),
+          label = { Text("Event token") }, singleLine = true,
+      )
+      OutlinedTextField(
+          operatorToken, { operatorToken = it }, Modifier.fillMaxWidth(),
+          label = { Text("Operator token") }, singleLine = true,
+      )
+      RailButton("Save", {
+        graph.settings.update {
+          it.copy(backendUrl = backendUrl, eventToken = eventToken, operatorToken = operatorToken)
+        }
         note = "Saved"
       })
     }
+
     Section("Voice input") {
-      VoiceInputMode.entries.forEach { m ->
-        ChoiceRow(m.label, settings.voiceInput == m) { graph.settings.update { it.copy(voiceInput = m) } }
+      VoiceInputMode.entries.forEach { mode ->
+        ChoiceRow(mode.label, settings.voiceInput == mode) {
+          graph.settings.update { it.copy(voiceInput = mode) }
+        }
       }
     }
+
     Section("Audio engine") {
-      EngineChoice.entries.forEach { e ->
-        ChoiceRow(e.label, settings.engine == e) { graph.settings.update { it.copy(engine = e) } }
+      EngineChoice.entries.forEach { choice ->
+        ChoiceRow(choice.label, settings.engine == choice) {
+          graph.settings.update { it.copy(engine = choice) }
+        }
       }
-      Label("FMOD is used only in builds made with the FMOD SDK present (see docs/AUDIO.md).", Neon.Dim, 11)
-      Label("Volume ${(settings.masterVolume * 100).toInt()}%", Neon.Dim, 12)
-      Slider(value = settings.masterVolume, onValueChange = { v -> graph.settings.update { it.copy(masterVolume = v) } })
+      Label("FMOD is used only in builds made with the FMOD SDK present (see docs/AUDIO.md).", Rail.Dim, 11)
+      Label("Volume ${(settings.masterVolume * 100).toInt()}%", Rail.Dim, 12)
+      Slider(
+          value = settings.masterVolume,
+          onValueChange = { volume -> graph.settings.update { it.copy(masterVolume = volume) } },
+      )
     }
+
     Section("Head tracking") {
-      HeadingFusion.YawMode.entries.forEach { m ->
-        ChoiceRow(if (m == HeadingFusion.YawMode.GYRO) "Gyro around gravity (default)" else "Orientation quaternion", settings.yawMode == m) {
-          graph.settings.update { it.copy(yawMode = m) }
+      HeadingFusion.YawMode.entries.forEach { mode ->
+        val label = if (mode == HeadingFusion.YawMode.GYRO) {
+          "Gyro around gravity (default)"
+        } else {
+          "Orientation quaternion"
+        }
+        ChoiceRow(label, settings.yawMode == mode) {
+          graph.settings.update { it.copy(yawMode = mode) }
           graph.game.applyHeadingSettings()
         }
       }
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Label("Invert yaw (if turning right moves sounds the wrong way)", Neon.Text, 12, modifier = Modifier.weight(1f))
-        Switch(settings.invertYaw, { v ->
-          graph.settings.update { it.copy(invertYaw = v) }
+        Label(
+            "Invert yaw (if turning right moves sounds the wrong way)",
+            Rail.Text,
+            12,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(settings.invertYaw, { inverted ->
+          graph.settings.update { it.copy(invertYaw = inverted) }
           graph.game.applyHeadingSettings()
         })
       }
     }
+
     Section("Testing") {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Label("Mock glasses (MockDeviceKit). Restart the app after changing.", Neon.Text, 12, modifier = Modifier.weight(1f))
-        Switch(settings.mockGlasses, { v -> graph.settings.update { it.copy(mockGlasses = v) } })
+        Label(
+            "Mock glasses (MockDeviceKit). Restart the app after changing.",
+            Rail.Text,
+            12,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(settings.mockGlasses, { mock ->
+          graph.settings.update { it.copy(mockGlasses = mock) }
+        })
       }
       Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         GhostButton("Clear voice cache", {
@@ -283,7 +417,12 @@ fun SettingsScreen(graph: AppGraph, back: () -> Unit) {
         })
       }
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Label("Finished runs on this phone: ${rewards.completions}. Re-lock before handing a shared phone to a new runner.", Neon.Text, 12, modifier = Modifier.weight(1f))
+        Label(
+            "Finished runs on this phone: ${rewards.completions}. Re-lock before handing a shared phone to a new runner.",
+            Rail.Text,
+            12,
+            modifier = Modifier.weight(1f),
+        )
         GhostButton("Re-lock rewards", {
           graph.rewards.relock()
           note = "Rewards re-locked: original soundtrack, nothing unlocked"
@@ -293,44 +432,41 @@ fun SettingsScreen(graph: AppGraph, back: () -> Unit) {
   }
 }
 
-@Composable
-internal fun ChoiceRow(label: String, selected: Boolean, onSelect: () -> Unit) {
-  if (selected) NeonButton("● $label", onSelect, Modifier.fillMaxWidth())
-  else GhostButton(label, onSelect, Modifier.fillMaxWidth())
-}
-
 /** Messages runners recorded at the Voice signal. They never leave the phone. */
 @Composable
 fun ArchiveScreen(graph: AppGraph, back: () -> Unit) {
   var recordings by remember { mutableStateOf(graph.recorder.list()) }
   var player by remember { mutableStateOf<MediaPlayer?>(null) }
   DisposableEffect(Unit) { onDispose { player?.release() } }
-  val format = remember { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT) }
+  val dateFormat = remember {
+    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+  }
 
   Column(
       Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-      Label("MESSAGES", Neon.Magenta, 16, FontWeight.Bold, Modifier.weight(1f))
+      Label("MESSAGES", Rail.Brass, 16, FontWeight.Bold, Modifier.weight(1f))
       GhostButton("Back", back)
     }
-    Label("Stored on this phone only.", Neon.Dim, 12)
-    if (recordings.isEmpty()) Label("No messages yet.", Neon.Dim, 13)
-    recordings.forEach { r ->
-      Section(format.format(Date(r.createdAtMs))) {
-        Label("${r.signalId} · ${r.durationMs / 1000}s", Neon.Text, 12)
+    Label("Stored on this phone only.", Rail.Dim, 12)
+    if (recordings.isEmpty()) Label("No messages yet.", Rail.Dim, 13)
+
+    recordings.forEach { recording ->
+      Section(dateFormat.format(Date(recording.createdAtMs))) {
+        Label("${recording.signalId} · ${recording.durationMs / 1000}s", Rail.Text, 12)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
           GhostButton("Play", {
             player?.release()
             player = MediaPlayer().apply {
-              setDataSource(r.file.absolutePath)
+              setDataSource(recording.file.absolutePath)
               prepare()
               start()
             }
           })
           GhostButton("Delete", {
-            graph.recorder.delete(r)
+            graph.recorder.delete(recording)
             recordings = graph.recorder.list()
           })
         }

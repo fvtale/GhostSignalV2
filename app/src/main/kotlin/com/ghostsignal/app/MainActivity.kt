@@ -18,17 +18,23 @@ import com.meta.wearable.dat.core.voiceinvocations.isVoiceInvocationsIntent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * Single activity hosting the Compose UI. Owns the Android runtime
+ * permission flow, the glasses mic permission, and the voice-invocation
+ * entry point ("Hey Meta, start GhostSignal").
+ */
 class MainActivity : ComponentActivity() {
-  private val graph by lazy { (application as GhostSignalApp).graph }
-  private val permissions = MutableStateFlow(Permissions())
 
-  private val runtimePermissions =
+  private val graph: AppGraph by lazy { (application as GhostSignalApp).graph }
+  private val permissionsFlow = MutableStateFlow(Permissions())
+
+  private val runtimePermissionRequest =
       registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refreshPermissions()
         onBluetoothReady()
       }
 
-  private val glassesMicPermission =
+  private val glassesMicPermissionRequest =
       registerForActivityResult(Wearables.RequestPermissionContract()) { result ->
         graph.glasses.onMicPermissionResult(result.getOrDefault(PermissionStatus.Denied))
       }
@@ -37,17 +43,19 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     refreshPermissions()
-    if (permissions.value.bluetooth) onBluetoothReady() else requestPermissions()
-    handle(intent)
-    lifecycleScope.launch { graph.glasses.launchRequests.collect { startFromVoice() } }
+    if (permissionsFlow.value.bluetooth) onBluetoothReady() else requestRuntimePermissions()
+    handleIntent(intent)
+    lifecycleScope.launch {
+      graph.glasses.launchRequests.collect { startFromVoiceInvocation() }
+    }
     setContent {
       AppRoot(
           graph = graph,
-          permissions = permissions,
-          onRequestPermissions = ::requestPermissions,
+          permissions = permissionsFlow,
+          onRequestPermissions = ::requestRuntimePermissions,
           onRegister = { graph.glasses.startRegistration(this) },
           onUnregister = { graph.glasses.startUnregistration(this) },
-          onRequestGlassesMic = { glassesMicPermission.launch(Permission.MICROPHONE) },
+          onRequestGlassesMic = { glassesMicPermissionRequest.launch(Permission.MICROPHONE) },
       )
     }
   }
@@ -55,7 +63,7 @@ class MainActivity : ComponentActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
-    handle(intent)
+    handleIntent(intent)
   }
 
   override fun onResume() {
@@ -70,47 +78,50 @@ class MainActivity : ComponentActivity() {
     super.onPause()
   }
 
-  private fun handle(intent: Intent?) {
-    intent ?: return
-    if (graph.glasses.state.value.initialized) graph.glasses.handleIntent(this, intent)
-    if (isVoiceInvocationsIntent(intent)) startFromVoice()
+  private fun handleIntent(intent: Intent?) {
+    if (intent == null) return
+    if (graph.glasses.state.value.initialized) {
+      graph.glasses.handleIntent(this, intent)
+    }
+    if (isVoiceInvocationsIntent(intent)) startFromVoiceInvocation()
   }
 
-  /** "Hey Meta, start GhostSignal": resume the run if there is one, else start fresh. */
-  private fun startFromVoice() {
+  /** Voice launch: resume the saved run when there is one, else start fresh. */
+  private fun startFromVoiceInvocation() {
     val game = graph.game
     if (game.running) return
-    val p = graph.progress.progress.value
-    game.start(resume = p != null && !p.complete)
+    val saved = graph.progress.progress.value
+    game.start(resume = saved != null && !saved.complete)
   }
 
-  private fun requestPermissions() {
-    runtimePermissions.launch(
+  private fun requestRuntimePermissions() {
+    runtimePermissionRequest.launch(
         arrayOf(
             Manifest.permission.BLUETOOTH_CONNECT,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.POST_NOTIFICATIONS,
-        ))
+        ),
+    )
   }
 
   private fun onBluetoothReady() {
-    if (!permissions.value.bluetooth) return
+    if (!permissionsFlow.value.bluetooth) return
     val glasses = graph.glasses
     if (graph.settings.value.mockGlasses) glasses.enableMock() else glasses.initialize()
     glasses.startVoiceInvocations()
-    handle(intent)
+    handleIntent(intent)
   }
 
   private fun refreshPermissions() {
-    fun granted(p: String) = checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
-    permissions.value =
-        Permissions(
-            bluetooth = granted(Manifest.permission.BLUETOOTH_CONNECT),
-            location = granted(Manifest.permission.ACCESS_FINE_LOCATION),
-            microphone = granted(Manifest.permission.RECORD_AUDIO),
-            notifications = granted(Manifest.permission.POST_NOTIFICATIONS),
-        )
+    fun isGranted(permission: String): Boolean =
+        checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    permissionsFlow.value = Permissions(
+        bluetooth = isGranted(Manifest.permission.BLUETOOTH_CONNECT),
+        location = isGranted(Manifest.permission.ACCESS_FINE_LOCATION),
+        microphone = isGranted(Manifest.permission.RECORD_AUDIO),
+        notifications = isGranted(Manifest.permission.POST_NOTIFICATIONS),
+    )
   }
 }

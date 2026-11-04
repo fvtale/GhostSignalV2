@@ -10,142 +10,169 @@ import java.io.FileDescriptor
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-/** Interleaved 16-bit PCM. Everything the mixer touches is converted to [SAMPLE_RATE] first. */
+/**
+ * Interleaved 16-bit PCM. Everything the mixer touches is converted to
+ * [SAMPLE_RATE] first, so renderers never reason about source rates.
+ */
 class Pcm(val data: ShortArray, val channels: Int, val sampleRate: Int) {
+
   val frames: Int
     get() = data.size / channels
 
   val durationMs: Long
     get() = frames * 1000L / sampleRate
 
+  /** Downmixes to mono by averaging channels (already mono: returns this). */
   fun toMono(): Pcm {
     if (channels == 1) return this
-    val out = ShortArray(frames)
-    for (i in 0 until frames) {
-      var sum = 0
-      for (c in 0 until channels) sum += data[i * channels + c]
-      out[i] = (sum / channels).toShort()
+    val mono = ShortArray(frames)
+    for (frame in 0 until frames) {
+      var channelSum = 0
+      for (channel in 0 until channels) {
+        channelSum += data[frame * channels + channel]
+      }
+      mono[frame] = (channelSum / channels).toShort()
     }
-    return Pcm(out, 1, sampleRate)
+    return Pcm(mono, 1, sampleRate)
   }
 
+  /** Duplicates mono into stereo (already stereo: returns this). */
   fun toStereo(): Pcm {
     if (channels == 2) return this
     val mono = toMono()
-    val out = ShortArray(mono.frames * 2)
-    for (i in 0 until mono.frames) {
-      out[2 * i] = mono.data[i]
-      out[2 * i + 1] = mono.data[i]
+    val stereo = ShortArray(mono.frames * 2)
+    for (frame in 0 until mono.frames) {
+      stereo[2 * frame] = mono.data[frame]
+      stereo[2 * frame + 1] = mono.data[frame]
     }
-    return Pcm(out, 2, sampleRate)
+    return Pcm(stereo, 2, sampleRate)
   }
 
   /** Exactly [frames] long: truncated, or padded with silence. */
   fun withFrames(frames: Int): Pcm {
     if (frames == this.frames) return this
-    val out = ShortArray(frames * channels)
-    System.arraycopy(data, 0, out, 0, minOf(data.size, out.size))
-    return Pcm(out, channels, sampleRate)
+    val sized = ShortArray(frames * channels)
+    System.arraycopy(data, 0, sized, 0, minOf(data.size, sized.size))
+    return Pcm(sized, channels, sampleRate)
   }
 
-  /** Linear-interpolation resampler; fine for speech and for 44.1 -> 48 kHz music. */
-  fun resampled(target: Int = SAMPLE_RATE): Pcm {
-    if (sampleRate == target || frames == 0) return this
-    val ratio = sampleRate.toDouble() / target
-    val outFrames = (frames / ratio).toInt()
-    val out = ShortArray(outFrames * channels)
-    for (i in 0 until outFrames) {
-      val src = i * ratio
-      val i0 = src.toInt().coerceAtMost(frames - 1)
-      val i1 = (i0 + 1).coerceAtMost(frames - 1)
-      val t = src - i0
-      for (c in 0 until channels) {
-        val a = data[i0 * channels + c]
-        val b = data[i1 * channels + c]
-        out[i * channels + c] = (a + (b - a) * t).toInt().toShort()
+  /** Linear-interpolation resampler; fine for speech and 44.1→48 kHz music. */
+  fun resampled(targetRate: Int = SAMPLE_RATE): Pcm {
+    if (sampleRate == targetRate || frames == 0) return this
+    val ratio = sampleRate.toDouble() / targetRate
+    val outputFrames = (frames / ratio).toInt()
+    val resampledData = ShortArray(outputFrames * channels)
+    for (frame in 0 until outputFrames) {
+      val sourcePosition = frame * ratio
+      val firstIndex = sourcePosition.toInt().coerceAtMost(frames - 1)
+      val secondIndex = (firstIndex + 1).coerceAtMost(frames - 1)
+      val fraction = sourcePosition - firstIndex
+      for (channel in 0 until channels) {
+        val firstSample = data[firstIndex * channels + channel]
+        val secondSample = data[secondIndex * channels + channel]
+        val interpolated = firstSample + (secondSample - firstSample) * fraction
+        resampledData[frame * channels + channel] = interpolated.toInt().toShort()
       }
     }
-    return Pcm(out, channels, target)
+    return Pcm(resampledData, channels, targetRate)
   }
 
   companion object {
     const val SAMPLE_RATE = 48_000
 
-    fun silence(ms: Long, channels: Int = 2) =
-        Pcm(ShortArray((SAMPLE_RATE * ms / 1000).toInt() * channels), channels, SAMPLE_RATE)
+    fun silence(milliseconds: Long, channels: Int = 2): Pcm {
+      val frameCount = (SAMPLE_RATE * milliseconds / 1000).toInt()
+      return Pcm(ShortArray(frameCount * channels), channels, SAMPLE_RATE)
+    }
   }
 }
 
-/** Decodes WAV directly and anything else (OGG, MP3, AAC, FLAC) through MediaCodec. */
+/** Decodes WAV directly; anything else (Ogg, MP3, AAC, FLAC) via MediaCodec. */
 object PcmDecoder {
-  fun decodeAsset(context: Context, path: String): Pcm =
-      context.assets.openFd(path).use { afd ->
-        decode { it.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length) }
+
+  fun decodeAsset(context: Context, assetPath: String): Pcm =
+      context.assets.openFd(assetPath).use { descriptor ->
+        decode { extractor ->
+          extractor.setDataSource(
+              descriptor.fileDescriptor, descriptor.startOffset, descriptor.length,
+          )
+        }
       }
 
   fun decodeFile(file: File): Pcm {
     if (file.extension.equals("wav", ignoreCase = true)) {
       WavCodec.read(file.readBytes())?.let { return it }
     }
-    return decode { it.setDataSource(file.absolutePath) }
+    return decode { extractor -> extractor.setDataSource(file.absolutePath) }
   }
 
-  fun decodeFd(fd: FileDescriptor, offset: Long, length: Long) =
-      decode { it.setDataSource(fd, offset, length) }
+  fun decodeFd(fd: FileDescriptor, offset: Long, length: Long): Pcm =
+      decode { extractor -> extractor.setDataSource(fd, offset, length) }
 
-  private fun decode(source: (MediaExtractor) -> Unit): Pcm {
+  private fun decode(configureSource: (MediaExtractor) -> Unit): Pcm {
     val extractor = MediaExtractor()
     try {
-      source(extractor)
-      val track =
-          (0 until extractor.trackCount).firstOrNull {
-            extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
-          } ?: error("no audio track")
-      extractor.selectTrack(track)
-      val format = extractor.getTrackFormat(track)
-      val mime = format.getString(MediaFormat.KEY_MIME)!!
-      var channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-      var rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-      var encoding = AudioFormat.ENCODING_PCM_16BIT
+      configureSource(extractor)
+      val audioTrackIndex = (0 until extractor.trackCount).firstOrNull { index ->
+        extractor.getTrackFormat(index)
+            .getString(MediaFormat.KEY_MIME)
+            ?.startsWith("audio/") == true
+      } ?: error("no audio track")
+      extractor.selectTrack(audioTrackIndex)
 
-      val codec = MediaCodec.createDecoderByType(mime)
-      codec.configure(format, null, null, 0)
+      val trackFormat = extractor.getTrackFormat(audioTrackIndex)
+      val mimeType = trackFormat.getString(MediaFormat.KEY_MIME)!!
+      var channelCount = trackFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+      var sourceRate = trackFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+      var pcmEncoding = AudioFormat.ENCODING_PCM_16BIT
+
+      val codec = MediaCodec.createDecoderByType(mimeType)
+      codec.configure(trackFormat, null, null, 0)
       codec.start()
-      val out = ShortBuilder()
-      val info = MediaCodec.BufferInfo()
-      var inputDone = false
-      var outputDone = false
+
+      val collected = GrowingShortBuffer()
+      val bufferInfo = MediaCodec.BufferInfo()
+      var inputExhausted = false
+      var outputFinished = false
       try {
-        while (!outputDone) {
-          if (!inputDone) {
-            val inIndex = codec.dequeueInputBuffer(10_000)
-            if (inIndex >= 0) {
-              val buf = codec.getInputBuffer(inIndex)!!
-              val size = extractor.readSampleData(buf, 0)
-              if (size < 0) {
-                codec.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-                inputDone = true
+        while (!outputFinished) {
+          if (!inputExhausted) {
+            val inputIndex = codec.dequeueInputBuffer(DEQUEUE_TIMEOUT_US)
+            if (inputIndex >= 0) {
+              val inputBuffer = codec.getInputBuffer(inputIndex)!!
+              val sampleSize = extractor.readSampleData(inputBuffer, 0)
+              if (sampleSize < 0) {
+                codec.queueInputBuffer(
+                    inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM,
+                )
+                inputExhausted = true
               } else {
-                codec.queueInputBuffer(inIndex, 0, size, extractor.sampleTime, 0)
+                codec.queueInputBuffer(
+                    inputIndex, 0, sampleSize, extractor.sampleTime, 0,
+                )
                 extractor.advance()
               }
             }
           }
-          val outIndex = codec.dequeueOutputBuffer(info, 10_000)
+
+          val outputIndex = codec.dequeueOutputBuffer(bufferInfo, DEQUEUE_TIMEOUT_US)
           when {
-            outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-              val f = codec.outputFormat
-              channels = f.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-              rate = f.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-              if (f.containsKey(MediaFormat.KEY_PCM_ENCODING)) encoding = f.getInteger(MediaFormat.KEY_PCM_ENCODING)
+            outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+              val outputFormat = codec.outputFormat
+              channelCount = outputFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+              sourceRate = outputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+              if (outputFormat.containsKey(MediaFormat.KEY_PCM_ENCODING)) {
+                pcmEncoding = outputFormat.getInteger(MediaFormat.KEY_PCM_ENCODING)
+              }
             }
-            outIndex >= 0 -> {
-              val buf = codec.getOutputBuffer(outIndex)!!
-              buf.position(info.offset)
-              buf.limit(info.offset + info.size)
-              appendPcm(buf.order(ByteOrder.LITTLE_ENDIAN), encoding, out)
-              codec.releaseOutputBuffer(outIndex, false)
-              if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) outputDone = true
+            outputIndex >= 0 -> {
+              val outputBuffer = codec.getOutputBuffer(outputIndex)!!
+              outputBuffer.position(bufferInfo.offset)
+              outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
+              appendDecoded(outputBuffer.order(ByteOrder.LITTLE_ENDIAN), pcmEncoding, collected)
+              codec.releaseOutputBuffer(outputIndex, false)
+              val isEnd = bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
+              if (isEnd) outputFinished = true
             }
           }
         }
@@ -153,92 +180,137 @@ object PcmDecoder {
         codec.stop()
         codec.release()
       }
-      return Pcm(out.toArray(), channels, rate).resampled()
+      return Pcm(collected.toArray(), channelCount, sourceRate).resampled()
     } finally {
       extractor.release()
     }
   }
 
-  private fun appendPcm(buf: ByteBuffer, encoding: Int, out: ShortBuilder) {
+  private fun appendDecoded(buffer: ByteBuffer, encoding: Int, out: GrowingShortBuffer) {
     if (encoding == AudioFormat.ENCODING_PCM_FLOAT) {
-      val fb = buf.asFloatBuffer()
-      while (fb.hasRemaining()) out.add((fb.get().coerceIn(-1f, 1f) * 32767f).toInt().toShort())
+      val floatView = buffer.asFloatBuffer()
+      while (floatView.hasRemaining()) {
+        val scaled = floatView.get().coerceIn(-1f, 1f) * 32767f
+        out.add(scaled.toInt().toShort())
+      }
     } else {
-      val sb = buf.asShortBuffer()
-      while (sb.hasRemaining()) out.add(sb.get())
+      val shortView = buffer.asShortBuffer()
+      while (shortView.hasRemaining()) out.add(shortView.get())
     }
   }
+
+  private const val DEQUEUE_TIMEOUT_US = 10_000L
 }
 
-/** Minimal RIFF/WAVE reader and writer for 16-bit PCM. */
+/** Minimal RIFF/WAVE reader and writer for PCM (16-bit int, or 32-bit float in). */
 object WavCodec {
+
+  /** Parses a WAV byte array, or null when it is not one we support. */
   fun read(bytes: ByteArray): Pcm? {
     if (bytes.size < 44) return null
-    val b = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-    if (String(bytes, 0, 4) != "RIFF" || String(bytes, 8, 4) != "WAVE") return null
-    var pos = 12
-    var channels = 1
-    var rate = 16_000
-    var bits = 16
-    var format = 1
-    while (pos + 8 <= bytes.size) {
-      val id = String(bytes, pos, 4)
-      val size = b.getInt(pos + 4)
-      val body = pos + 8
-      when (id) {
+    val littleEndian = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+    if (String(bytes, 0, 4) != "RIFF" || String(bytes, 8, 12) != "WAVE") return null
+
+    var chunkOffset = 12
+    var channelCount = 1
+    var sourceRate = 16_000
+    var bitsPerSample = 16
+    var formatTag = 1
+
+    while (chunkOffset + 8 <= bytes.size) {
+      val chunkId = String(bytes, chunkOffset, 4)
+      val chunkSize = littleEndian.getInt(chunkOffset + 4)
+      val chunkBody = chunkOffset + 8
+      when (chunkId) {
         "fmt " -> {
-          format = b.getShort(body).toInt() and 0xffff
-          channels = b.getShort(body + 2).toInt()
-          rate = b.getInt(body + 4)
-          bits = b.getShort(body + 14).toInt()
+          formatTag = littleEndian.getShort(chunkBody).toInt() and 0xffff
+          channelCount = littleEndian.getShort(chunkBody + 2).toInt()
+          sourceRate = littleEndian.getInt(chunkBody + 4)
+          bitsPerSample = littleEndian.getShort(chunkBody + 14).toInt()
         }
         "data" -> {
-          val end = minOf(bytes.size, body + if (size < 0) Int.MAX_VALUE else size)
-          return when {
-            format == 1 && bits == 16 -> {
-              val shorts = ShortArray((end - body) / 2)
-              ByteBuffer.wrap(bytes, body, end - body).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
-              Pcm(shorts, channels, rate).resampled()
-            }
-            format == 3 && bits == 32 -> {
-              val n = (end - body) / 4
-              val floats = FloatArray(n)
-              ByteBuffer.wrap(bytes, body, end - body).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(floats)
-              Pcm(ShortArray(n) { (floats[it].coerceIn(-1f, 1f) * 32767f).toInt().toShort() }, channels, rate).resampled()
-            }
-            else -> null
-          }
+          val dataEnd = minOf(bytes.size, chunkBody + if (chunkSize < 0) Int.MAX_VALUE else chunkSize)
+          return decodeDataChunk(bytes, chunkBody, dataEnd, formatTag, bitsPerSample, channelCount, sourceRate)
         }
       }
-      pos = body + size + (size and 1)
+      chunkOffset = chunkBody + chunkSize + (chunkSize and 1) // Bodies are word-aligned.
     }
     return null
   }
 
+  private fun decodeDataChunk(
+      bytes: ByteArray,
+      bodyStart: Int,
+      bodyEnd: Int,
+      formatTag: Int,
+      bitsPerSample: Int,
+      channels: Int,
+      sampleRate: Int,
+  ): Pcm? {
+    return when {
+      formatTag == 1 && bitsPerSample == 16 -> {
+        val sampleCount = (bodyEnd - bodyStart) / 2
+        val samples = ShortArray(sampleCount)
+        ByteBuffer.wrap(bytes, bodyStart, bodyEnd - bodyStart)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .asShortBuffer()
+            .get(samples)
+        Pcm(samples, channels, sampleRate).resampled()
+      }
+      formatTag == 3 && bitsPerSample == 32 -> {
+        val sampleCount = (bodyEnd - bodyStart) / 4
+        val floatSamples = FloatArray(sampleCount)
+        ByteBuffer.wrap(bytes, bodyStart, bodyEnd - bodyStart)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .asFloatBuffer()
+            .get(floatSamples)
+        val converted = ShortArray(sampleCount) { index ->
+          (floatSamples[index].coerceIn(-1f, 1f) * 32767f).toInt().toShort()
+        }
+        Pcm(converted, channels, sampleRate).resampled()
+      }
+      else -> null
+    }
+  }
+
+  /** Writes 16-bit PCM as a canonical 44-byte-header WAV file. */
   fun write(file: File, pcm: ShortArray, channels: Int, sampleRate: Int) {
-    val dataBytes = pcm.size * 2
+    val dataByteCount = pcm.size * 2
     val header = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN)
-    header.put("RIFF".toByteArray()).putInt(36 + dataBytes).put("WAVE".toByteArray())
-    header.put("fmt ".toByteArray()).putInt(16).putShort(1).putShort(channels.toShort())
-    header.putInt(sampleRate).putInt(sampleRate * channels * 2).putShort((channels * 2).toShort()).putShort(16)
-    header.put("data".toByteArray()).putInt(dataBytes)
-    val body = ByteBuffer.allocate(dataBytes).order(ByteOrder.LITTLE_ENDIAN)
+    header.put("RIFF".toByteArray())
+    header.putInt(36 + dataByteCount)
+    header.put("WAVE".toByteArray())
+    header.put("fmt ".toByteArray())
+    header.putInt(16)
+    header.putShort(1) // PCM
+    header.putShort(channels.toShort())
+    header.putInt(sampleRate)
+    header.putInt(sampleRate * channels * 2)
+    header.putShort((channels * 2).toShort())
+    header.putShort(16)
+    header.put("data".toByteArray())
+    header.putInt(dataByteCount)
+
+    val body = ByteBuffer.allocate(dataByteCount).order(ByteOrder.LITTLE_ENDIAN)
     body.asShortBuffer().put(pcm)
-    file.outputStream().use {
-      it.write(header.array())
-      it.write(body.array())
+
+    file.outputStream().use { output ->
+      output.write(header.array())
+      output.write(body.array())
     }
   }
 }
 
-internal class ShortBuilder(initial: Int = 1 shl 16) {
-  private var buf = ShortArray(initial)
+/** Growable ShortArray used while decoding streams of unknown length. */
+internal class GrowingShortBuffer(initialCapacity: Int = 1 shl 16) {
+
+  private var buffer = ShortArray(initialCapacity)
   private var size = 0
 
-  fun add(v: Short) {
-    if (size == buf.size) buf = buf.copyOf(buf.size * 2)
-    buf[size++] = v
+  fun add(value: Short) {
+    if (size == buffer.size) buffer = buffer.copyOf(buffer.size * 2)
+    buffer[size++] = value
   }
 
-  fun toArray(): ShortArray = buf.copyOf(size)
+  fun toArray(): ShortArray = buffer.copyOf(size)
 }

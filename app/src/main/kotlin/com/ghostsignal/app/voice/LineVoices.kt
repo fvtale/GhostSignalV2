@@ -21,37 +21,57 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 
-data class PrepareProgress(val done: Int, val total: Int, val cloud: Int, val local: Int, val failed: Int)
+data class PrepareProgress(
+    val done: Int,
+    val total: Int,
+    val cloud: Int,
+    val local: Int,
+    val failed: Int,
+)
 
 /**
- * Turns lines into audio. Authored lines and character replies use the character's cloud voice
- * from the backend when one is configured; dynamic SmartSpecs lines (distances, directions) use the
- * phone's own TTS so they're instant. Everything is cached on disk, and [prepareAll] renders the
- * whole script ahead of the event so the game never waits on the network for a story line.
+ * Turns text lines into playable audio.
+ *
+ * Authored story lines prefer a rendered voice from the backend when one
+ * is configured; dynamic SmartSpecs lines (distances, directions) always
+ * use the phone's own TTS so they are instant. Everything is cached on
+ * disk under a hash of its inputs, and [prepareAll] renders the whole
+ * script before the event so a run never waits on synthesis or network.
+ * The live backend renders voices on-device and answers 501, so in
+ * practice lines are spoken by the phone — the cloud path stays for
+ * backends that do synthesize.
  */
 class LineVoices(context: Context, private val backend: BackendClient) {
-  private val dir = File(context.filesDir, "voices").apply { mkdirs() }
-  private val tts = AndroidTts(context)
 
+  private val cacheDir = File(context.filesDir, "voices").apply { mkdirs() }
+  private val localTts = AndroidTts(context)
+
+  /** Renders (or reuses) the audio for one utterance. */
   suspend fun render(mission: Mission, utterance: Utterance): Pcm {
-    val character = mission.character(utterance.speaker)
-    val cloudFile = file(mission, utterance, "cloud")
+    val cloudFile = cacheFile(mission, utterance, sourceTag = "cloud")
     if (cloudFile.exists()) return PcmDecoder.decodeFile(cloudFile)
-    if (prefersCloud(utterance) && backend.configured) {
+
+    if (prefersCloudVoice(utterance) && backend.configured) {
       try {
-        val bytes = backend.tts(mission.id, utterance.speaker, utterance.text)
-        cloudFile.writeBytes(bytes)
+        val audioBytes = backend.tts(mission.id, utterance.speaker, utterance.text)
+        cloudFile.writeBytes(audioBytes)
         return PcmDecoder.decodeFile(cloudFile)
-      } catch (e: Exception) {
+      } catch (error: Exception) {
         cloudFile.delete()
-        Log.w(TAG, "cloud voice failed for ${utterance.speaker}: ${e.message}")
+        Log.w(TAG, "cloud voice failed for ${utterance.speaker}: ${error.message}")
       }
     }
-    val localFile = file(mission, utterance, "local")
+
+    val localFile = cacheFile(mission, utterance, sourceTag = "local")
     if (!localFile.exists()) {
-      val voice = character?.voice
-      val ok = tts.synthesize(utterance.text, (voice?.pitch ?: 1.0).toFloat(), (voice?.rate ?: 1.0).toFloat(), localFile)
-      if (!ok) {
+      val voiceSpec = mission.character(utterance.speaker)?.voice
+      val synthesized = localTts.synthesize(
+          text = utterance.text,
+          pitch = (voiceSpec?.pitch ?: 1.0).toFloat(),
+          rate = (voiceSpec?.rate ?: 1.0).toFloat(),
+          outputFile = localFile,
+      )
+      if (!synthesized) {
         localFile.delete()
         error("no voice available for '${utterance.text.take(40)}'")
       }
@@ -59,88 +79,104 @@ class LineVoices(context: Context, private val backend: BackendClient) {
     return PcmDecoder.decodeFile(localFile)
   }
 
-  /** Renders every authored line so the run never waits on TTS. */
-  suspend fun prepareAll(mission: Mission, onProgress: (PrepareProgress) -> Unit): PrepareProgress {
-    val lines = LineCatalog.all(mission)
-    var cloud = 0
-    var local = 0
-    var failed = 0
-    lines.forEachIndexed { i, line ->
-      val u = Utterance(line.id, line.speaker, line.text)
+  /** Renders every authored line, reporting progress as it goes. */
+  suspend fun prepareAll(
+      mission: Mission,
+      onProgress: (PrepareProgress) -> Unit,
+  ): PrepareProgress {
+    val allLines = LineCatalog.all(mission)
+    var cloudCount = 0
+    var localCount = 0
+    var failedCount = 0
+
+    allLines.forEachIndexed { index, line ->
+      val utterance = Utterance(line.id, line.speaker, line.text)
       try {
-        render(mission, u)
-        if (file(mission, u, "cloud").exists()) cloud++ else local++
-      } catch (e: Exception) {
-        failed++
+        render(mission, utterance)
+        if (cacheFile(mission, utterance, "cloud").exists()) cloudCount++ else localCount++
+      } catch (error: Exception) {
+        failedCount++
       }
-      onProgress(PrepareProgress(i + 1, lines.size, cloud, local, failed))
+      onProgress(PrepareProgress(index + 1, allLines.size, cloudCount, localCount, failedCount))
     }
-    return PrepareProgress(lines.size, lines.size, cloud, local, failed)
+    return PrepareProgress(allLines.size, allLines.size, cloudCount, localCount, failedCount)
   }
 
   fun clearCache() {
-    dir.listFiles()?.forEach { it.delete() }
+    cacheDir.listFiles()?.forEach { it.delete() }
   }
 
-  private fun prefersCloud(u: Utterance) = u.lineId?.startsWith("system.") != true
+  /** Story lines may use a cloud voice; system readouts stay on-device. */
+  private fun prefersCloudVoice(utterance: Utterance): Boolean =
+      utterance.lineId?.startsWith("system.") != true
 
-  private fun file(mission: Mission, u: Utterance, source: String): File {
-    val c = mission.character(u.speaker)
-    val key = "${mission.id}|${u.speaker}|${c?.voice}|${u.text}|$source"
-    val digest = MessageDigest.getInstance("SHA-1").digest(key.toByteArray())
-    return File(dir, "${source}_" + digest.joinToString("") { "%02x".format(it) } + ".wav")
+  private fun cacheFile(mission: Mission, utterance: Utterance, sourceTag: String): File {
+    val character = mission.character(utterance.speaker)
+    val keyMaterial = "${mission.id}|${utterance.speaker}|${character?.voice}|${utterance.text}|$sourceTag"
+    val digest = MessageDigest.getInstance("SHA-1").digest(keyMaterial.toByteArray())
+    val hexDigest = digest.joinToString("") { "%02x".format(it) }
+    return File(cacheDir, "${sourceTag}_$hexDigest.wav")
   }
 
-  companion object {
-    private const val TAG = "GhostSignalVoices"
+  private companion object {
+    const val TAG = "GhostSignalVoices"
   }
 }
 
-/** Coroutine wrapper around Android's TextToSpeech, rendering to WAV files. */
+/** Coroutine wrapper around Android TextToSpeech, rendering to WAV files. */
 class AndroidTts(context: Context) {
-  private val ready = CompletableDeferred<Boolean>()
-  private val pending = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
-  private val mutex = Mutex()
-  private var languageSet = false
-  private val tts = TextToSpeech(context.applicationContext) { status -> ready.complete(status == TextToSpeech.SUCCESS) }
 
-  init {
-    tts.setOnUtteranceProgressListener(
-        object : UtteranceProgressListener() {
-          override fun onStart(utteranceId: String) = Unit
+  private val readySignal = CompletableDeferred<Boolean>()
+  private val pendingUtterances = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
+  private val synthesisMutex = Mutex()
+  private var languageConfigured = false
 
-          override fun onDone(utteranceId: String) {
-            pending.remove(utteranceId)?.complete(true)
-          }
-
-          @Suppress("OVERRIDE_DEPRECATION")
-          override fun onError(utteranceId: String) {
-            pending.remove(utteranceId)?.complete(false)
-          }
-
-          override fun onError(utteranceId: String, errorCode: Int) {
-            pending.remove(utteranceId)?.complete(false)
-          }
-        })
+  private val ttsEngine = TextToSpeech(context.applicationContext) { status ->
+    readySignal.complete(status == TextToSpeech.SUCCESS)
   }
 
-  suspend fun synthesize(text: String, pitch: Float, rate: Float, out: File): Boolean {
-    return mutex.withLock {
-        if (withTimeoutOrNull(10_000) { ready.await() } != true) return false
-        if (!languageSet) {
-          tts.setLanguage(Locale.US)
-          languageSet = true
-        }
-        tts.setPitch(pitch)
-        tts.setSpeechRate(rate)
-        val id = UUID.randomUUID().toString()
-        val done = CompletableDeferred<Boolean>()
-        pending[id] = done
-        if (tts.synthesizeToFile(text, Bundle(), out, id) != TextToSpeech.SUCCESS) {
-          pending.remove(id)
-          return false
-        }
-        withTimeoutOrNull(20_000) { done.await() } == true && out.length() > 44
+  init {
+    ttsEngine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+      override fun onStart(utteranceId: String) = Unit
+
+      override fun onDone(utteranceId: String) {
+        pendingUtterances.remove(utteranceId)?.complete(true)
       }
+
+      @Suppress("OVERRIDE_DEPRECATION")
+      override fun onError(utteranceId: String) {
+        pendingUtterances.remove(utteranceId)?.complete(false)
+      }
+
+      override fun onError(utteranceId: String, errorCode: Int) {
+        pendingUtterances.remove(utteranceId)?.complete(false)
+      }
+    })
+  }
+
+  /** Synthesizes [text] into [outputFile]; false when no voice can speak. */
+  suspend fun synthesize(text: String, pitch: Float, rate: Float, outputFile: File): Boolean {
+    return synthesisMutex.withLock {
+      val engineReady = withTimeoutOrNull(10_000) { readySignal.await() } == true
+      if (!engineReady) return false
+
+      if (!languageConfigured) {
+        ttsEngine.setLanguage(Locale.US)
+        languageConfigured = true
+      }
+      ttsEngine.setPitch(pitch)
+      ttsEngine.setSpeechRate(rate)
+
+      val utteranceId = UUID.randomUUID().toString()
+      val completion = CompletableDeferred<Boolean>()
+      pendingUtterances[utteranceId] = completion
+      val queued = ttsEngine.synthesizeToFile(text, Bundle(), outputFile, utteranceId)
+      if (queued != TextToSpeech.SUCCESS) {
+        pendingUtterances.remove(utteranceId)
+        return false
+      }
+      val finished = withTimeoutOrNull(20_000) { completion.await() } == true
+      finished && outputFile.length() > 44 // Longer than a bare WAV header.
+    }
   }
 }

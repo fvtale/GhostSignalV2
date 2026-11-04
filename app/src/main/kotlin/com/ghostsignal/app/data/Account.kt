@@ -11,36 +11,55 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-/** The signed-in player's session token and the last plan the server sent, kept in app-private storage. */
+/**
+ * Local account state: the session token and the last plan the server
+ * sent, kept in app-private storage. The token is never written into the
+ * plan JSON that gets persisted alongside it.
+ */
 class AccountStore(context: Context) {
-  private val prefs = context.getSharedPreferences("ghostsignal_account", Context.MODE_PRIVATE)
-  private val _plan = MutableStateFlow(readPlan())
-  val plan: StateFlow<AccountPlan?> = _plan
+
+  private val preferences =
+      context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+  private val mutablePlan = MutableStateFlow<AccountPlan?>(readStoredPlan())
+  val plan: StateFlow<AccountPlan?> = mutablePlan
 
   val token: String
-    get() = prefs.getString("token", "") ?: ""
+    get() = preferences.getString(KEY_TOKEN, "") ?: ""
 
-  private fun readPlan(): AccountPlan? =
-      prefs.getString("plan", null)?.let { runCatching { Mission.json.decodeFromString(AccountPlan.serializer(), it) }.getOrNull() }
+  private fun readStoredPlan(): AccountPlan? {
+    val storedJson = preferences.getString(KEY_PLAN, null) ?: return null
+    return runCatching {
+      Mission.json.decodeFromString(AccountPlan.serializer(), storedJson)
+    }.getOrNull()
+  }
 
+  /** Persists a plan; [token] replaces the stored session when given. */
   fun save(token: String?, plan: AccountPlan) {
-    prefs
-        .edit()
-        .apply { if (token != null) putString("token", token) }
-        .putString("plan", Mission.json.encodeToString(AccountPlan.serializer(), plan.copy(token = null)))
+    val tokenlessPlan = plan.copy(token = null)
+    preferences.edit()
+        .apply { if (token != null) putString(KEY_TOKEN, token) }
+        .putString(KEY_PLAN, Mission.json.encodeToString(AccountPlan.serializer(), tokenlessPlan))
         .apply()
-    _plan.value = plan.copy(token = null)
+    mutablePlan.value = tokenlessPlan
   }
 
   fun clear() {
-    prefs.edit().clear().apply()
-    _plan.value = null
+    preferences.edit().clear().apply()
+    mutablePlan.value = null
+  }
+
+  private companion object {
+    const val PREFS_NAME = "ghostsignal_account"
+    const val KEY_TOKEN = "token"
+    const val KEY_PLAN = "plan"
   }
 }
 
 /**
- * Optional player accounts. Signing in keeps finished runs across phones (the higher count wins,
- * both ways) and brings premium soundtracks to premium players. The game plays the same signed out.
+ * Optional player accounts. Signing in syncs finished-run counts across
+ * phones (the higher count wins, in both directions) and brings premium
+ * soundtracks to premium players. The game plays identically signed out.
  */
 class AccountRepository(
     private val backend: BackendClient,
@@ -49,101 +68,126 @@ class AccountRepository(
     private val missions: MissionRepository,
     private val scope: CoroutineScope,
 ) {
+
   val plan: StateFlow<AccountPlan?> = store.plan
+
   private val missionId: String
     get() = missions.baseMission.id
 
   init {
     backend.accountToken = { store.token }
-    // Report each finished run while signed in.
+    // Report each newly finished run while signed in.
     scope.launch {
-      rewards.rewards.collect { r ->
-        val p = store.plan.value ?: return@collect
-        if (r.completions > (p.account.completions[missionId] ?: 0)) report(r.completions)
+      rewards.rewards.collect { current ->
+        val currentPlan = store.plan.value ?: return@collect
+        val reported = currentPlan.account.completions[missionId] ?: 0
+        if (current.completions > reported) reportCompletions(current.completions)
       }
     }
   }
 
-  /** Signs in, or creates the account; returns an error to show, or null. */
-  suspend fun signIn(email: String, password: String, create: Boolean): String? =
-      try {
-        val p = if (create) backend.signUp(email, password) else backend.signIn(email, password)
-        val token = p.token ?: return "The server didn't send a session"
-        store.save(token, p)
-        merge(p)
-        missions.sync(manual = false)
-        null
-      } catch (e: Exception) {
-        Log.w(TAG, "sign-in failed", e)
-        e.message ?: "Couldn't reach the server"
+  /** Signs in (or creates the account). Returns an error to show, or null. */
+  suspend fun signIn(email: String, password: String, create: Boolean): String? {
+    return try {
+      val newPlan = if (create) {
+        backend.signUp(email, password)
+      } else {
+        backend.signIn(email, password)
       }
-
-  /** Fetches the plan again: after paying, or when setup opens. Signs out if the server has. */
-  suspend fun refresh() {
-    if (store.token.isBlank() || !backend.configured) return
-    try {
-      val before = store.plan.value?.account?.premium?.active
-      val p = backend.account()
-      store.save(null, p)
-      merge(p)
-      if (p.account.premium.active != before) missions.sync(manual = false)
-    } catch (e: BackendClient.HttpException) {
-      if (e.code == 401) {
-        store.clear()
-        missions.sync(manual = false)
-      }
-    } catch (e: Exception) {
-      Log.w(TAG, "account refresh failed", e)
+      val sessionToken = newPlan.token ?: return "The server didn't send a session"
+      store.save(sessionToken, newPlan)
+      mergeCompletions(newPlan)
+      missions.sync(manual = false)
+      null
+    } catch (error: Exception) {
+      Log.w(TAG, "sign-in failed", error)
+      error.message ?: "Couldn't reach the server"
     }
   }
 
   /**
-   * Links the connected glasses to this account. An admin approves each pair (the app can't prove
-   * it's real glasses), unless the pair was enrolled for an event. Returns what to tell the runner.
+   * Refetches the plan (after paying, or when setup opens). A 401 from the
+   * server means the session is gone: sign out locally and resync.
    */
-  suspend fun linkGlasses(evidence: GlassesEvidence): String =
-      try {
-        val link = backend.linkGlasses(evidence)
-        refresh()
-        if (link.status == "approved") "Linked. Premium is on." else "Sent for approval. Premium switches on once an admin approves this pair."
-      } catch (e: Exception) {
-        Log.w(TAG, "glasses link failed", e)
-        e.message ?: "Couldn't reach the server"
+  suspend fun refresh() {
+    if (store.token.isBlank() || !backend.configured) return
+    try {
+      val premiumBefore = store.plan.value?.account?.premium?.active
+      val freshPlan = backend.account()
+      store.save(null, freshPlan)
+      mergeCompletions(freshPlan)
+      if (freshPlan.account.premium.active != premiumBefore) {
+        missions.sync(manual = false)
       }
+    } catch (error: BackendClient.HttpException) {
+      if (error.code == 401) {
+        store.clear()
+        missions.sync(manual = false)
+      }
+    } catch (error: Exception) {
+      Log.w(TAG, "account refresh failed", error)
+    }
+  }
 
-  suspend fun unlinkGlasses(id: String): String? =
-      try {
-        backend.unlinkGlasses(id)
-        refresh()
-        null
-      } catch (e: Exception) {
-        e.message ?: "Couldn't reach the server"
+  /**
+   * Links the connected glasses to this account. An admin approves each
+   * pair (the app cannot prove it is real glasses), unless the pair was
+   * enrolled for an event. Returns the message to show the runner.
+   */
+  suspend fun linkGlasses(evidence: GlassesEvidence): String {
+    return try {
+      val link = backend.linkGlasses(evidence)
+      refresh()
+      if (link.status == "approved") {
+        "Linked. Premium is on."
+      } else {
+        "Sent for approval. Premium switches on once an admin approves this pair."
       }
+    } catch (error: Exception) {
+      Log.w(TAG, "glasses link failed", error)
+      error.message ?: "Couldn't reach the server"
+    }
+  }
+
+  suspend fun unlinkGlasses(id: String): String? {
+    return try {
+      backend.unlinkGlasses(id)
+      refresh()
+      null
+    } catch (error: Exception) {
+      error.message ?: "Couldn't reach the server"
+    }
+  }
 
   suspend fun signOut() {
     runCatching { backend.signOut() }
     store.clear()
-    missions.sync(manual = false) // drop premium soundtracks
+    missions.sync(manual = false) // Drop premium soundtracks from the mission.
   }
 
-  private suspend fun merge(p: AccountPlan) {
-    val remote = p.account.completions[missionId] ?: 0
-    val local = rewards.value.completions
-    if (remote > local) rewards.atLeast(remote) else if (local > remote) report(local)
-  }
-
-  private suspend fun report(completions: Int) {
-    try {
-      val n = backend.reportCompletions(missionId, completions)
-      store.plan.value?.let { p ->
-        store.save(null, p.copy(account = p.account.copy(completions = p.account.completions + (missionId to n))))
-      }
-    } catch (e: Exception) {
-      Log.w(TAG, "couldn't record finished runs", e)
+  /** Reconciles local and account completion counts; higher wins. */
+  private suspend fun mergeCompletions(plan: AccountPlan) {
+    val remoteCount = plan.account.completions[missionId] ?: 0
+    val localCount = rewards.value.completions
+    when {
+      remoteCount > localCount -> rewards.atLeast(remoteCount)
+      localCount > remoteCount -> reportCompletions(localCount)
     }
   }
 
-  companion object {
-    private const val TAG = "GhostSignalAccount"
+  private suspend fun reportCompletions(completions: Int) {
+    try {
+      val recorded = backend.reportCompletions(missionId, completions)
+      store.plan.value?.let { currentPlan ->
+        val updatedCompletions = currentPlan.account.completions + (missionId to recorded)
+        store.save(null, currentPlan.copy(account = currentPlan.account.copy(completions = updatedCompletions)))
+      }
+    } catch (error: Exception) {
+      Log.w(TAG, "couldn't record finished runs", error)
+    }
+  }
+
+  private companion object {
+    const val TAG = "GhostSignalAccount"
   }
 }

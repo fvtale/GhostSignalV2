@@ -1,5 +1,24 @@
 # Handoffs
 
+# Handoff — 2026-11-03, Meta Wonder (Phase 4: Android rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 4 of 5.** New `Rail` theme in the DataRail house tokens (track-bed/signal/brass, station-sign section headers, node-dot status) replacing the old neon palette across every screen (setup, run, operator, settings, archive, account); radar/fragment strip reworked on the same tokens; `colors.xml`/`themes.xml` aligned. Every app module re-implemented from scratch with the same behaviour: root wiring, settings, data stores, backend client, audio (DSP, PCM, mixer, synth, FMOD bridge), glasses, location, voice, game controller/service.
+- Fixed the shipped default backend URL: clean builds now default to `https://ghostsignal.datarail.org` (was the non-resolving `ghostsignalv2.datarail.org`, the field-test STT/NPC failure).
+
+## Verified
+
+- `./gradlew :app:assembleDebug` — BUILD SUCCESSFUL (APK 67 MB, 2026-11-03). Core `jvmTest` and server `npm test` still green.
+
+## Not verified
+
+- On-device behaviour (spatial audio, glasses inputs, GPS) — needs a phone pass; FMOD path still requires `third_party/fmod`.
+
+## Next
+
+- Phase 5: full verification sweep and ship (HANDOFF, memory brief, deploy check).
+
 # Handoff — 2026-11-03, Meta Wonder (Phase 3: web surfaces rewrite)
 
 ## What this round does

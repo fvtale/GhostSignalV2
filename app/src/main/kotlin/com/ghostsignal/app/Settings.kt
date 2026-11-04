@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/** How spoken answers are captured. AUTO prefers the glasses, then the phone. */
 enum class VoiceInputMode(val label: String) {
   AUTO("Auto (glasses first)"),
   GLASSES("Glasses speech (DAT)"),
@@ -13,11 +14,13 @@ enum class VoiceInputMode(val label: String) {
   PHONE_MIC("Phone recognizer, phone mic"),
 }
 
+/** Where position fixes come from: real GPS, or the operator's simulated runner. */
 enum class LocationMode(val label: String) {
   GPS("GPS"),
   SIMULATED("Simulated"),
 }
 
+/** Which spatial renderer to use. FMOD exists only in SDK-equipped builds. */
 enum class EngineChoice(val label: String) {
   AUTO("Auto"),
   BUILT_IN("Built-in binaural"),
@@ -37,46 +40,68 @@ data class AppSettings(
     val masterVolume: Float,
 )
 
-/** Small persistent settings store. Event-day values can also be baked in via local.properties. */
+/**
+ * Persistent app settings (SharedPreferences). Event-day values may also
+ * be baked in at build time via local.properties (see app/build.gradle.kts);
+ * anything the operator changes on the phone wins over the baked default.
+ */
 class Settings(context: Context) {
-  private val prefs = context.getSharedPreferences("ghostsignal", Context.MODE_PRIVATE)
-  private val _flow = MutableStateFlow(read())
-  val flow: StateFlow<AppSettings> = _flow.asStateFlow()
+
+  private val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+  private val mutableFlow = MutableStateFlow(load())
+
+  val flow: StateFlow<AppSettings> = mutableFlow.asStateFlow()
+
   val value: AppSettings
-    get() = _flow.value
+    get() = mutableFlow.value
 
-  private fun read() =
-      AppSettings(
-          backendUrl = prefs.getString("backendUrl", null) ?: BuildConfig.BACKEND_URL,
-          eventToken = prefs.getString("eventToken", null) ?: BuildConfig.EVENT_TOKEN,
-          operatorToken = prefs.getString("operatorToken", "") ?: "",
-          voiceInput = enumOr(prefs.getString("voiceInput", null), VoiceInputMode.AUTO),
-          locationMode = enumOr(prefs.getString("locationMode", null), LocationMode.GPS),
-          engine = enumOr(prefs.getString("engine", null), EngineChoice.AUTO),
-          yawMode = enumOr(prefs.getString("yawMode", null), HeadingFusion.YawMode.GYRO),
-          invertYaw = prefs.getBoolean("invertYaw", false),
-          mockGlasses = prefs.getBoolean("mockGlasses", false),
-          masterVolume = prefs.getFloat("masterVolume", 0.9f),
-      )
+  private fun load(): AppSettings = AppSettings(
+      backendUrl = preferences.getString(KEY_BACKEND_URL, null) ?: BuildConfig.BACKEND_URL,
+      eventToken = preferences.getString(KEY_EVENT_TOKEN, null) ?: BuildConfig.EVENT_TOKEN,
+      operatorToken = preferences.getString(KEY_OPERATOR_TOKEN, "") ?: "",
+      voiceInput = enumPref(KEY_VOICE_INPUT, VoiceInputMode.AUTO),
+      locationMode = enumPref(KEY_LOCATION_MODE, LocationMode.GPS),
+      engine = enumPref(KEY_ENGINE, EngineChoice.AUTO),
+      yawMode = enumPref(KEY_YAW_MODE, HeadingFusion.YawMode.GYRO),
+      invertYaw = preferences.getBoolean(KEY_INVERT_YAW, false),
+      mockGlasses = preferences.getBoolean(KEY_MOCK_GLASSES, false),
+      masterVolume = preferences.getFloat(KEY_MASTER_VOLUME, 0.9f),
+  )
 
+  /** Applies a change, persists it (URLs/tokens trimmed), and republishes. */
   fun update(change: (AppSettings) -> AppSettings) {
-    val next = change(_flow.value)
-    prefs
-        .edit()
-        .putString("backendUrl", next.backendUrl.trim().trimEnd('/'))
-        .putString("eventToken", next.eventToken.trim())
-        .putString("operatorToken", next.operatorToken.trim())
-        .putString("voiceInput", next.voiceInput.name)
-        .putString("locationMode", next.locationMode.name)
-        .putString("engine", next.engine.name)
-        .putString("yawMode", next.yawMode.name)
-        .putBoolean("invertYaw", next.invertYaw)
-        .putBoolean("mockGlasses", next.mockGlasses)
-        .putFloat("masterVolume", next.masterVolume)
+    val next = change(mutableFlow.value)
+    preferences.edit()
+        .putString(KEY_BACKEND_URL, next.backendUrl.trim().trimEnd('/'))
+        .putString(KEY_EVENT_TOKEN, next.eventToken.trim())
+        .putString(KEY_OPERATOR_TOKEN, next.operatorToken.trim())
+        .putString(KEY_VOICE_INPUT, next.voiceInput.name)
+        .putString(KEY_LOCATION_MODE, next.locationMode.name)
+        .putString(KEY_ENGINE, next.engine.name)
+        .putString(KEY_YAW_MODE, next.yawMode.name)
+        .putBoolean(KEY_INVERT_YAW, next.invertYaw)
+        .putBoolean(KEY_MOCK_GLASSES, next.mockGlasses)
+        .putFloat(KEY_MASTER_VOLUME, next.masterVolume)
         .apply()
-    _flow.value = read()
+    mutableFlow.value = load()
   }
 
-  private inline fun <reified E : Enum<E>> enumOr(name: String?, default: E): E =
-      name?.let { n -> enumValues<E>().firstOrNull { it.name == n } } ?: default
+  private inline fun <reified E : Enum<E>> enumPref(key: String, fallback: E): E {
+    val storedName = preferences.getString(key, null) ?: return fallback
+    return enumValues<E>().firstOrNull { it.name == storedName } ?: fallback
+  }
+
+  private companion object {
+    const val PREFS_NAME = "ghostsignal"
+    const val KEY_BACKEND_URL = "backendUrl"
+    const val KEY_EVENT_TOKEN = "eventToken"
+    const val KEY_OPERATOR_TOKEN = "operatorToken"
+    const val KEY_VOICE_INPUT = "voiceInput"
+    const val KEY_LOCATION_MODE = "locationMode"
+    const val KEY_ENGINE = "engine"
+    const val KEY_YAW_MODE = "yawMode"
+    const val KEY_INVERT_YAW = "invertYaw"
+    const val KEY_MOCK_GLASSES = "mockGlasses"
+    const val KEY_MASTER_VOLUME = "masterVolume"
+  }
 }

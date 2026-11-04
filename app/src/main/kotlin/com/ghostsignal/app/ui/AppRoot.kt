@@ -16,24 +16,25 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ghostsignal.app.AppGraph
 import kotlinx.coroutines.flow.StateFlow
 
+/** Runtime permission snapshot the setup screen reports on. */
 data class Permissions(
     val bluetooth: Boolean = false,
     val location: Boolean = false,
     val microphone: Boolean = false,
     val notifications: Boolean = false,
 ) {
+  /** Everything a run cannot start without. */
   val essentials: Boolean
     get() = bluetooth && location && microphone
 }
 
-enum class Screen {
-  SETUP,
-  RUN,
-  OPERATOR,
-  SETTINGS,
-  ARCHIVE,
-}
+enum class Screen { SETUP, RUN, OPERATOR, SETTINGS, ARCHIVE }
 
+/**
+ * Top-level navigation. A running game pulls the runner back to the run
+ * screen; Back from anywhere else returns to the run (or to setup when
+ * nothing is running).
+ */
 @Composable
 fun AppRoot(
     graph: AppGraph,
@@ -45,27 +46,38 @@ fun AppRoot(
 ) {
   GhostTheme {
     val ui by graph.game.ui.collectAsStateWithLifecycle()
-    var screen by remember { mutableStateOf(if (graph.game.running) Screen.RUN else Screen.SETUP) }
-    LaunchedEffect(ui.running) { if (ui.running && screen == Screen.SETUP) screen = Screen.RUN }
+    var screen by remember {
+      mutableStateOf(if (graph.game.running) Screen.RUN else Screen.SETUP)
+    }
+
+    LaunchedEffect(ui.running) {
+      if (ui.running && screen == Screen.SETUP) screen = Screen.RUN
+    }
     BackHandler(enabled = screen != Screen.SETUP && screen != Screen.RUN) {
       screen = if (ui.running) Screen.RUN else Screen.SETUP
     }
-    Box(Modifier.fillMaxSize().background(Neon.Void).safeDrawingPadding()) {
+
+    Box(Modifier.fillMaxSize().background(Rail.TrackBed).safeDrawingPadding()) {
       when (screen) {
-        Screen.SETUP ->
-            SetupScreen(
-                graph = graph,
-                permissions = permissions,
-                onRequestPermissions = onRequestPermissions,
-                onRegister = onRegister,
-                onUnregister = onUnregister,
-                onRequestGlassesMic = onRequestGlassesMic,
-                go = { screen = it },
-            )
-        Screen.RUN -> RunScreen(graph, go = { screen = it })
-        Screen.OPERATOR -> OperatorScreen(graph, back = { screen = if (ui.running) Screen.RUN else Screen.SETUP })
+        Screen.SETUP -> SetupScreen(
+            graph = graph,
+            permissions = permissions,
+            onRequestPermissions = onRequestPermissions,
+            onRegister = onRegister,
+            onUnregister = onUnregister,
+            onRequestGlassesMic = onRequestGlassesMic,
+            go = { target -> screen = target },
+        )
+        Screen.RUN -> RunScreen(graph, go = { target -> screen = target })
+        Screen.OPERATOR -> OperatorScreen(
+            graph,
+            back = { screen = if (ui.running) Screen.RUN else Screen.SETUP },
+        )
         Screen.SETTINGS -> SettingsScreen(graph, back = { screen = Screen.SETUP })
-        Screen.ARCHIVE -> ArchiveScreen(graph, back = { screen = if (ui.running) Screen.RUN else Screen.SETUP })
+        Screen.ARCHIVE -> ArchiveScreen(
+            graph,
+            back = { screen = if (ui.running) Screen.RUN else Screen.SETUP },
+        )
       }
     }
   }
