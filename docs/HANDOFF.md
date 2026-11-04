@@ -1,5 +1,20 @@
 # Handoffs
 
+# Handoff — 2026-11-03, Meta Wonder (rewrite deployed)
+
+## What this round does
+
+- Owner play-tested two complete runs successfully, then approved deploy. VPS `/opt/ghostsignal` fast-forwarded `3e77dd3` → `37aab5e` (the full rewrite), server tests run on the VPS, `ghostsignal` service restarted.
+- Note: the live lane on this host is `/opt/ghostsignal` + service `ghostsignal` (port 8090 behind Caddy); `deploy/update.sh` in the repo targets a `ghostsignalv2` layout that does not exist on this VPS — deploy manually (fetch, ff-only, `npm test`, restart, health) until that script is corrected.
+
+## Verified
+
+- VPS `npm test` green; service active (new PID); internal and external `/health` 200 with `npc:true, stt:true`; `/play/`, `/account/`, `/admin/` all 200; the rail-circuitry `play.css` is the version served (old neon palette gone).
+
+## Next
+
+- Owner's creative tweaks backlog, whenever ready. Nothing else outstanding for the submission.
+
 # Handoff — 2026-11-03, Meta Wonder (Phase 5: rewrite shipped)
 
 ## What this round does
