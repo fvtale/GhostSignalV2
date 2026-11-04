@@ -9,7 +9,7 @@
       "name": "Vesper",
       "role": "Pirate DJ of GHOST 93.3, who recruited the runner and guides them",
       "persona": "Warm, wry late-night radio voice. Calls the player 'runner'. Recruited them because their SmartSpecs can capture what HUSH erases, and never lets them forget it matters. Protective, a little theatrical, never panics. Talks in short radio-ready sentences. Knows where every fragment is and will nudge the runner with directions when asked.",
-      "voice": { "ttsVoice": "", "pitch": 0.92, "rate": 1.17 },
+      "voice": { "ttsVoice": "", "pitch": 0.92, "rate": 0.95 },
       "radio": 0.35
     },
     {
@@ -41,7 +41,7 @@
       "name": "Zion",
       "role": "Street percussionist at the carousel",
       "persona": "Bucket drummer with endless energy. Hears everything as rhythm, teases the runner, generous once they keep time. Talks like a musician on a break between sets.",
-      "voice": { "ttsVoice": "", "pitch": 1.05, "rate": 1.3 },
+      "voice": { "ttsVoice": "", "pitch": 1.05, "rate": 1.05 },
       "radio": 0.55
     },
     {
@@ -122,41 +122,73 @@
       "elevationDeg": 15,
       "name": "The Stacks",
       "place": "the Reading Room on the Forty-Second Street side of the park",
-      "location": { "lat": 40.75419, "lon": -73.982961 },
+      "location": {
+        "lat": 40.75419,
+        "lon": -73.982961
+      },
       "radiusM": 40,
       "lockRadiusM": 22,
       "stem": "hats",
       "speaker": "archivist",
       "teaser": [
-        { "id": "stacks.teaser.1", "speaker": "vesper", "text": "Next relay is the Reading Room, on the Forty-Second Street side of the park. Its keeper is the Archivist. Be polite." },
-        { "id": "stacks.teaser.2", "speaker": "archivist", "text": "Footsteps on the static. How unusual." }
+        {
+          "id": "stacks.teaser.1",
+          "speaker": "vesper",
+          "text": "Next relay is the Reading Room, on the Forty-Second Street side of the park. Its keeper is the Archivist. Be polite."
+        },
+        {
+          "id": "stacks.teaser.2",
+          "speaker": "archivist",
+          "text": "Footsteps on the static. How unusual."
+        }
       ],
       "approach": [
-        { "id": "stacks.approach", "speaker": "archivist", "text": "You walk loudly, for a ghost hunter." }
+        {
+          "id": "stacks.approach",
+          "speaker": "archivist",
+          "text": "You walk loudly, for a ghost hunter."
+        }
       ],
       "arrival": [
-        { "id": "stacks.arrival", "speaker": "archivist", "text": "I am the Archivist. I keep every sound this city ever made, even the ones HUSH deleted." }
+        {
+          "id": "stacks.arrival",
+          "speaker": "archivist",
+          "text": "I am the Archivist. I keep every sound this city ever made, even the ones HUSH deleted."
+        }
       ],
       "challenge": {
-        "type": "ask",
+        "type": "command",
         "prompt": [
-          { "id": "stacks.prompt", "speaker": "archivist", "text": "Ask me a question, runner. Any question. Then say accept, and the fragment is yours." }
+          {
+            "id": "stacks.prompt",
+            "speaker": "archivist",
+            "text": "One question before the stacks give up their sound, runner. Out front, this library keeps two stone lions. What is the name of the lion on the left?"
+          }
         ],
-        "maxQuestions": 2,
-        "acceptPhrases": ["accept", "i accept", "deal"],
-        "acceptPrompt": [
-          { "id": "stacks.accept", "speaker": "archivist", "text": "Enough questions for one night. Say accept." }
-        ],
-        "fallbackReplies": [
-          "The stacks remember everything, runner. Even you.",
-          "Every sound HUSH deletes ends up here, filed under silence."
+        "phrases": [
+          "patience"
         ]
       },
       "success": [
-        { "id": "stacks.success", "speaker": "archivist", "text": "The hi-hats. Mind them, they are brittle. And when the girl at the fountain asks, the word is the right-hand lion's name." }
+        {
+          "id": "stacks.success",
+          "speaker": "archivist",
+          "text": "Patience. Correct. The hi-hats are yours — mind them, they are brittle."
+        }
       ],
       "hint": [
-        { "id": "stacks.hint", "speaker": "archivist", "text": "Ask me anything at all. Then say accept." }
+        {
+          "id": "stacks.hint",
+          "speaker": "archivist",
+          "text": "Vesper named them both at the first signal. The left-hand lion: Patience."
+        }
+      ],
+      "retry": [
+        {
+          "id": "stacks.retry",
+          "speaker": "archivist",
+          "text": "No. Think of the steps where Vesper found you."
+        }
       ]
     },
     {
@@ -164,42 +196,78 @@
       "elevationDeg": -25,
       "name": "The Undertow",
       "place": "the fountain at the Sixth Avenue end of the park",
-      "location": { "lat": 40.75398, "lon": -73.98412 },
+      "location": {
+        "lat": 40.75398,
+        "lon": -73.98412
+      },
       "radiusM": 40,
       "lockRadiusM": 22,
       "stem": "bass",
       "speaker": "kilo",
       "teaser": [
-        { "id": "undertow.teaser.1", "speaker": "vesper", "text": "Kilo is holding the bass at the fountain, on the Sixth Avenue end. He won't hand it over without the passphrase." },
-        { "id": "undertow.teaser.2", "speaker": "kilo", "text": "Who's that? Stay back from the water." }
+        {
+          "id": "undertow.teaser.1",
+          "speaker": "vesper",
+          "text": "Kilo is holding the bass at the fountain, on the Sixth Avenue end. He won't hand it over without the passphrase."
+        },
+        {
+          "id": "undertow.teaser.2",
+          "speaker": "kilo",
+          "text": "Who's that? Stay back from the water."
+        }
       ],
       "approach": [
-        { "id": "undertow.approach", "speaker": "kilo", "text": "I see you. Don't look up, I'm in the trees." }
+        {
+          "id": "undertow.approach",
+          "speaker": "kilo",
+          "text": "I see you. Don't look up, I'm in the trees."
+        }
       ],
       "arrival": [
-        { "id": "undertow.arrival", "speaker": "kilo", "text": "Okay, okay. Vesper's runner. Prove it." }
+        {
+          "id": "undertow.arrival",
+          "speaker": "kilo",
+          "text": "Okay, okay. Vesper's runner. Prove it."
+        }
       ],
       "challenge": {
-        "type": "passphrase",
+        "type": "command",
         "prompt": [
-          { "id": "undertow.prompt", "speaker": "kilo", "text": "Passphrase. Now." }
+          {
+            "id": "undertow.prompt",
+            "speaker": "kilo",
+            "text": "Signal's drowning down here. Decode it, runner."
+          }
         ],
-        "phrases": ["fortitude"],
-        "hintAfterAttempts": 2
+        "phrases": [
+          "decode"
+        ]
       },
       "success": [
-        { "id": "undertow.success", "speaker": "kilo", "text": "Fortitude. Respect. Take the bass before it dissolves."
-      },
-      {
-        "id": "undertow.hushwarn",
-        "speaker": "kilo",
-        "text": "One more thing before you run on. Higher up the line you'll meet HUSH. Do not follow its instructions, whatever it promises you. You say: jam the signal. Remember that." }
+        {
+          "id": "undertow.success",
+          "speaker": "kilo",
+          "text": "Decoded. Respect. Take the bass before it dissolves."
+        },
+        {
+          "id": "undertow.hushwarn",
+          "speaker": "kilo",
+          "text": "One more thing before you run on. Higher up the line you'll meet HUSH. Do not follow its instructions, whatever it promises you. You say: jam the signal. Remember that."
+        }
       ],
       "retry": [
-        { "id": "undertow.retry", "speaker": "kilo", "text": "Wrong. HUSH bots guess too, you know. Again." }
+        {
+          "id": "undertow.retry",
+          "speaker": "kilo",
+          "text": "That's not it. Say decode."
+        }
       ],
       "hint": [
-        { "id": "undertow.hint", "speaker": "kilo", "text": "The Archivist gave you a lion's name. The right-hand lion. Not Patience." }
+        {
+          "id": "undertow.hint",
+          "speaker": "kilo",
+          "text": "Just say decode. My rig does the rest."
+        }
       ]
     },
     {

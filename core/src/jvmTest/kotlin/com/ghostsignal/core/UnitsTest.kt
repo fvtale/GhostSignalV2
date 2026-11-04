@@ -257,7 +257,7 @@ class MissionTest {
   @Test
   fun lineCatalogCoversEveryChallengeBranch() {
     val ids = LineCatalog.all(mission).map { it.id }.toSet()
-    assertTrue("stacks.accept" in ids)
+    assertTrue("undertow.hushwarn" in ids)
     assertNotNull(mission.character("vesper"))
     assertTrue("unlock.lastbars.1" in ids, "unlock announcements are pre-rendered like any other line")
   }
@@ -299,6 +299,31 @@ class MissionTest {
     assertEquals("Dead Channel", mission.music.title)
     assertEquals(88.0, mission.music.bpm)
     assertTrue(mission.music.stems.all { it.file.startsWith("music/dead_channel/") })
+  }
+
+  @Test
+  fun theArchivistAsksTheLionQuestion() {
+    val stacks = mission.signal("stacks")!!
+    val challenge = stacks.challenge
+    assertTrue(challenge is com.ghostsignal.core.model.Challenge.Command, "stacks challenge: $challenge")
+    val phrases = (challenge as com.ghostsignal.core.model.Challenge.Command).phrases
+    assertEquals(listOf("patience"), phrases)
+    assertTrue("lion on the left" in challenge.prompt.single().text)
+  }
+
+  @Test
+  fun layerThreeJustDecodes() {
+    val undertow = mission.signal("undertow")!!
+    val challenge = undertow.challenge
+    assertTrue(challenge is com.ghostsignal.core.model.Challenge.Command, "undertow challenge: $challenge")
+    val phrases = (challenge as com.ghostsignal.core.model.Challenge.Command).phrases
+    assertEquals(listOf("decode"), phrases)
+  }
+
+  @Test
+  fun vesperAndZionKeepTheirPreviousSpeed() {
+    assertEquals(0.95, mission.character("vesper")!!.voice.rate)
+    assertEquals(1.05, mission.character("mari")!!.voice.rate)
   }
 
   @Test
