@@ -1,5 +1,24 @@
 # Handoffs
 
+# Handoff — 2026-11-03, Meta Wonder (Phase 5: rewrite shipped)
+
+## What this round does
+
+- **Post-hackathon rewrite complete.** All five phases landed on `main` over the disclosed V1 base (`09128e8`): core `881ac2c`, server `91c79d6`, web surfaces `c81326a`, Android `81a0095`. Final verification sweep (below) on the shipped tree. The V1 skeleton stays in history; everything judges run is original post-start code.
+
+## Verified
+
+- Core `./gradlew -p core jvmTest` — 47/47. Server `npm test` — 58/58. Web engine check: bundle matches Kotlin source. Android `:app:assembleDebug` — BUILD SUCCESSFUL.
+- Live backend `https://ghostsignal.datarail.org/health` — V2 shape (`stt` present), `npc:true`, `stt:true`, model `muse-spark-1.3`.
+
+## Not verified
+
+- Production still runs the pre-rewrite build; the rewrite is NOT deployed (needs the owner's go + reliable server access). Web player not yet played in a real browser; Android not yet played on a phone. Both are owner passes before the demo.
+
+## Next
+
+- Owner: play once in a browser and once on the phone, then approve the VPS deploy (`deploy/update.sh`) to ship the rewrite live.
+
 # Handoff — 2026-11-03, Meta Wonder (Phase 4: Android rewrite)
 
 ## What this round does
