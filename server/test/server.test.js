@@ -254,7 +254,7 @@ describe("admin sign-in", () => {
     assert.equal((await call("/v1/admin/mission", { token: "event" })).status, 403);
     const m = await (await call("/v1/admin/mission", { token: session })).json();
     assert.equal(m.signals.length, mission.signals.length);
-    assert.deepEqual(m.bundledSoundtracks.map((t) => t.id), ["dead-channel"]);
+    assert.deepEqual(m.bundledSoundtracks.map((t) => t.id), ["last-eight-bars"]);
     assert.equal((await call("/v1/admin/logout", { method: "POST", token: session })).status, 204);
     assert.equal((await call("/v1/admin/me", { token: session })).status, 401);
   });
@@ -352,7 +352,7 @@ describe("deployed soundtracks", () => {
   });
 
   it("won't take the name of a soundtrack that ships with the app", async () => {
-    for (const id of ["dead-channel", "original", "Bad_Id"]) {
+    for (const id of ["last-eight-bars", "original", "Bad_Id"]) {
       const res = await call(`/v1/tracks/${mission.id}/${id}`, { method: "PUT", token: "operator", body: { title: "x", music: { bpm: 90, stems: [] } } });
       assert.equal(res.status, 400, id);
     }

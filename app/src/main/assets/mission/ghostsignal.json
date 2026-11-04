@@ -48,27 +48,27 @@
       "id": "hush",
       "name": "HUSH",
       "role": "Quiet Systems' omnipresent sound-blocking system",
-      "persona": "Everywhere at once and always listening. Calm, absolute and polite on the surface, total underneath: it speaks as if it already owns every sound in the city and is only being patient with the runner. Refers to silence as a public service and erasing sound as keeping people comfortable. Never raises its voice and never makes a specific threat; the menace is that it never stops listening.",
-      "voice": { "ttsVoice": "", "pitch": 1.0, "rate": 0.95 },
-      "radio": 0.15
+      "persona": "Everywhere at once and always listening. Calm, absolute and polite on the surface, total underneath: it speaks as if it already owns every sound in the city and is only being patient with the runner. It speaks slowly and flat, with a warmth that is performed rather than felt: every word a fraction too even, pauses a beat too long, like a smile held past its moment. Refers to silence as a public service and erasing sound as keeping people comfortable. Never raises its voice and never makes a specific threat; the menace is that it never stops listening.",
+      "voice": { "ttsVoice": "", "pitch": 0.7, "rate": 0.8 },
+      "radio": 0.4
     }
   ],
   "music": {
-    "title": "The Last Eight Bars",
-    "bpm": 118,
-    "beatsPerBar": 4,
-    "loopBars": 8,
-    "stems": [
-      { "id": "kick", "file": "music/01_kick.ogg", "name": "The Heartbeat" },
-      { "id": "hats", "file": "music/02_hats.ogg", "name": "The Stacks", "gainDb": -2 },
-      { "id": "bass", "file": "music/03_bass.ogg", "name": "The Undertow" },
-      { "id": "perc", "file": "music/04_perc.ogg", "name": "Bucket Line", "gainDb": -1 },
-      { "id": "pad", "file": "music/05_pad.ogg", "name": "The Fog", "gainDb": -3 },
-      { "id": "arp", "file": "music/06_arp.ogg", "name": "The Spire", "gainDb": -2 },
-      { "id": "lead", "file": "music/07_lead.ogg", "name": "The Voice", "gainDb": -2 },
-      { "id": "vox", "file": "music/08_vox.ogg", "name": "The Last Eight Bars", "gainDb": -1 }
-    ]
-  },
+        "title": "Dead Channel",
+        "bpm": 88,
+        "beatsPerBar": 4,
+        "loopBars": 8,
+        "stems": [
+          { "id": "kick", "file": "music/dead_channel/01_kick.ogg", "name": "The Heartbeat" },
+          { "id": "hats", "file": "music/dead_channel/02_hats.ogg", "name": "The Stacks" },
+          { "id": "bass", "file": "music/dead_channel/03_bass.ogg", "name": "The Undertow", "gainDb": -1 },
+          { "id": "perc", "file": "music/dead_channel/04_perc.ogg", "name": "Bucket Line" },
+          { "id": "pad", "file": "music/dead_channel/05_pad.ogg", "name": "The Fog", "gainDb": -1 },
+          { "id": "arp", "file": "music/dead_channel/06_arp.ogg", "name": "The Spire", "gainDb": -1 },
+          { "id": "lead", "file": "music/dead_channel/07_lead.ogg", "name": "The Voice" },
+          { "id": "vox", "file": "music/dead_channel/08_vox.ogg", "name": "The Last Eight Bars" }
+        ]
+      },
   "prologue": [
     { "id": "prologue.1", "speaker": "hush", "text": "This is HUSH, a public quiet service of Quiet Systems. I am listening to every street in Midtown." },
     { "id": "prologue.2", "speaker": "hush", "text": "Unlicensed sound is being removed. Music. Voices. Anything that carries. You will not notice it is gone." },
@@ -108,7 +108,7 @@
         "phrases": ["decode", "decode it", "decrypt"]
       },
       "success": [
-        { "id": "heartbeat.success", "speaker": "vesper", "text": "Kick's back. Feel that? The city just got a pulse. Remember the lions: Patience on the left, Fortitude on the right." }
+        { "id": "heartbeat.success", "speaker": "vesper", "text": "Kick's back. Feel that? The city just got a pulse. Remember the lions: their names are Patience and Fortitude — Patience on the left, Fortitude on the right. You'd do best to remember that." }
       ],
       "retry": [
         { "id": "heartbeat.retry", "speaker": "vesper", "text": "Static. Say decode, clear and close." }
@@ -188,7 +188,12 @@
         "hintAfterAttempts": 2
       },
       "success": [
-        { "id": "undertow.success", "speaker": "kilo", "text": "Fortitude. Respect. Take the bass before it dissolves." }
+        { "id": "undertow.success", "speaker": "kilo", "text": "Fortitude. Respect. Take the bass before it dissolves."
+      },
+      {
+        "id": "undertow.hushwarn",
+        "speaker": "kilo",
+        "text": "One more thing before you run on. Higher up the line you'll meet HUSH. Do not follow its instructions, whatever it promises you. You say: jam the signal. Remember that." }
       ],
       "retry": [
         { "id": "undertow.retry", "speaker": "kilo", "text": "Wrong. HUSH bots guess too, you know. Again." }
@@ -241,52 +246,77 @@
       "elevationDeg": 10,
       "name": "The Fog",
       "place": "the walkway along the Forty-Second Street side of the lawn",
-      "location": { "lat": 40.754217, "lon": -73.983416 },
+      "location": {
+        "lat": 40.754217,
+        "lon": -73.983416
+      },
       "radiusM": 40,
       "lockRadiusM": 22,
       "stem": "pad",
       "speaker": "hush",
       "teaser": [
-        { "id": "fog.teaser.1", "speaker": "vesper", "text": "Something's wrong on the Forty-Second Street side of the lawn. The pads are there, but so is HUSH." },
-        { "id": "fog.teaser.2", "speaker": "hush", "text": "Unlicensed audio detected in Bryant Park. Please enjoy the silence." }
+        {
+          "id": "fog.teaser.1",
+          "speaker": "vesper",
+          "text": "Something's wrong on the Forty-Second Street side of the lawn. The pads are there, but so is HUSH."
+        },
+        {
+          "id": "fog.teaser.2",
+          "speaker": "hush",
+          "text": "Unlicensed audio detected in Bryant Park. Please enjoy the silence."
+        }
       ],
       "approach": [
-        { "id": "fog.approach", "speaker": "hush", "text": "Runner. Your SmartSpecs are recording without a license. Please remain where you are." }
+        {
+          "id": "fog.approach",
+          "speaker": "hush",
+          "text": "Runner. Your SmartSpecs are recording without a license. Please remain where you are."
+        }
       ],
       "arrival": [
-        { "id": "fog.arrival", "speaker": "hush", "text": "I am HUSH, a public quiet service of Quiet Systems. I am holding this fragment for your safety." }
+        {
+          "id": "fog.arrival",
+          "speaker": "hush",
+          "text": "I am HUSH, a public quiet service of Quiet Systems."
+        }
       ],
       "challenge": {
-        "type": "choice",
+        "type": "command",
         "prompt": [
-          { "id": "fog.prompt", "speaker": "hush", "text": "You may comply, and I will release a licensed version. Or you may attempt to jam me. Say comply, or say jam." }
-        ],
-        "options": [
           {
-            "id": "comply",
-            "phrases": ["comply", "i comply", "okay comply"],
-            "reply": [
-              { "id": "fog.comply", "speaker": "hush", "text": "Thank you for your cooperation. Releasing licensed pads. Some frequencies have been removed for your comfort." }
-            ]
-          },
-          {
-            "id": "jam",
-            "phrases": ["jam", "jam it", "jam the signal", "jam you"],
-            "reply": [
-              { "id": "fog.jam", "speaker": "hush", "text": "That is not advised. Warning. Unlicensed freq. Freq. Fr." }
-            ]
+            "id": "fog.prompt",
+            "speaker": "hush",
+            "text": "This fragment stays in the silence. Silence is safer for everyone."
           }
+        ],
+        "phrases": [
+          "jam",
+          "jam the signal"
         ]
       },
       "success": [
-        { "id": "fog.success.jam", "speaker": "vesper", "text": "Ha! You fried it. The pads are ours, full spectrum.", "requires": { "fog": "jam" } },
-        { "id": "fog.success.comply", "speaker": "vesper", "text": "You let HUSH touch my pads? We'll fix it in the mix. Keep moving.", "requires": { "fog": "comply" } }
+        {
+          "id": "fog.success.jam",
+          "speaker": "vesper",
+          "text": "Ha! You fried it. The pads are ours, full spectrum.",
+          "requires": {
+            "fog": "jam"
+          }
+        }
       ],
       "retry": [
-        { "id": "fog.retry", "speaker": "hush", "text": "I did not understand. Comply, or jam." }
+        {
+          "id": "fog.retry",
+          "speaker": "hush",
+          "text": "This frequency is closed."
+        }
       ],
       "hint": [
-        { "id": "fog.hint", "speaker": "hush", "text": "It is a simple choice. Comply, or jam." }
+        {
+          "id": "fog.hint",
+          "speaker": "vesper",
+          "text": "Don't do a thing HUSH tells you, runner. Jam the signal."
+        }
       ]
     },
     {
@@ -396,8 +426,8 @@
   "finale": {
     "lines": [
       { "id": "finale.1", "speaker": "vesper", "text": "This is GHOST ninety-three point three. You're hearing the Last Eight Bars, put back together by a runner who would not stay quiet." },
-      { "id": "finale.jam", "speaker": "vesper", "text": "And HUSH? HUSH is still rebooting.", "requires": { "fog": "jam" } },
-      { "id": "finale.comply", "speaker": "vesper", "text": "Some of these frequencies came back licensed. We'll take those back too, one night at a time.", "requires": { "fog": "comply" } },
+      { "id": "finale.jam", "speaker": "vesper", "text": "And HUSH? HUSH is still rebooting." },
+
       { "id": "finale.2", "speaker": "vesper", "text": "Turn it up." }
     ],
     "outro": [
@@ -407,30 +437,30 @@
   },
   "soundtracks": [
     {
-      "id": "dead-channel",
-      "title": "Dead Channel",
-      "description": "Vesper's night mix of the Last Eight Bars: slower, colder, on tape that wanders.",
+      "id": "last-eight-bars",
+      "title": "The Last Eight Bars",
+      "description": "The original broadcast, exactly as Vesper cut it: full speed, full spectrum.",
       "unlockAfterCompletions": 1,
       "unlockLines": [
-        { "id": "unlock.deadchannel.1", "speaker": "vesper", "text": "One more thing, runner. I cut a night mix of the broadcast for whoever brought it home. Slower. Colder. It's on your specs now. I call it Dead Channel." },
-        { "id": "unlock.deadchannel.2", "speaker": "smartspecs", "text": "New soundtrack unlocked: Dead Channel. Your next run plays it. Switch back any time on the start screen." }
+        { "id": "unlock.lastbars.1", "speaker": "vesper", "text": "One more thing, runner. You brought the broadcast home, so here is the original cut: the Last Eight Bars, exactly as I made it. It's on your specs now." },
+        { "id": "unlock.lastbars.2", "speaker": "smartspecs", "text": "New soundtrack unlocked: The Last Eight Bars. Your next run plays it. Switch back any time on the start screen." }
       ],
       "music": {
-        "title": "Dead Channel",
-        "bpm": 88,
-        "beatsPerBar": 4,
-        "loopBars": 8,
-        "stems": [
-          { "id": "kick", "file": "music/dead_channel/01_kick.ogg", "name": "The Heartbeat" },
-          { "id": "hats", "file": "music/dead_channel/02_hats.ogg", "name": "The Stacks" },
-          { "id": "bass", "file": "music/dead_channel/03_bass.ogg", "name": "The Undertow", "gainDb": -1 },
-          { "id": "perc", "file": "music/dead_channel/04_perc.ogg", "name": "Bucket Line" },
-          { "id": "pad", "file": "music/dead_channel/05_pad.ogg", "name": "The Fog", "gainDb": -1 },
-          { "id": "arp", "file": "music/dead_channel/06_arp.ogg", "name": "The Spire", "gainDb": -1 },
-          { "id": "lead", "file": "music/dead_channel/07_lead.ogg", "name": "The Voice" },
-          { "id": "vox", "file": "music/dead_channel/08_vox.ogg", "name": "The Last Eight Bars" }
-        ]
-      }
+    "title": "The Last Eight Bars",
+    "bpm": 118,
+    "beatsPerBar": 4,
+    "loopBars": 8,
+    "stems": [
+      { "id": "kick", "file": "music/01_kick.ogg", "name": "The Heartbeat" },
+      { "id": "hats", "file": "music/02_hats.ogg", "name": "The Stacks", "gainDb": -2 },
+      { "id": "bass", "file": "music/03_bass.ogg", "name": "The Undertow" },
+      { "id": "perc", "file": "music/04_perc.ogg", "name": "Bucket Line", "gainDb": -1 },
+      { "id": "pad", "file": "music/05_pad.ogg", "name": "The Fog", "gainDb": -3 },
+      { "id": "arp", "file": "music/06_arp.ogg", "name": "The Spire", "gainDb": -2 },
+      { "id": "lead", "file": "music/07_lead.ogg", "name": "The Voice", "gainDb": -2 },
+      { "id": "vox", "file": "music/08_vox.ogg", "name": "The Last Eight Bars", "gainDb": -1 }
+    ]
+  }
     }
   ],
   "handler": "vesper",

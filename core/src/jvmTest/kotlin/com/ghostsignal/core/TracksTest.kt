@@ -38,7 +38,7 @@ class TracksTest {
   fun deployedBaseTracksComeBeforeTheEarnedBonus() {
     val m = mission.withTracks(catalog(deployed("night-bus"), deployed("low-tide")))
     val choices = Soundtracks.choices(m, completions = 0)
-    assertEquals(listOf(Soundtracks.ORIGINAL, "night-bus", "low-tide", "dead-channel"), choices.map { it.id })
+    assertEquals(listOf(Soundtracks.ORIGINAL, "night-bus", "low-tide", "last-eight-bars"), choices.map { it.id })
     assertEquals(listOf(true, true, true, false), choices.map { it.unlocked })
     assertEquals("night-bus", Soundtracks.resolve(m, "night-bus", 0))
     assertTrue(MissionValidator.validate(m).isEmpty(), MissionValidator.validate(m).joinToString())
@@ -49,14 +49,14 @@ class TracksTest {
     val t = deployed("night-bus")
     val missing = t.music.stems.last()
     val m = mission.withTracks(catalog(t)) { it != missing }
-    assertEquals(listOf("dead-channel"), m.soundtracks.map { it.id })
+    assertEquals(listOf("last-eight-bars"), m.soundtracks.map { it.id })
     assertEquals(Soundtracks.ORIGINAL, Soundtracks.resolve(m, "night-bus", 5))
   }
 
   @Test
   fun aTrackThatLeavesASlotEmptyOrTakesABundledIdIsLeftOut() {
     val short = deployed("short").let { it.copy(music = it.music.copy(stems = it.music.stems.drop(1))) }
-    val clash = deployed("dead-channel")
+    val clash = deployed("last-eight-bars")
     val original = deployed(Soundtracks.ORIGINAL)
     val m = mission.withTracks(catalog(short, clash, original))
     assertEquals(mission.soundtracks, m.soundtracks)
@@ -66,7 +66,7 @@ class TracksTest {
   @Test
   fun aDeployedBonusTrackUnlocksLikeABundledOne() {
     val m = mission.withTracks(catalog(deployed("encore", unlock = 2)))
-    assertEquals(listOf("dead-channel"), Soundtracks.unlockedByNextCompletion(m, 0).map { it.id })
+    assertEquals(listOf("last-eight-bars"), Soundtracks.unlockedByNextCompletion(m, 0).map { it.id })
     assertEquals(listOf("encore"), Soundtracks.unlockedByNextCompletion(m, 1).map { it.id })
   }
 

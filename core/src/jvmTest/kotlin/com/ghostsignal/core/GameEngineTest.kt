@@ -141,7 +141,7 @@ class GameEngineTest {
   }
 
   @Test
-  fun fullRunOnTheDeadChannelSoundtrack() = playFullRun(mission.withSoundtrack("dead-channel"))
+  fun fullRunOnTheLastEightBarsSoundtrack() = playFullRun(mission.withSoundtrack("last-eight-bars"))
 
   @Test
   fun aFinishThatUnlocksSomethingAnnouncesItBeforeTheRunCompletes() {
@@ -218,7 +218,7 @@ class GameEngineTest {
 
     assertEquals(mission.signals.map { it.stem }, unlocked)
     assertEquals(Phase.COMPLETE, d.engine.phase)
-    assertEquals("jam", d.engine.flags["fog"])
+    assertTrue("fog" in d.engine.collected)
     val finaleTexts = d.log.filterIsInstance<Effect.Speak>().flatMap { it.utterances }.map { it.text }
     assertTrue(finaleTexts.any { "still rebooting" in it }, "jam branch line should play")
     assertFalse(finaleTexts.any { "came back licensed" in it }, "comply branch line should not play")
