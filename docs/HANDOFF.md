@@ -1,5 +1,23 @@
 # Handoffs
 
+# Handoff — 2026-11-03, Meta Wonder (Phase 2: server rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 2 of 5.** Every file in `server/src/` re-implemented from scratch (fresh structure/docs, same routes, JSON shapes, error strings and status codes): `accounts`, `admin`, `audio`, `billing`, `content`, `env`, `glasses`, `index`, `meta`, `mission`, `npc`, `players`, `server`, `static`, `store`, `stt`, `tts`.
+
+## Verified
+
+- `cd server && npm test` — 58/58 pass.
+
+## Not verified
+
+- Live VPS behaviour (health/NPC/STT with a real key) — unchanged surface, needs the deployed check at ship time.
+
+## Next
+
+- Phase 3: web player + account/admin rewrite in the rail-circuitry theme.
+
 # Handoff — 2026-11-03, Meta Wonder (Phase 1: core rewrite)
 
 ## What this round does

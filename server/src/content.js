@@ -1,127 +1,169 @@
-/**
- * Validation for what the admin page changes: signal placements and names (the venue route) and
- * deployed soundtracks. Anything that fails throws a 400 with a message the page can show.
- */
+// Validation for everything the admin page can change: venue route
+// placements/names and deployed soundtracks. Failures throw 400 errors whose
+// messages the page shows verbatim, so they are written for admins, not logs.
 
-const ORIGINAL = "original";
+const RESERVED_TRACK_ID = "original";
 
-function bad(message) {
+function invalid(message) {
   return Object.assign(new Error(message), { status: 400 });
 }
 
-const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
-const num = (v, lo, hi) => typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
-const text = (v, max) => (v === undefined || v === null ? "" : typeof v === "string" && v.length <= max ? v.trim() : null);
+const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+const isNumberIn = (value, low, high) =>
+  typeof value === "number" && Number.isFinite(value) && value >= low && value <= high;
 
-/** The loop length every stem of a soundtrack should have, in seconds. */
+// Optional text: absent becomes "", present must be a string within [max].
+const optionalText = (value, max) => {
+  if (value === undefined || value === null) return "";
+  return typeof value === "string" && value.length <= max ? value.trim() : null;
+};
+
+/** Seconds in one full loop of a soundtrack with this music shape. */
 export function loopSeconds(music) {
   return (music.loopBars * music.beatsPerBar * 60) / music.bpm;
 }
 
 /**
- * Applies a route change on top of what is stored. Placements and labels merge signal by signal,
- * so the phone's route editor and the admin page can each change some signals without undoing the
- * other's; `null` for a signal puts it back to the authored value.
+ * Merges a route change over the stored route. Placements and labels merge
+ * per signal (the phone's route editor and the admin page can each touch
+ * some signals without undoing each other); a null entry restores the
+ * authored value for that signal.
  */
 export function mergeRoute(mission, stored, body) {
-  if (!isObject(body) || body.missionId !== mission.id) throw bad("invalid route");
-  const signalIds = new Set(mission.signals.map((s) => s.id));
+  if (!isRecord(body) || body.missionId !== mission.id) throw invalid("invalid route");
+  const knownSignals = new Set(mission.signals.map((signal) => signal.id));
   const placements = { ...(stored?.placements ?? {}) };
   const labels = { ...(stored?.labels ?? {}) };
 
   if (body.placements !== undefined) {
-    if (!isObject(body.placements)) throw bad("invalid route");
-    for (const [id, p] of Object.entries(body.placements)) {
-      if (!signalIds.has(id)) throw bad(`there is no signal '${id}'`);
-      if (p === null) {
-        delete placements[id];
+    if (!isRecord(body.placements)) throw invalid("invalid route");
+    for (const [signalId, placement] of Object.entries(body.placements)) {
+      if (!knownSignals.has(signalId)) throw invalid(`there is no signal '${signalId}'`);
+      if (placement === null) {
+        delete placements[signalId];
         continue;
       }
-      const ok =
-        isObject(p) && isObject(p.location) && num(p.location.lat, -90, 90) && num(p.location.lon, -180, 180) &&
-        num(p.radiusM, 5, 500) && num(p.lockRadiusM, 5, 500) && p.lockRadiusM <= p.radiusM;
-      if (!ok) throw bad(`signal '${id}' needs a position and a capture radius no larger than its near radius`);
-      placements[id] = { location: { lat: p.location.lat, lon: p.location.lon }, radiusM: p.radiusM, lockRadiusM: p.lockRadiusM };
+      const valid = isRecord(placement) && isRecord(placement.location) &&
+        isNumberIn(placement.location.lat, -90, 90) &&
+        isNumberIn(placement.location.lon, -180, 180) &&
+        isNumberIn(placement.radiusM, 5, 500) &&
+        isNumberIn(placement.lockRadiusM, 5, 500) &&
+        placement.lockRadiusM <= placement.radiusM;
+      if (!valid) {
+        throw invalid(`signal '${signalId}' needs a position and a capture radius no larger than its near radius`);
+      }
+      placements[signalId] = {
+        location: { lat: placement.location.lat, lon: placement.location.lon },
+        radiusM: placement.radiusM,
+        lockRadiusM: placement.lockRadiusM,
+      };
     }
   }
 
   if (body.labels !== undefined) {
-    if (!isObject(body.labels)) throw bad("invalid route");
-    for (const [id, l] of Object.entries(body.labels)) {
-      if (!signalIds.has(id)) throw bad(`there is no signal '${id}'`);
-      if (l === null) {
-        delete labels[id];
+    if (!isRecord(body.labels)) throw invalid("invalid route");
+    for (const [signalId, label] of Object.entries(body.labels)) {
+      if (!knownSignals.has(signalId)) throw invalid(`there is no signal '${signalId}'`);
+      if (label === null) {
+        delete labels[signalId];
         continue;
       }
-      const name = isObject(l) ? text(l.name, 60) : null;
-      const place = isObject(l) ? text(l.place, 160) : null;
-      if (name === null || place === null) throw bad(`signal '${id}' name is up to 60 characters, its place up to 160`);
-      if (name || place) labels[id] = { name, place };
-      else delete labels[id];
+      const name = isRecord(label) ? optionalText(label.name, 60) : null;
+      const place = isRecord(label) ? optionalText(label.place, 160) : null;
+      if (name === null || place === null) {
+        throw invalid(`signal '${signalId}' name is up to 60 characters, its place up to 160`);
+      }
+      if (name || place) labels[signalId] = { name, place };
+      else delete labels[signalId];
     }
   }
 
-  const name = text(body.name, 80);
+  const routeName = optionalText(body.name, 80);
   return {
     missionId: mission.id,
-    name: name || stored?.name || "Venue route",
+    name: routeName || stored?.name || "Venue route",
     placements,
     labels,
   };
 }
 
 /**
- * Builds a deployed soundtrack in the mission's own Soundtrack shape from what the admin page
- * sends. Stems refer to uploaded files by name; [blobOf] looks them up. Returns the track and any
- * warnings worth showing (a stem that won't loop on the beat).
+ * Builds a deployed soundtrack in the mission's Soundtrack shape from an
+ * admin submission. Stems reference uploaded blobs by name; [blobOf]
+ * resolves them. Returns the track plus warnings worth showing (chiefly a
+ * stem whose length will not loop on the beat).
  */
 export function buildTrack(mission, trackId, body, blobOf) {
-  if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(trackId)) throw bad("track id is 2-40 lowercase letters, digits and dashes");
-  const taken = new Set([ORIGINAL, ...(mission.soundtracks ?? []).map((t) => t.id)]);
-  if (taken.has(trackId)) throw bad(`'${trackId}' is a soundtrack that ships with the app`);
-  if (!isObject(body) || !isObject(body.music)) throw bad("invalid track");
+  if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(trackId)) {
+    throw invalid("track id is 2-40 lowercase letters, digits and dashes");
+  }
+  const bundledIds = new Set([RESERVED_TRACK_ID, ...(mission.soundtracks ?? []).map((t) => t.id)]);
+  if (bundledIds.has(trackId)) throw invalid(`'${trackId}' is a soundtrack that ships with the app`);
+  if (!isRecord(body) || !isRecord(body.music)) throw invalid("invalid track");
 
-  const title = text(body.title, 60);
-  const description = text(body.description, 240);
-  if (!title) throw bad("give the track a title (up to 60 characters)");
-  if (description === null) throw bad("the description is up to 240 characters");
-  const unlock = body.unlockAfterCompletions ?? 0;
-  if (!Number.isInteger(unlock) || unlock < 0 || unlock > 20) throw bad("unlock after 0 to 20 finished runs");
+  const title = optionalText(body.title, 60);
+  const description = optionalText(body.description, 240);
+  if (!title) throw invalid("give the track a title (up to 60 characters)");
+  if (description === null) throw invalid("the description is up to 240 characters");
+
+  const unlockAfterCompletions = body.unlockAfterCompletions ?? 0;
+  if (!Number.isInteger(unlockAfterCompletions) || unlockAfterCompletions < 0 || unlockAfterCompletions > 20) {
+    throw invalid("unlock after 0 to 20 finished runs");
+  }
   const published = body.published === true;
   const premium = body.premium === true;
-  if (premium && unlock !== 0) throw bad("a premium track is open to premium players from their first run; set its unlock to 0");
+  if (premium && unlockAfterCompletions !== 0) {
+    throw invalid("a premium track is open to premium players from their first run; set its unlock to 0");
+  }
 
-  const m = body.music;
-  const music = { title, bpm: m.bpm, beatsPerBar: m.beatsPerBar ?? 4, loopBars: m.loopBars ?? 8 };
-  if (!num(music.bpm, 40, 220)) throw bad("BPM is 40 to 220");
-  if (!Number.isInteger(music.beatsPerBar) || music.beatsPerBar < 1 || music.beatsPerBar > 12) throw bad("beats per bar is 1 to 12");
-  if (!Number.isInteger(music.loopBars) || music.loopBars < 1 || music.loopBars > 64) throw bad("loop length is 1 to 64 bars");
+  const submitted = body.music;
+  const musicShape = {
+    title,
+    bpm: submitted.bpm,
+    beatsPerBar: submitted.beatsPerBar ?? 4,
+    loopBars: submitted.loopBars ?? 8,
+  };
+  if (!isNumberIn(musicShape.bpm, 40, 220)) throw invalid("BPM is 40 to 220");
+  if (!Number.isInteger(musicShape.beatsPerBar) || musicShape.beatsPerBar < 1 || musicShape.beatsPerBar > 12) {
+    throw invalid("beats per bar is 1 to 12");
+  }
+  if (!Number.isInteger(musicShape.loopBars) || musicShape.loopBars < 1 || musicShape.loopBars > 64) {
+    throw invalid("loop length is 1 to 64 bars");
+  }
 
-  const slots = new Map(mission.signals.map((s) => [s.stem, s]));
-  if (!Array.isArray(m.stems)) throw bad("invalid track");
-  const seen = new Set();
-  const loop = loopSeconds(music);
+  const slotById = new Map(mission.signals.map((signal) => [signal.stem, signal]));
+  if (!Array.isArray(submitted.stems)) throw invalid("invalid track");
+
+  const expectedLoopS = loopSeconds(musicShape);
+  const seenSlots = new Set();
   const warnings = [];
-  const stems = m.stems.map((st) => {
-    if (!isObject(st) || !slots.has(st.id)) throw bad(`there is no stem slot '${st?.id}'`);
-    if (seen.has(st.id)) throw bad(`stem '${st.id}' is in the track twice`);
-    seen.add(st.id);
-    const blob = typeof st.blob === "string" ? blobOf(st.blob) : null;
-    if (!blob) throw bad(`upload a file for stem '${st.id}'`);
-    const name = text(st.name, 60);
-    if (name === null) throw bad(`stem '${st.id}' name is up to 60 characters`);
-    const gainDb = st.gainDb ?? 0;
-    if (!num(gainDb, -30, 12)) throw bad(`stem '${st.id}' gain is -30 to +12 dB`);
-    const off = blob.durationS - loop;
-    if (Math.abs(off) > 0.02) {
+  const stems = submitted.stems.map((submittedStem) => {
+    if (!isRecord(submittedStem) || !slotById.has(submittedStem.id)) {
+      throw invalid(`there is no stem slot '${submittedStem?.id}'`);
+    }
+    if (seenSlots.has(submittedStem.id)) throw invalid(`stem '${submittedStem.id}' is in the track twice`);
+    seenSlots.add(submittedStem.id);
+
+    const blob = typeof submittedStem.blob === "string" ? blobOf(submittedStem.blob) : null;
+    if (!blob) throw invalid(`upload a file for stem '${submittedStem.id}'`);
+
+    const stemName = optionalText(submittedStem.name, 60);
+    if (stemName === null) throw invalid(`stem '${submittedStem.id}' name is up to 60 characters`);
+
+    const gainDb = submittedStem.gainDb ?? 0;
+    if (!isNumberIn(gainDb, -30, 12)) throw invalid(`stem '${submittedStem.id}' gain is -30 to +12 dB`);
+
+    const driftS = blob.durationS - expectedLoopS;
+    if (Math.abs(driftS) > 0.02) {
       warnings.push(
-        `${slots.get(st.id).name}: the file is ${blob.durationS.toFixed(2)} s but ${music.loopBars} bars at ${music.bpm} BPM is ${loop.toFixed(2)} s, ` +
-          (off > 0 ? "so its end is cut off." : "so it's padded with silence."),
+        `${slotById.get(submittedStem.id).name}: the file is ${blob.durationS.toFixed(2)} s but ${musicShape.loopBars} bars at ${musicShape.bpm} BPM is ${expectedLoopS.toFixed(2)} s, ` +
+        (driftS > 0 ? "so its end is cut off." : "so it's padded with silence."),
       );
     }
+
     return {
-      id: st.id,
-      name: name || slots.get(st.id).name,
+      id: submittedStem.id,
+      name: stemName || slotById.get(submittedStem.id).name,
       gainDb,
       file: `server:${blob.name}`,
       sha256: blob.sha256,
@@ -130,14 +172,26 @@ export function buildTrack(mission, trackId, body, blobOf) {
       durationS: blob.durationS,
     };
   });
-  const missing = [...slots.keys()].filter((id) => !seen.has(id));
-  if (published && missing.length) throw bad(`a published track needs every stem: missing ${missing.join(", ")}`);
 
-  // Keep the stems in signal order, so the catalog reads like the route.
-  const order = [...slots.keys()];
-  stems.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  const missingSlots = [...slotById.keys()].filter((id) => !seenSlots.has(id));
+  if (published && missingSlots.length) {
+    throw invalid(`a published track needs every stem: missing ${missingSlots.join(", ")}`);
+  }
+
+  // Keep stems in route order so the catalog reads like the mission.
+  const routeOrder = [...slotById.keys()];
+  stems.sort((a, b) => routeOrder.indexOf(a.id) - routeOrder.indexOf(b.id));
+
   return {
-    track: { id: trackId, title, description, unlockAfterCompletions: unlock, premium, published, music: { ...music, stems } },
+    track: {
+      id: trackId,
+      title,
+      description,
+      unlockAfterCompletions,
+      premium,
+      published,
+      music: { ...musicShape, stems },
+    },
     warnings,
   };
 }
