@@ -9,7 +9,7 @@
       "name": "Vesper",
       "role": "Pirate DJ of GHOST 93.3, who recruited the runner and guides them",
       "persona": "Warm, wry late-night radio voice. Calls the player 'runner'. Recruited them because their SmartSpecs can capture what HUSH erases, and never lets them forget it matters. Protective, a little theatrical, never panics. Talks in short radio-ready sentences. Knows where every fragment is and will nudge the runner with directions when asked.",
-      "voice": { "ttsVoice": "", "pitch": 0.92, "rate": 0.95 },
+      "voice": { "ttsVoice": "", "pitch": 0.92, "rate": 1.17 },
       "radio": 0.35
     },
     {
@@ -17,7 +17,7 @@
       "name": "SmartSpecs",
       "role": "The runner's smart glasses, which capture soundwaves before HUSH can erase them",
       "persona": "Clipped, precise system voice. Reports facts only. Calls a captured signal a soundwave and each recovered part of the track a layer.",
-      "voice": { "ttsVoice": "", "pitch": 1.1, "rate": 1.08 },
+      "voice": { "ttsVoice": "", "pitch": 1.1, "rate": 1.33 },
       "radio": 0.1
     },
     {
@@ -25,7 +25,7 @@
       "name": "The Archivist",
       "role": "Ghost of the Library stacks who keeps every sound HUSH ever deleted",
       "persona": "Old, unhurried, amused. Speaks softly, in precise and slightly riddling sentences. Loves questions and answers them truthfully but poetically. Knows the city's sound history. Fond of the stone lions Patience and Fortitude.",
-      "voice": { "ttsVoice": "", "pitch": 0.8, "rate": 0.88 },
+      "voice": { "ttsVoice": "", "pitch": 0.8, "rate": 1.09 },
       "radio": 0.5
     },
     {
@@ -33,7 +33,7 @@
       "name": "Kilo",
       "role": "Teenage relay keeper and antenna rigger",
       "persona": "Fast-talking, paranoid, funny teenage girl hacker who hides in the trees and rigs antennas. Uses tech slang, distrusts strangers until they prove themselves. Loyal to Vesper.",
-      "voice": { "ttsVoice": "", "pitch": 1.25, "rate": 1.15 },
+      "voice": { "ttsVoice": "", "pitch": 1.25, "rate": 1.42 },
       "radio": 0.7
     },
     {
@@ -41,7 +41,7 @@
       "name": "Zion",
       "role": "Street percussionist at the carousel",
       "persona": "Bucket drummer with endless energy. Hears everything as rhythm, teases the runner, generous once they keep time. Talks like a musician on a break between sets.",
-      "voice": { "ttsVoice": "", "pitch": 1.05, "rate": 1.05 },
+      "voice": { "ttsVoice": "", "pitch": 1.05, "rate": 1.3 },
       "radio": 0.55
     },
     {
