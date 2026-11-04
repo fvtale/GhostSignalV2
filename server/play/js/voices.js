@@ -17,12 +17,49 @@ function stableHash(text) {
   return hash;
 }
 
-function pickVoice(speakerId) {
-  const english = speechSynthesis.getVoices().filter(
-    (voice) => voice.lang && voice.lang.startsWith("en"),
+// Why not just hash into getVoices() on every line (the old code)? The
+// voice list loads asynchronously: its size and order change as voices
+// arrive, so `hash % list.length` quietly remaps every character mid-run
+// — custom voice in the first paragraph, different (often default-
+// sounding) voices after, persisting until the browser restarts and the
+// list loads fresh. Chrome's network voices (localService === false)
+// make it worse: they can silently fall back to the default voice in a
+// long session. So: prefer local voices, sort them deterministically,
+// and pin each character to a voiceURI for the whole session.
+let cachedVoices = [];
+const pinnedVoiceUri = new Map();
+
+function refreshVoices() {
+  const all = speechSynthesis.getVoices();
+  if (all.length) cachedVoices = all;
+  return cachedVoices;
+}
+
+if ("speechSynthesis" in window) {
+  refreshVoices();
+  speechSynthesis.addEventListener?.("voiceschanged", refreshVoices);
+}
+
+function englishPool() {
+  const english = refreshVoices().filter(
+    (voice) => voice.lang && voice.lang.replace("_", "-").startsWith("en"),
   );
-  if (!english.length) return null;
-  return english[Math.abs(stableHash(speakerId)) % english.length];
+  const local = english.filter((voice) => voice.localService);
+  const pool = local.length ? local : english;
+  return pool.sort((a, b) => (a.voiceURI || a.name).localeCompare(b.voiceURI || b.name));
+}
+
+function pickVoice(speakerId) {
+  const pool = englishPool();
+  if (!pool.length) return null;
+  const pinned = pinnedVoiceUri.get(speakerId);
+  if (pinned) {
+    const stillThere = pool.find((voice) => voice.voiceURI === pinned);
+    if (stillThere) return stillThere;
+  }
+  const voice = pool[Math.abs(stableHash(speakerId)) % pool.length];
+  pinnedVoiceUri.set(speakerId, voice.voiceURI);
+  return voice;
 }
 
 export class Voices {
