@@ -41,9 +41,29 @@ Glimmer left Fireworks' serverless inference in September. It's a training model
 it, deploy the tuned version, and point the router at it. Until then, the rules route.
 
 **1. Collect.** Route issues as usual. Each routed issue is one example, labelled with the agent
-it ended up with, so an override teaches Glimmer something the rules got wrong. A few dozen
-issues make a start, but the workshop's router trained on 560, so expect Glimmer to beat the
-rules only once there are a few hundred.
+it ended up with, so an override teaches Glimmer something the rules got wrong. The workshop's
+router trained on 560 examples, and real issues will take a while to get there, so the export
+also includes the seed examples below.
+
+**Seed examples.** [seeds.jsonl](../.github/agent-router/seeds.jsonl) holds 219 example tasks:
+- 73 are rephrased from work actually done on GhostSignal (`"from": "history"`); 146 are
+  plausible upcoming V2 work (`"from": "planned"`).
+- Each has an **area**, never an agent. The export gives it the agent that `rules.json` assigns
+  to that area, so if you change who owns an area, every seed follows. "Something else" goes to
+  the default agent.
+- What Glimmer learns from them is **your policy applied to plain language**. For example, it
+  learns that "the volume buttons do nothing during a run" is Android work, which the keyword
+  rules miss. It does **not** learn which agent does better work, because nothing in the data
+  says how a task turned out.
+- Today the keyword rules send 167 of the 219 seeds (76%) to the right agent. The misses are
+  mostly Android, deploy and router tasks described without the keywords, which fall through
+  to the default agent. That's the gap Glimmer should close.
+- One seed in ten is held out, like the issues, so the eval scores examples Glimmer never
+  trained on.
+- Real issues, and above all your overrides, are where Glimmer learns exceptions to the policy.
+  Seeds can only teach it the policy as written.
+- Edit the file freely: one JSON object per line, with `area`, `from` and `text` (title on the
+  first line). `node --test .github/agent-router/route.test.cjs` checks it.
 
 **2. Export.** Actions → **Agent router** → **Run workflow**. The run uploads
 `glimmer-router-data`, containing:

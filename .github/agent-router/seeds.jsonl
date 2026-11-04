@@ -1,0 +1,219 @@
+{"area": "Meta models, voice and characters", "from": "history", "text": "Switch character replies to Muse Spark\n\nCall the Meta Model API chat endpoint from npc.js and keep the persona prompts as they are."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Transcribe what the runner says with Muse Voice\n\nAdd an endpoint that takes a 16 kHz mono WAV clip and returns the transcript."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Pass the challenge answers as recognition keywords\n\nPassphrases get misheard; send the expected answers along so recognition favours them."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Refuse audio the transcriber can't take\n\nStereo, 8-bit or 44.1 kHz uploads should get a 415 instead of being forwarded."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Low reasoning effort for character replies\n\nReplies take too long to come back; run them at low effort and time the wait."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "In-world fallback line when the model says nothing usable\n\nIf the reply is empty or only markup, play one of the static-on-the-line lines."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Make the chat model configurable\n\nRead the model name from .env so we can try a different one without a code change."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Characters must put safety first\n\nIf the runner mentions traffic, crossing a street or feeling unwell, the character tells them to stop before anything else."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Strip emoji and stage directions from replies\n\nThe phone's voice reads asterisks and emoji out loud."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Distinct on-device voices per character\n\nWith cloud voices gone, give HUSH, Vesper and SmartSpecs their own pitch and rate."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Smaller allowance of character replies for players without the event token\n\nSigned-in players get a per-account limit so one person can't run up the bill."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Keep character replies under 40 words\n\nVesper sometimes answers in four sentences; that's too long to hear while walking."}
+{"area": "Meta models, voice and characters", "from": "history", "text": "Characters never say the exact words that solve a challenge\n\nThe game gives its own hints; the model should only nudge."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Let SmartSpecs comment on what the runner is looking at\n\nSend a frame from the glasses camera with the question so the reply can mention the scene."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Stream character replies so speech starts sooner\n\nStart speaking the first sentence while the rest is still arriving."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Handle rate limiting from the Meta API\n\nWhen the model API says slow down, play a static line and try once more."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Push-to-talk clips lose the last word\n\nRecording stops a beat too early; give the silence detector a longer tail."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Answer in the runner's language\n\nIf the runner speaks Spanish, the character should reply in Spanish."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Give HUSH its own persona prompt\n\nHUSH talks in fragments and should never sound helpful."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Grade character replies automatically\n\nCheck fifty sample prompts for length, banned words and invented places, with no model as the judge."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Boost character names in transcription\n\n\"Vesper\" keeps coming back as \"whisper\"."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Characters forget what the runner just said\n\nKeep the last few turns of the conversation in every request."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Return an emotion with each reply\n\nAsk for structured output with the line and a mood so the voice can change tone."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Make the obvious failure obvious when the model key is missing\n\nHealth should say characters are off and the admin page should warn."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Accept an answer only above a transcription confidence\n\nLow-confidence transcripts should ask the runner to repeat."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Retry transcription once on a server error\n\nA single 502 from the speech service shouldn't fail the challenge."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Cut the persona prompts down to save tokens\n\nThey repeat the same rules three times."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Compare two versions of Vesper's prompt\n\nRun both on the same twenty questions and keep the one runners prefer."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Measure how long each character takes to answer\n\nLog time to first word per character and model."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Recap the run in the character's voice at the end\n\nAfter the outro, Vesper sums up the runner's night in two sentences."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Try the smallest effort setting for one-line answers\n\nSee whether minimal effort is good enough for yes/no replies."}
+{"area": "Meta models, voice and characters", "from": "planned", "text": "Hints from a photo of a landmark\n\nThe runner snaps the fountain and the character says whether they're close."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Open every run on HUSH\n\nPlay HUSH's prologue before Vesper breaks in on the station."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Rename the Deck to SmartSpecs everywhere\n\nDialogue, labels and the layer list still say Deck in places."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Move the station to 93.3\n\nSome lines still give the old frequency."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Keep the choice signal off the lawn\n\nThe Winter Village covers the lawn around Halloween; move that signal to the 42nd Street walkway."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Announce the unlocked soundtrack after the run that earns it\n\nVesper and SmartSpecs should both mention Dead Channel when it unlocks."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Reject missions with an empty cast\n\nThe mission check should fail when there are no characters or two share an id."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Rewrite the opening so Vesper recruits the runner\n\nShe explains SmartSpecs can capture a soundwave before HUSH erases it."}
+{"area": "Story, missions and dialogue", "from": "history", "text": "Signals can sit above or below the runner\n\nGive each signal an authored elevation so it sounds like it's up on a ledge or down a stairwell."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Write a second mission for Washington Square Park\n\nSame eight-signal shape, new characters for the arch and the fountain."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Branching ending depending on whether the runner sided with HUSH\n\nTwo outros, chosen from the story flag."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Side quest for the archivist with three optional signals\n\nOptional, and finishing it unlocks an extra line from the archivist."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Lines for when the runner stands still too long\n\nAfter two minutes without moving, a character checks in."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Kilo sounds too much like Vesper\n\nRewrite Kilo's lines so the two are easy to tell apart by ear."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Halloween version of the prologue\n\nSwap two lines and the HUSH sting for the Halloween weekend."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Translate the mission script into Spanish\n\nEvery scripted line and hint, with the same timing."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Signals four and five are too far apart\n\nThere's a 600 metre walk with nothing happening; move one or add a beat in between."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "New challenge type: a riddle\n\nThe character asks a riddle and the runner answers out loud."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "A rival runner who taunts over the radio\n\nA new character who shows up after the third signal."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "What the characters say when the phone loses its location\n\nUnder trees the position jumps; cover it with a line instead of silence."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Captions for every scripted line\n\nFor deaf and hard-of-hearing players."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Mari's backstory contradicts the archivist\n\nPick one version and fix the lines that disagree."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Guide for writers: how to place a signal\n\nExplain radius, elevation and how far apart signals should be."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Shorten the prologue\n\nPlaytesters skipped it; get it under a minute."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Keep signal names hidden until they're found\n\nThe layer list should show static until the runner captures each one."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Tutorial signal right at the start\n\nTeaches scanning before the real hunt begins."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Unlock lines for the premium soundtrack\n\nWhat Vesper says the first time a premium player hears it."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Challenge where the runner hums the melody back\n\nUnlocks the stem when the hummed rhythm matches."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Final confrontation with HUSH\n\nA last exchange before the outro, different for each choice."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Hard mode with fewer hints\n\nHints only after the second wrong answer."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Twenty-minute version of the mission for event slots\n\nFour signals instead of eight, same ending."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Vesper reads out the runner's stats at the end\n\nTime, signals found, hints used."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Story choices should survive the app restarting mid-run\n\nFlags are lost if the phone kills the app."}
+{"area": "Story, missions and dialogue", "from": "planned", "text": "Make the hints more specific after each wrong answer\n\nThe third hint should almost give it away."}
+{"area": "Web player", "from": "history", "text": "Play the whole game in the phone's browser\n\nNo install: the page runs the engine and the audio, and the glasses connect as Bluetooth audio."}
+{"area": "Web player", "from": "history", "text": "The glasses' touchpad should work as media keys in the browser\n\nRoute the game audio through a media element so play, next and previous reach the page."}
+{"area": "Web player", "from": "history", "text": "Keep the screen on in pocket mode\n\nUse the wake lock so the page doesn't sleep mid-run."}
+{"area": "Web player", "from": "history", "text": "Simulated walk with a skip-challenge button for desk testing\n\nSo the whole run can be played without leaving the desk."}
+{"area": "Web player", "from": "history", "text": "Record the spoken answer and upload it for transcription\n\nDownsample to 16 kHz mono WAV in the page before sending."}
+{"area": "Web player", "from": "history", "text": "Typing fallback when the microphone is blocked\n\nShow the hint chips and a text box instead."}
+{"area": "Web player", "from": "history", "text": "Keep recordings on the device\n\nStore them in the browser's database, not on the server."}
+{"area": "Web player", "from": "history", "text": "Use the browser's own voice when signed out\n\nRead the lines with speech synthesis if there's no account."}
+{"area": "Web player", "from": "history", "text": "Render signal elevation in the browser\n\nAbove and below should come through the panners like they do on Android."}
+{"area": "Web player", "from": "planned", "text": "iPhone Safari won't play the Ogg stems\n\nServe a format Safari decodes, or decode them ourselves."}
+{"area": "Web player", "from": "planned", "text": "Let people add the player to their home screen\n\nManifest, icon and a proper standalone launch."}
+{"area": "Web player", "from": "planned", "text": "Show the map of found signals at the end of a run\n\nA simple map with the eight pins and the route walked."}
+{"area": "Web player", "from": "planned", "text": "Audio stutters on older Android phones in Chrome\n\nFind what's blocking the audio thread."}
+{"area": "Web player", "from": "planned", "text": "Duck the music when a character speaks\n\nThe voice is hard to hear over the full mix."}
+{"area": "Web player", "from": "planned", "text": "Landscape layout for tablets\n\nThe controls overlap the status text."}
+{"area": "Web player", "from": "planned", "text": "Work offline once the run has started\n\nCache the mission and stems so a dead zone doesn't stop the game."}
+{"area": "Web player", "from": "planned", "text": "Show a level meter while the runner is answering\n\nSo they can see the mic is hearing them."}
+{"area": "Web player", "from": "planned", "text": "Spatial audio sounds flat in Firefox\n\nPanning works in Chrome but not there."}
+{"area": "Web player", "from": "planned", "text": "Pick up a run where it left off after reloading the page\n\nProgress is lost on refresh."}
+{"area": "Web player", "from": "planned", "text": "Keyboard shortcuts for desk testing\n\nSpace to scan, H for a hint, R to repeat."}
+{"area": "Web player", "from": "planned", "text": "Subtitles for what the character is saying\n\nOn screen, as the line plays."}
+{"area": "Web player", "from": "planned", "text": "Vibrate when a signal locks on\n\nPhones that support it give a short buzz."}
+{"area": "Web player", "from": "planned", "text": "The unlocked layers drift out of time after ten minutes\n\nNew stems start a little late compared with the bar."}
+{"area": "Web player", "from": "planned", "text": "Accessibility pass on the play page\n\nLabels, contrast and focus order."}
+{"area": "Web player", "from": "planned", "text": "Choose the microphone on desktop browsers\n\nLaptops with several inputs pick the wrong one."}
+{"area": "Web player", "from": "planned", "text": "Progress bar while the stems download\n\nThe first run looks frozen on slow connections."}
+{"area": "Web player", "from": "planned", "text": "Tap-to-start screen so iPhones unlock audio\n\nAudio stays silent until there's a tap."}
+{"area": "Web player", "from": "planned", "text": "Smooth the compass in the browser\n\nThe heading jitters a lot on some phones."}
+{"area": "Android app", "from": "history", "text": "Connect to the glasses through Meta's toolkit\n\nStart a session, read the touchpad and head motion, and use the glasses' microphone."}
+{"area": "Android app", "from": "history", "text": "Mix the stems in 3D on the phone\n\nA built-in binaural mixer that places each signal around the runner."}
+{"area": "Android app", "from": "history", "text": "Route editor on the operator screen\n\nWalk the venue and drop each signal where you're standing."}
+{"area": "Android app", "from": "history", "text": "Use the media buttons when the toolkit isn't available\n\nSo the touchpad still works with ordinary Bluetooth."}
+{"area": "Android app", "from": "history", "text": "Download published soundtracks and check them\n\nFetch each stem once, verify its checksum and play it from the phone."}
+{"area": "Android app", "from": "history", "text": "Sign in from the setup screen\n\nFinished runs follow the account between phones."}
+{"area": "Android app", "from": "history", "text": "Link these glasses for premium\n\nSend the pair's details for an admin to approve."}
+{"area": "Android app", "from": "history", "text": "Enroll event glasses from the operator screen\n\nPairs from the event box give premium as soon as someone links them."}
+{"area": "Android app", "from": "history", "text": "Sign every build with the same key\n\nSo a newer build installs over the old one without losing progress."}
+{"area": "Android app", "from": "history", "text": "Push-to-talk answers sent to the server for transcription\n\nRecord until silence and upload the clip."}
+{"area": "Android app", "from": "history", "text": "Stop asking for cloud voices the server doesn't have\n\nEvery new line waits for a request that always fails."}
+{"area": "Android app", "from": "history", "text": "Render signal elevation in the phone's audio engines\n\nBoth the built-in mixer and the FMOD renderer."}
+{"area": "Android app", "from": "planned", "text": "The app crashes if location permission is denied\n\nAsk again or explain instead of crashing."}
+{"area": "Android app", "from": "planned", "text": "Battery drains fast during a forty-minute run\n\nFind what's keeping the CPU awake."}
+{"area": "Android app", "from": "planned", "text": "Notification shows the wrong signal name\n\nThe foreground notification lags one signal behind."}
+{"area": "Android app", "from": "planned", "text": "Update Meta's wearables toolkit to the newest release\n\nCheck the session and input calls still work."}
+{"area": "Android app", "from": "planned", "text": "Heading drifts when the glasses disconnect\n\nFall back to the phone's compass cleanly."}
+{"area": "Android app", "from": "planned", "text": "Store release build with its own signing key\n\nFor the Play Store, kept out of the repository."}
+{"area": "Android app", "from": "planned", "text": "Change the server address without reinstalling\n\nAn option in settings for testing against a local server."}
+{"area": "Android app", "from": "planned", "text": "Build fails on JDK 21\n\nGradle complains about the toolchain."}
+{"area": "Android app", "from": "planned", "text": "Volume buttons do nothing during a run\n\nThey should change the game's volume."}
+{"area": "Android app", "from": "planned", "text": "Run history screen\n\nList past runs with time and signals found."}
+{"area": "Android app", "from": "planned", "text": "Audio to the glasses drops after a phone call\n\nReconnect to Bluetooth audio afterwards."}
+{"area": "Android app", "from": "planned", "text": "Cut the app size down\n\nThe stems make the download over sixty megabytes."}
+{"area": "Android app", "from": "planned", "text": "Show the glasses' battery on the run screen\n\nWarn below twenty percent."}
+{"area": "Android app", "from": "planned", "text": "FMOD renderer crashes on 32-bit phones\n\nEither fix the native library or disable FMOD there."}
+{"area": "Android app", "from": "planned", "text": "Predictive back gesture breaks the run screen\n\nSwiping back ends the run without asking."}
+{"area": "Android app", "from": "planned", "text": "Leak in the game service after a run ends\n\nMemory keeps climbing across runs."}
+{"area": "Android app", "from": "planned", "text": "Show whether the glasses are linked on the account section\n\nLinked, waiting for approval or not linked."}
+{"area": "Android app", "from": "planned", "text": "Keep playing when the server can't be reached\n\nCharacters fall back to written lines without errors."}
+{"area": "Android app", "from": "planned", "text": "Mock glasses stopped connecting for desk tests\n\nThe simulated device never reaches the started state."}
+{"area": "Android app", "from": "planned", "text": "Smooth the runner's position near tall buildings\n\nGPS jumps across the street and triggers the wrong signal."}
+{"area": "Android app", "from": "planned", "text": "Keep running with the screen off\n\nThe run pauses when the phone locks on some devices."}
+{"area": "Android app", "from": "planned", "text": "Crash when rotating during calibration\n\nThe calibration screen loses its state."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Player and admin accounts\n\nSign up, sign in, password hashing and sessions that renew while in use."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Payment link with automatic premium\n\nStripe or Lemon Squeezy webhooks switch premium on when someone pays."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Hold payments that come in without an account\n\nShow them to an admin to apply instead of trusting an unverified email."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Premium-only soundtracks\n\nFree players see them as locked and can't download their stems."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Approve glasses links from the admin page\n\nA tab listing pending pairs with approve and turn-down buttons."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Limit sign-ups and sign-ins per address\n\nWithout blocking a whole venue that shares one Wi-Fi."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Use the player's real address behind the proxy\n\nRead the forwarded address so limits apply per player."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Rate limiter maps never shrink\n\nEvict buckets once they've filled back up."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Two sign-ups at once can create duplicate accounts\n\nHash first, then check the email under the lock."}
+{"area": "Server, accounts and payments", "from": "history", "text": "An admin session should end when the account loses admin\n\nCheck the role on every request."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Map tiles don't load on the admin page\n\nThe tile server needs to know which site is asking."}
+{"area": "Server, accounts and payments", "from": "history", "text": "Public reads for the mission, routes and tracks\n\nPremium stems still need an account."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Password reset by email\n\nSend a link that expires in an hour."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Verify the email address on sign-up\n\nUntil then, payments can't attach by email."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Link to manage the subscription from the account page\n\nOpen the payment provider's customer portal."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Export a player's data when they ask for it\n\nAccount, runs and linked glasses as one file."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Search players by email on the admin page\n\nThe list is getting long."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Handle a refunded payment\n\nPremium should switch off when a payment is refunded."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Log what admins change\n\nWho granted premium or changed a role, and when."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Two-step sign-in for admin accounts\n\nAn authenticator code on top of the password."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Sign out other devices after a password change\n\nOld sessions should stop working."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Error when the data disk is full\n\nThe server answers 500 instead of saying what's wrong."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Upload a soundtrack bigger than forty megabytes\n\nLong stems hit the size limit."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Leaderboard of the fastest runs\n\nOpt in, first names only."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Grant premium for a fixed number of days\n\nFor event attendees who should keep it for a month."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Lock sign-in after ten failed attempts\n\nFor an hour, per account."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Move accounts from JSON files into a database\n\nThe files are fine now but won't be at a thousand players."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Report free disk space in the health check\n\nSo we notice before uploads fail."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Deleting an account should also remove its runs and glasses links\n\nNothing should be left behind."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "Discount codes for event attendees\n\nA code that makes the payment link cheaper."}
+{"area": "Server, accounts and payments", "from": "planned", "text": "The server tests take too long\n\nSplit them so the slow ones only run in CI."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Run the server on the VPS behind Caddy with HTTPS\n\nA systemd service on loopback, with Caddy getting the certificate."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Update script that tests on the server and rolls back\n\nPull, install, run the tests, restart, check health, and go back on failure."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Make the installer work from Windows PowerShell\n\nThe input redirect isn't supported there; copy the script over and run it instead."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Keep shell scripts with Unix line endings on Windows checkouts\n\nBash on the server can't run them with carriage returns."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Share Caddy with the storage service\n\nEach app keeps its own site file in a folder the main config imports."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "The engine check fails because the compiler reorders its output\n\nSort the parts that move before comparing."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Rebuild the browser engine after changing the game rules\n\nThe committed copy is stale and the check fails."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Publish every green build's APK to one release page\n\nSo the phone always has one place to download from."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Give V2 its own port, folder and subdomain\n\nSo it runs next to the original instead of replacing it."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "Lint the deploy scripts in CI\n\nShellcheck and the unit file verifier on every push."}
+{"area": "Deploy, CI and the VPS", "from": "history", "text": "The engine can only be rebuilt correctly from Linux or macOS\n\nMake the build the same on Windows."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Nightly backup of the data folder\n\nCopy it off the VPS so accounts survive a disk failure."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Uptime check against the health endpoint\n\nPing it every five minutes and alert on failure."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Move the workflow actions off Node 20\n\nGitHub is deprecating it on the runners."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Deploy automatically when main changes\n\nInstead of running the update script by hand."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Staging subdomain for testing before release\n\nIts own service and data on the same VPS."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Rotate the proxy's access logs\n\nThey'll fill the disk eventually."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Cache Gradle in CI\n\nBuilds take over ten minutes."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Only the proxy should reach the app's port\n\nTighten the firewall."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Renew the server's read-only deploy key\n\nAnd document how."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Container image for running the server somewhere else\n\nFor a host that only runs containers."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Fail CI when the APK grows past eighty megabytes\n\nCatch size creep early."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Alert when the VPS disk is ninety percent full\n\nBefore uploads start failing."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Run the Android tests on an emulator in CI\n\nOnly unit tests run today."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Point the DNS for the V2 subdomain at the VPS\n\nThen run the installer for V2."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Review the systemd hardening options\n\nCheck the service can still write its data."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Build status badge in the README\n\nSo the state of main is visible at a glance."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Automatic dependency update pull requests\n\nFor npm and Gradle."}
+{"area": "Deploy, CI and the VPS", "from": "planned", "text": "Stage each APK in the storage service, named by commit\n\nSo any build can be fetched later by its commit."}
+{"area": "Agent router and Glimmer", "from": "history", "text": "Route issues between the two coding agents\n\nLabel each new task for one agent and say why."}
+{"area": "Agent router and Glimmer", "from": "history", "text": "Check that every agent pull request has its handoff\n\nWhat changed, what was verified and what wasn't."}
+{"area": "Agent router and Glimmer", "from": "history", "text": "Export routed issues as training data\n\nChat rows in the format the fine-tuning starter expects."}
+{"area": "Agent router and Glimmer", "from": "history", "text": "Train the routing model on the routed issues\n\nLoRA fine-tune on Fireworks and compare against the rules."}
+{"area": "Agent router and Glimmer", "from": "history", "text": "Seed the router with example tasks\n\nHundreds of examples so the first training run has something to learn from."}
+{"area": "Agent router and Glimmer", "from": "history", "text": "Move an issue to review when its pull request opens\n\nAnd back out of ready."}
+{"area": "Agent router and Glimmer", "from": "history", "text": "Keep one agent label when someone relabels a task\n\nTreat the change as an override and note it."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Deploy the tuned routing model and switch it on\n\nSet the model path and the API key in the repository settings."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Compare the rules and the model on held-out tasks\n\nShow both scores in the workflow summary."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Route by size as well as by area\n\nBig tasks to one agent, small ones to the other."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Add a third agent to the routing rules\n\nAnd make sure the labels and review pairing still work."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Fall back to the rules when the routing model times out\n\nRouting must never stop."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Weekly summary of what each agent finished\n\nPosted as an issue comment."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Reward signal from merged pull requests\n\nFor reinforcement learning on the router later."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Review checklist in the agents' guide\n\nWhat the reviewing agent must run before approving."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "The routing keywords miss \"speech to text\"\n\nAdd the phrase to the rules."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Skip issues labelled question\n\nQuestions shouldn't be routed to an agent."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Count overrides per area\n\nTo see which rules are wrong most often."}
+{"area": "Agent router and Glimmer", "from": "planned", "text": "Briefing for each agent with the commands to verify a build\n\nReferences and constraints in one place."}
+{"area": "Something else", "from": "history", "text": "Glitch out the signal names on the showcase page\n\nOnly the first should be readable, the rest found by playing."}
+{"area": "Something else", "from": "planned", "text": "Update the year in the licence\n\nIt still says last year."}
+{"area": "Something else", "from": "planned", "text": "Write the blurb for the hackathon submission\n\nTwo paragraphs on what it is and how it was built."}
+{"area": "Something else", "from": "planned", "text": "Record a demo video of a full run\n\nThree minutes, glasses view plus the phone screen."}
+{"area": "Something else", "from": "planned", "text": "Add a code of conduct\n\nFor contributors to the public repository."}
+{"area": "Something else", "from": "planned", "text": "Fix the typos in the README\n\nSeveral words are misspelled."}
+{"area": "Something else", "from": "planned", "text": "Design a logo for V2\n\nSomething that works as an app icon too."}
+{"area": "Something else", "from": "planned", "text": "Collect playtester feedback\n\nA short form after each run."}
+{"area": "Something else", "from": "planned", "text": "Plan the event schedule at the park\n\nTime slots, staff and the glasses box."}
+{"area": "Something else", "from": "planned", "text": "Hackathon submission checklist\n\nEverything the judges need, with links."}
+{"area": "Something else", "from": "planned", "text": "Translate the README into Spanish\n\nKeep both in the repository."}
+{"area": "Something else", "from": "planned", "text": "Blog post about building with two coding agents\n\nWhat worked and what didn't."}
+{"area": "Something else", "from": "planned", "text": "Slides for judging\n\nFive slides and the demo."}
