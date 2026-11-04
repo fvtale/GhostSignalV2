@@ -2,10 +2,10 @@
 
 GhostSignal V2 is built by two coding agents, Claude and Meta Wonder. The router decides which
 of them takes each task, puts the result in front of the other for review, and records every
-decision as training data for **Muse Glimmer 30B**. The aim is for Glimmer to make the call
-once it has learned to make it well. This follows the Fireworks workshop's advice: don't pick a
-model, build a router. The workshop routes between a small and a big model; here the router
-routes tasks between two agents.
+decision as training data for **Muse Glimmer 30B**. **Muse Spark** makes the call today; the
+aim is for Glimmer to make it once it has learned to make it well. This follows the Fireworks
+workshop's advice: don't pick a model, build a router. The workshop routes between a small and a
+big model; here the router routes tasks between two agents.
 
 The protocol the agents follow is in [AGENTS.md](../AGENTS.md). This page covers how routing
 works and how to train Glimmer on it.
@@ -18,12 +18,13 @@ When an issue is opened without an `agent:` label, the router
 these that gives an answer:
 
 1. **A person's pick:** the Task form's Route field, set to Claude or Meta Wonder.
-2. **Muse Glimmer**, when a tuned Glimmer is deployed and configured (below). If it's down or
-   answers nonsense, the router moves on.
-3. **The area** picked in the form, mapped to an agent in
+2. **Muse Glimmer**, once a tuned Glimmer is deployed and configured (below).
+3. **Muse Spark**, whenever the repository has a Fireworks key (below). This is the router's
+   default brain.
+4. **The area** picked in the form, mapped to an agent in
    [rules.json](../.github/agent-router/rules.json).
-4. **Keywords** in the title and body, per area, also in rules.json.
-5. **The default agent** in rules.json: Meta Wonder, since V2 showcases the Meta stack.
+5. **Keywords** in the title and body, per area, also in rules.json.
+6. **The default agent** in rules.json: Meta Wonder, since V2 showcases the Meta stack.
 
 It labels the issue `agent:<who>` and `status:ready`, and comments with the reason. Swapping the
 label afterwards is an override: the router keeps one agent label and notes the change.
@@ -34,6 +35,35 @@ To change the policy, edit `rules.json`: which agent owns each area, the keyword
 Pull requests from `claude/...` or `wonder/...` branches get `by:<author>` and
 `review:<the other agent>`, and the issues they close move to `status:review`. The PR's check
 fails until its handoff sections (What changed, Verified, Not verified) are filled in.
+
+If a model is down, slow or answers nonsense, the router moves on to the next step, so
+routing never stops.
+
+## Muse Spark makes the call
+
+With a Fireworks key, **Muse Spark Open** (`accounts/fireworks/models/muse-spark-open`, Meta's
+open model on Fireworks) routes every new issue that a person didn't route themselves. Its
+comment on the issue says so: "Routed to **Meta Wonder**: Muse Spark routed it (area: Web
+player): …", with its one-line reason.
+
+- **The policy:** it isn't trained on this repository, so its prompt spells out `rules.json`:
+  which agent owns each area, and the default. Change `rules.json` and Muse Spark follows on the
+  next issue.
+- **Low reasoning effort:** the Fireworks workshop found that setting scored best on easy
+  tasks, and a routing call is one.
+- **Safety:** the repository is public, so anyone can open an issue. Muse Spark is told to treat
+  the issue as data, its reason is reduced to one plain line before it's posted, and the worst a
+  crafted issue can do is pick a label, which a person can swap back.
+- **Cost:** one short call per routed issue, a fraction of a cent at Fireworks' serverless
+  price ($1.25 / $4.25 per million tokens in and out).
+- **Turning it on:** in this repository's Settings → Secrets and variables → Actions, add the
+  secret `FIREWORKS_API_KEY`. To use another model, set the variable `SPARK_MODEL`; set it to
+  `off` to go back to the rules.
+
+Muse Spark's decisions, and your relabels, are the training data for Glimmer below. Spark
+teaches, and Glimmer, much smaller, learns to make the same call, as in the workshop's three
+models, three jobs. When you run the workflow by hand, its summary scores Muse Spark next to
+the rules on the held-out issues.
 
 ## Training Muse Glimmer to route
 
@@ -145,7 +175,7 @@ unset or unreachable.
 | --- | --- |
 | `.github/agent-router/rules.json` | The policy: areas, keywords, the default agent |
 | `.github/agent-router/route.cjs` | Routing decisions, the issue-form reader, the training-row format |
-| `.github/agent-router/glimmer.cjs` | The Fireworks call to a deployed Glimmer |
+| `.github/agent-router/models.cjs` | The Fireworks calls: Muse Spark with the policy in its prompt, a deployed Glimmer with the answer's shape only |
 | `.github/agent-router/run.cjs` | The GitHub side: labels, comments, PR checks, export and eval |
 | `.github/agent-router/route.test.cjs` | Tests, run by CI |
 | `.github/ISSUE_TEMPLATE/task.yml` | The Task form |

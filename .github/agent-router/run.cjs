@@ -17,7 +17,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const R = require("./route.cjs");
-const { createGlimmer } = require("./glimmer.cjs");
+const { createGlimmer, createSpark } = require("./models.cjs");
 
 const MARKER = "<!-- agent-router";
 const STATUS = {
@@ -84,7 +84,7 @@ function createApi({ token, repo, fetchImpl = globalThis.fetch }) {
 
 const names = (labels) => (labels ?? []).map((l) => (typeof l === "string" ? l : l.name));
 
-async function onIssue(event, { api, rules, glimmer, log }) {
+async function onIssue(event, { api, rules, models = [], glimmer = null, log }) {
   const issue = event.issue;
   const labels = names(issue.labels);
   const agent = R.agentFromLabels(labels, rules);
@@ -105,7 +105,7 @@ async function onIssue(event, { api, rules, glimmer, log }) {
   }
 
   if (!["opened", "reopened", "edited"].includes(event.action) || agent || issue.state === "closed") return;
-  const d = await R.decide(issue, { rules, glimmer });
+  const d = await R.decide(issue, { rules, models: [glimmer, ...models].filter(Boolean) });
   const status = labels.some((l) => l.startsWith("status:")) ? [] : ["status:ready"];
   await api.addLabels(issue.number, [rules.agents[d.agent].label, ...status]);
   const pick = `${MARKER} ${JSON.stringify({ agent: d.agent, area: d.area, by: d.by })} -->`;
@@ -210,6 +210,7 @@ async function main(argv = process.argv.slice(2), env = process.env, deps = {}) 
   const log = deps.log ?? { info: console.log, warn: console.warn, error: console.error };
   const rules = deps.rules ?? R.loadRules();
   const glimmer = deps.glimmer ?? createGlimmer({ rules, log });
+  const spark = deps.spark ?? createSpark({ rules, log });
   const api = deps.api ?? createApi({ token: env.GITHUB_TOKEN, repo: env.GITHUB_REPOSITORY });
   const summary = (text) => {
     if (env.GITHUB_STEP_SUMMARY) fs.appendFileSync(env.GITHUB_STEP_SUMMARY, `${text}\n`);
@@ -243,9 +244,9 @@ async function main(argv = process.argv.slice(2), env = process.env, deps = {}) 
     const byRules = await evaluate(rows, async (task) => (await R.decide({ title: "", body: task }, { rules })).agent);
     const pct = (r) => `${Math.round((100 * r.correct) / r.total)}% (${r.correct}/${r.total})`;
     summary(`### Router on ${rows.length} held-out issues\n\n| Router | Correct pick |\n| --- | --- |\n| Rules | ${pct(byRules)} |`);
-    if (glimmer.enabled) {
-      const byGlimmer = await evaluate(rows, async (task) => (await glimmer.classify(task))?.route ?? null);
-      summary(`| Muse Glimmer (${glimmer.model}) | ${pct(byGlimmer)} |`);
+    for (const model of [spark, glimmer].filter((m) => m.enabled)) {
+      const byModel = await evaluate(rows, async (task) => (await model.classify(task))?.route ?? null);
+      summary(`| ${model.name} (${model.model}) | ${pct(byModel)} |`);
     }
     return 0;
   }
@@ -253,7 +254,7 @@ async function main(argv = process.argv.slice(2), env = process.env, deps = {}) 
   const event = JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
   await api.ensureLabels(labelSpecs(rules));
   if (env.GITHUB_EVENT_NAME === "issues") {
-    await onIssue(event, { api, rules, glimmer, log });
+    await onIssue(event, { api, rules, models: [glimmer, spark], log });
     return 0;
   }
   if (env.GITHUB_EVENT_NAME === "pull_request") return onPullRequest(event, { api, rules, log, summary });

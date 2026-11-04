@@ -1,7 +1,8 @@
 name: Agent router
 
-# Routes each task between Claude and Meta Wonder, keeps the labels in step as work moves to
-# review, checks every agent PR's handoff, and (run by hand) exports Muse Glimmer training data.
+# Routes each task between Claude and Meta Wonder (Muse Spark decides, the rules are the
+# fallback), keeps the labels in step as work moves to review, checks every agent PR's handoff,
+# and (run by hand) exports Muse Glimmer training data and scores the routers.
 # How it works, and how to train Glimmer on it: AGENTS.md and docs/AGENT-ROUTER.md.
 
 on:
@@ -32,8 +33,11 @@ jobs:
       - name: Route the task, or check the PR's handoff
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # Optional, once a tuned Glimmer router is deployed (docs/AGENT-ROUTER.md).
+          # With the Fireworks key, Muse Spark makes the routing call (SPARK_MODEL picks another
+          # model, "off" turns it off); a tuned, deployed Glimmer goes first once GLIMMER_MODEL is
+          # set. Without the key, the rules route. docs/AGENT-ROUTER.md.
           FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          SPARK_MODEL: ${{ vars.SPARK_MODEL }}
           GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
         run: node .github/agent-router/run.cjs
 
@@ -54,6 +58,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          SPARK_MODEL: ${{ vars.SPARK_MODEL }}
           GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
         run: node .github/agent-router/run.cjs eval router-data/holdout.jsonl
       - uses: actions/upload-artifact@v5

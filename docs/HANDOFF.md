@@ -2,6 +2,29 @@
 
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
+# Handoff — 2026-11-04, Claude (Muse Spark makes the routing call)
+
+## What changed
+
+With a Fireworks key in the repository's secrets, Muse Spark Open routes every new issue a
+person didn't route: its prompt spells out `rules.json`, it answers at low reasoning effort, and
+its one-line reason goes in the router's comment. A tuned Glimmer still goes first once deployed;
+the rules are the fallback. Its decisions and the owner's relabels are Glimmer's training data.
+`glimmer.cjs` is now `models.cjs`, holding both clients.
+
+## Verified
+
+- Router tests: 35 pass (Muse Spark's request and prompt, the order of models, fallback, the
+  answer taken after its thinking, the reason cleaned before posting, the eval row).
+- `npm test` in server/: 58 pass.
+
+## Not verified
+
+- A live Muse Spark call: Fireworks is unreachable from Claude's sandbox, and the repository
+  needs the `FIREWORKS_API_KEY` secret. Whether Fireworks takes `reasoning_effort: "low"` with
+  `max_tokens` for this model is unchecked; if it refuses, the rules route and the workflow log
+  says why.
+
 # Handoff — 2026-10-30, Claude (#4: seed examples for Glimmer)
 
 ## What changed
