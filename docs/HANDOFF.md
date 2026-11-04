@@ -1,5 +1,25 @@
 # Handoffs
 
+# Handoff — 2026-11-03, Meta Wonder (Phase 3: web surfaces rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 3 of 5.** All web JS re-implemented from scratch: player (`api`, `audio`, `main`, `recorder`, `sensors`, `speech`, `voices`), `account.js`, `admin.js` — modern syntax, same DOM ids, engine JSON contract, and API calls. Player stylesheet restyled to the datarail.org/library house tokens (rail-meets-circuitry: track-bed near-black, signal cyan, brass warnings, rail-rule headers, node dots); admin/account already carried the house tokens and keep them.
+
+## Verified
+
+- `node --check` clean on all 9 rewritten JS files; server `npm test` 58/58.
+- Local smoke: `/health`, `/play/`, `/account/`, `/admin/` and assets all 200 with CSP intact.
+- DOM contract: all 115 `byId(...)` ids used by the JS exist in the HTML.
+
+## Not verified
+
+- Real-browser play (mic, compass, pocket mode, Media Session) — needs a phone/browser pass by the owner.
+
+## Next
+
+- Phase 4: Android theme/polish to the same tokens.
+
 # Handoff — 2026-11-03, Meta Wonder (Phase 2: server rewrite)
 
 ## What this round does

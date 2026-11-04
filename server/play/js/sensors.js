@@ -1,110 +1,128 @@
-/**
- * Where the runner is and which way they face: GPS and the phone's compass, or a simulated walk
- * for trying the game at a desk.
- */
+// Where the runner is and which way they face: device GPS and compass,
+// or a simulated walker for desk testing. Fixes use the shared shape
+// { lat, lon, accuracyM, timeMs, speedMps, courseDeg, simulated }.
+
+const EARTH_RADIUS_M = 6371008.8;
+const toRadians = (degrees) => (degrees * Math.PI) / 180;
+const toDegrees = (radians) => (radians * 180) / Math.PI;
+
+/** The point [metres] from (lat, lon) toward [bearingDeg]. */
+export function step(lat, lon, bearingDeg, metres) {
+  const angular = metres / EARTH_RADIUS_M;
+  const bearing = toRadians(bearingDeg);
+  const startLat = toRadians(lat);
+  const startLon = toRadians(lon);
+
+  const endLat = Math.asin(
+    Math.sin(startLat) * Math.cos(angular) +
+    Math.cos(startLat) * Math.sin(angular) * Math.cos(bearing),
+  );
+  const endLon = startLon + Math.atan2(
+    Math.sin(bearing) * Math.sin(angular) * Math.cos(startLat),
+    Math.cos(angular) - Math.sin(startLat) * Math.sin(endLat),
+  );
+  return [toDegrees(endLat), toDegrees(endLon)];
+}
 
 export class Gps {
   constructor(onFix) {
     this.onFix = onFix;
-    this.watch = null;
+    this.watchId = null;
   }
 
   start() {
-    if (this.watch !== null || !("geolocation" in navigator)) return;
-    this.watch = navigator.geolocation.watchPosition(
-      (p) =>
-        this.onFix({
-          lat: p.coords.latitude,
-          lon: p.coords.longitude,
-          accuracyM: p.coords.accuracy,
-          timeMs: p.timestamp || Date.now(),
-          speedMps: Number.isFinite(p.coords.speed) ? p.coords.speed : null,
-          courseDeg: Number.isFinite(p.coords.heading) ? p.coords.heading : null,
-          simulated: false,
-        }),
+    if (this.watchId !== null || !("geolocation" in navigator)) return;
+    this.watchId = navigator.geolocation.watchPosition(
+      (position) => this.onFix({
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+        accuracyM: position.coords.accuracy,
+        timeMs: position.timestamp || Date.now(),
+        speedMps: Number.isFinite(position.coords.speed) ? position.coords.speed : null,
+        courseDeg: Number.isFinite(position.coords.heading) ? position.coords.heading : null,
+        simulated: false,
+      }),
       () => {},
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 },
     );
   }
 
   stop() {
-    if (this.watch !== null) navigator.geolocation.clearWatch(this.watch);
-    this.watch = null;
+    if (this.watchId !== null) navigator.geolocation.clearWatch(this.watchId);
+    this.watchId = null;
   }
 
-  /** Asks once, from a tap: resolves with the accuracy in metres, or rejects with why not. */
+  /** One-shot permission/accuracy probe, called from a tap. */
   static check() {
     return new Promise((resolve, reject) => {
-      if (!("geolocation" in navigator)) return reject(new Error("this browser has no location"));
+      if (!("geolocation" in navigator)) {
+        reject(new Error("this browser has no location"));
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
-        (p) => resolve(p.coords.accuracy),
-        (e) => reject(new Error(e.code === 1 ? "location is blocked for this site" : "no location fix yet")),
+        (position) => resolve(position.coords.accuracy),
+        (error) => reject(new Error(
+          error.code === 1 ? "location is blocked for this site" : "no location fix yet",
+        )),
         { enableHighAccuracy: true, timeout: 15000 },
       );
     });
   }
 }
 
-/** The phone's compass, in degrees clockwise from north. */
+/** Phone compass heading: degrees clockwise from north, screen-adjusted. */
 export class Compass {
   constructor(onHeading) {
     this.onHeading = onHeading;
-    this.handler = (e) => {
-      let deg = null;
-      if (typeof e.webkitCompassHeading === "number") deg = e.webkitCompassHeading; // iOS
-      else if (e.absolute && e.alpha !== null) deg = 360 - e.alpha; // alpha turns the other way
-      if (deg === null) return;
-      const screen = (window.screen.orientation && window.screen.orientation.angle) || 0;
-      this.onHeading((((deg + screen) % 360) + 360) % 360);
+    this.listener = (event) => {
+      let degrees = null;
+      if (typeof event.webkitCompassHeading === "number") {
+        degrees = event.webkitCompassHeading; // iOS reports heading directly.
+      } else if (event.absolute && event.alpha !== null) {
+        degrees = 360 - event.alpha; // alpha runs counter-clockwise.
+      }
+      if (degrees === null) return;
+      const screenAngle = window.screen.orientation?.angle || 0;
+      this.onHeading((((degrees + screenAngle) % 360) + 360) % 360);
     };
-    this.event = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+    this.eventName = "ondeviceorientationabsolute" in window
+      ? "deviceorientationabsolute"
+      : "deviceorientation";
   }
 
-  /** iPhone asks before sharing motion; call from a tap. */
+  /** iOS asks before sharing motion; call from a tap. */
   static async permit() {
-    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-      const r = await DeviceOrientationEvent.requestPermission();
-      if (r !== "granted") throw new Error("motion access was declined");
+    if (typeof DeviceOrientationEvent === "undefined") {
+      throw new Error("this device has no compass");
     }
-    if (typeof DeviceOrientationEvent === "undefined") throw new Error("this device has no compass");
+    if (typeof DeviceOrientationEvent.requestPermission === "function") {
+      const answer = await DeviceOrientationEvent.requestPermission();
+      if (answer !== "granted") throw new Error("motion access was declined");
+    }
   }
 
   start() {
-    window.addEventListener(this.event, this.handler);
+    window.addEventListener(this.eventName, this.listener);
   }
 
   stop() {
-    window.removeEventListener(this.event, this.handler);
+    window.removeEventListener(this.eventName, this.listener);
   }
 }
 
-const R = 6371008.8;
-const rad = (d) => (d * Math.PI) / 180;
-
-/** [m] metres from (lat, lon) toward [bearingDeg]. */
-export function step(lat, lon, bearingDeg, m) {
-  const d = m / R;
-  const b = rad(bearingDeg);
-  const la = rad(lat);
-  const lo = rad(lon);
-  const la2 = Math.asin(Math.sin(la) * Math.cos(d) + Math.cos(la) * Math.sin(d) * Math.cos(b));
-  const lo2 = lo + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(la), Math.cos(d) - Math.sin(la) * Math.sin(la2));
-  return [(la2 * 180) / Math.PI, (lo2 * 180) / Math.PI];
-}
-
-/** A pretend runner for testing at a desk: walks at a steady pace toward wherever it's sent. */
+/** A pretend runner for desk testing: walks steadily toward its target. */
 export class SimWalker {
   constructor(onFix, measure) {
     this.onFix = onFix;
-    this.measure = measure; // (lat1, lon1, lat2, lon2) => [distanceM, bearingDeg]
-    this.pos = null;
+    this.measure = measure; // (lat1, lon1, lat2, lon2) -> [distanceM, bearingDeg]
+    this.position = null;
     this.target = null;
     this.timer = null;
-    this.speed = 1.6;
+    this.speedMps = 1.6;
   }
 
   start(lat, lon) {
-    if (!this.pos) this.pos = [lat, lon];
+    if (!this.position) this.position = [lat, lon];
     if (this.timer === null) this.timer = setInterval(() => this.tick(), 1000);
     this.emit(null, 0);
   }
@@ -115,35 +133,45 @@ export class SimWalker {
   }
 
   teleport(lat, lon) {
-    this.pos = [lat, lon];
+    this.position = [lat, lon];
     this.target = null;
     this.emit(null, 0);
   }
 
-  walkTo(lat, lon, speed = 1.6) {
+  walkTo(lat, lon, speedMps = 1.6) {
     this.target = [lat, lon];
-    this.speed = speed;
+    this.speedMps = speedMps;
   }
 
   tick() {
-    if (!this.pos) return;
-    let course = null;
-    let speed = 0;
+    if (!this.position) return;
+    let courseDeg = null;
+    let speedMps = 0;
     if (this.target) {
-      const [dist, bearing] = this.measure(this.pos[0], this.pos[1], this.target[0], this.target[1]);
-      if (dist <= this.speed) {
-        this.pos = this.target;
+      const [distanceM, bearingDeg] = this.measure(
+        this.position[0], this.position[1], this.target[0], this.target[1],
+      );
+      if (distanceM <= this.speedMps) {
+        this.position = this.target;
         this.target = null;
       } else {
-        this.pos = step(this.pos[0], this.pos[1], bearing, this.speed);
-        course = bearing;
-        speed = this.speed;
+        this.position = step(this.position[0], this.position[1], bearingDeg, this.speedMps);
+        courseDeg = bearingDeg;
+        speedMps = this.speedMps;
       }
     }
-    this.emit(course, speed);
+    this.emit(courseDeg, speedMps);
   }
 
   emit(courseDeg, speedMps) {
-    this.onFix({ lat: this.pos[0], lon: this.pos[1], accuracyM: 5, timeMs: Date.now(), speedMps, courseDeg, simulated: true });
+    this.onFix({
+      lat: this.position[0],
+      lon: this.position[1],
+      accuracyM: 5,
+      timeMs: Date.now(),
+      speedMps,
+      courseDeg,
+      simulated: true,
+    });
   }
 }

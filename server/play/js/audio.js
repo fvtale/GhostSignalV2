@@ -1,27 +1,27 @@
-/**
- * The web player's audio: the browser's counterpart of the app's binaural mixer, on the Web Audio
- * API. Positioned sounds go through HRTF panners, so with the glasses (or any headphones) on, a
- * signal sits where it is in the park and stays there as you turn.
- *
- *   stems ──┬─ in-head ─────────────┐
- *           └─ clarity filter ─ HRTF ┴─ music bus ─┐
- *   HUSH's theme ──────────────────── music bus    ├─ master ─ limiter ─ output
- *   static, ping, sfx ─ HRTF ──────────────────────┤
- *   voices ─ radio filter ─ (HRTF) ─ voice bus ────┘
- *
- * Output goes through an <audio> element when the browser allows it, rather than straight to the
- * speakers: that makes the page a media player, so the glasses' touchpad taps (play/pause, next,
- * previous) reach it through the Media Session API.
- */
+// Web Audio engine for the browser player: the counterpart of the app's
+// binaural mixer. Positioned sounds pass through HRTF panners, so through
+// the glasses (or any headphones) a signal sits where it is in the park
+// and stays there as the runner turns.
+//
+//   stems -- in-head gain -------\
+//          \- clarity filters -- HRTF -- music bus \
+//   antagonist theme ------------- music bus        +-- master -- limiter -- out
+//   static / ping / sfx -- HRTF -------------------/
+//   voices -- radio chain -- (HRTF) -- voice bus --/
+//
+// Output is routed through an <audio> element when the browser allows it:
+// that makes the page a media player, so the glasses' touchpad taps reach
+// it through the Media Session API instead of pausing the music.
 
-const DB = (db) => Math.pow(10, db / 20);
-const PAUSED_FACTOR = 0.2;
+const dbToGain = (db) => Math.pow(10, db / 20);
+const PAUSED_GAIN = 0.2;
 
 export class AudioEngine {
   constructor() {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new Ctx({ latencyHint: "playback" });
-    const ctx = this.ctx;
+    const ContextClass = window.AudioContext || window.webkitAudioContext;
+    this.context = new ContextClass({ latencyHint: "playback" });
+    const ctx = this.context;
+
     this.master = ctx.createGain();
     this.limiter = ctx.createDynamicsCompressor();
     this.limiter.threshold.value = -6;
@@ -29,373 +29,440 @@ export class AudioEngine {
     this.limiter.attack.value = 0.003;
     this.limiter.release.value = 0.2;
     this.master.connect(this.limiter);
-    this.musicBus = this.bus(this.master);
-    this.voiceBus = this.bus(this.master);
-    this.sfxBus = this.bus(this.master);
-    this.heading = null;
-    this.pitch = null;
-    this.stems = new Map();
+
+    this.musicBus = this.makeBus(this.master);
+    this.voiceBus = this.makeBus(this.master);
+    this.sfxBus = this.makeBus(this.master);
+
+    this.headingDeg = null;
+    this.pitchDeg = null;
+    this.stemNodes = new Map();
+    this.theme = null;
     this.loopSeconds = 0;
     this.barSeconds = 0;
-    this.t0 = 0;
-    this.comms = "none";
-    this.paused = false;
+    this.beatSeconds = 0;
+    this.musicStartAt = 0;
+    this.commsMode = "none";
+    this.isPaused = false;
     this.nextPingAt = 0;
     this.element = null;
-    this.makeStatic();
-    this.connectOutput();
+
+    this.buildStaticSource();
+    this.routeOutput();
   }
 
-  bus(to) {
-    const g = this.ctx.createGain();
-    g.connect(to);
-    return g;
+  makeBus(destination) {
+    const gain = this.context.createGain();
+    gain.connect(destination);
+    return gain;
   }
 
-  /** Through an <audio> element when possible (see above); straight to the speakers otherwise. */
-  connectOutput() {
-    if (typeof this.ctx.createMediaStreamDestination === "function" && "srcObject" in HTMLMediaElement.prototype) {
-      this.streamOut = this.ctx.createMediaStreamDestination();
-      this.limiter.connect(this.streamOut);
+  /** Routes through a media element when possible (see header note). */
+  routeOutput() {
+    const canUseElement = typeof this.context.createMediaStreamDestination === "function" &&
+      "srcObject" in HTMLMediaElement.prototype;
+    if (canUseElement) {
+      this.streamDestination = this.context.createMediaStreamDestination();
+      this.limiter.connect(this.streamDestination);
       this.element = new Audio();
-      this.element.srcObject = this.streamOut.stream;
+      this.element.srcObject = this.streamDestination.stream;
       this.element.setAttribute("playsinline", "");
     } else {
-      this.limiter.connect(this.ctx.destination);
+      this.limiter.connect(this.context.destination);
     }
   }
 
-  /** Call from a tap: browsers only start sound after the user asks for it. */
+  /** Call from a tap: browsers only allow sound after a user gesture. */
   async resume() {
-    if (this.ctx.state !== "running") await this.ctx.resume();
-    if (this.element) {
-      try {
-        await this.element.play();
-      } catch {
-        // The element refused (an old browser): fall back to the speakers directly.
-        this.limiter.disconnect();
-        this.limiter.connect(this.ctx.destination);
-        this.element = null;
-      }
+    if (this.context.state !== "running") await this.context.resume();
+    if (!this.element) return;
+    try {
+      await this.element.play();
+    } catch {
+      // The element refused: fall back to direct speaker output.
+      this.limiter.disconnect();
+      this.limiter.connect(this.context.destination);
+      this.element = null;
     }
   }
 
   get now() {
-    return this.ctx.currentTime;
+    return this.context.currentTime;
   }
 
-  setVolume(v) {
-    this.master.gain.setTargetAtTime(Math.max(0, Math.min(1, v)), this.now, 0.05);
+  setVolume(volume) {
+    const clamped = Math.max(0, Math.min(1, volume));
+    this.master.gain.setTargetAtTime(clamped, this.now, 0.05);
   }
 
-  async decode(arrayBuffer) {
-    return await this.ctx.decodeAudioData(arrayBuffer);
+  decode(arrayBuffer) {
+    return this.context.decodeAudioData(arrayBuffer);
   }
 
-  /** Exactly [frames] long: cut, or padded with silence, so every stem loops on the same sample. */
-  fit(buffer, frames) {
-    if (buffer.length === frames) return buffer;
-    const out = this.ctx.createBuffer(buffer.numberOfChannels, frames, buffer.sampleRate);
-    for (let c = 0; c < buffer.numberOfChannels; c++) out.copyToChannel(buffer.getChannelData(c).subarray(0, Math.min(frames, buffer.length)), c);
+  /** Conforms a buffer to exactly [frameCount]: trim or pad with silence. */
+  conform(buffer, frameCount) {
+    if (buffer.length === frameCount) return buffer;
+    const out = this.context.createBuffer(buffer.numberOfChannels, frameCount, buffer.sampleRate);
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const source = buffer.getChannelData(channel);
+      out.copyToChannel(source.subarray(0, Math.min(frameCount, buffer.length)), channel);
+    }
     return out;
   }
 
-  // ------------------------------------------------------------------ music
+  // -- music ---------------------------------------------------------------
 
-  /** [buffers]: stem id -> AudioBuffer. Starts every stem silent and sample-locked. */
+  /** Starts every stem silent and sample-locked to one shared loop. */
   startMusic(music, buffers) {
     this.stopMusic();
-    const sr = this.ctx.sampleRate;
-    const beatSeconds = 60 / music.bpm;
-    this.beatSeconds = beatSeconds;
-    this.barSeconds = beatSeconds * (music.beatsPerBar || 4);
+    const sampleRate = this.context.sampleRate;
+    this.beatSeconds = 60 / music.bpm;
+    this.barSeconds = this.beatSeconds * (music.beatsPerBar || 4);
     this.loopSeconds = this.barSeconds * (music.loopBars || 8);
-    const frames = Math.round(this.loopSeconds * sr);
-    this.t0 = this.now + 0.15;
-    for (const spec of music.stems) {
-      const buffer = buffers.get(spec.id);
+    const loopFrames = Math.round(this.loopSeconds * sampleRate);
+    this.musicStartAt = this.now + 0.15;
+
+    for (const stemSpec of music.stems) {
+      const buffer = buffers.get(stemSpec.id);
       if (!buffer) continue;
-      const source = this.ctx.createBufferSource();
-      source.buffer = this.fit(buffer, frames);
-      source.loop = true;
-      const gain = this.ctx.createGain();
-      gain.gain.value = 0;
-      const trim = DB(spec.gainDb || 0);
-      // Far away a stem is muffled and thin; close in it opens up.
-      const low = this.ctx.createBiquadFilter();
-      low.type = "lowpass";
-      low.frequency.value = 600;
-      const high = this.ctx.createBiquadFilter();
-      high.type = "highpass";
-      high.frequency.value = 20;
-      const inHead = this.ctx.createGain();
-      const located = this.ctx.createGain();
-      const panner = this.panner();
-      source.connect(gain);
-      gain.connect(low);
-      low.connect(high);
-      high.connect(inHead);
-      high.connect(located);
-      located.connect(panner);
-      panner.connect(this.musicBus);
-      inHead.connect(this.musicBus);
-      inHead.gain.value = 1;
-      located.gain.value = 0;
-      source.start(this.t0);
-      this.stems.set(spec.id, { source, gain, low, high, inHead, located, panner, trim, bearing: null, mode: "off", holdUntil: 0 });
+      const nodes = this.buildStemChain(stemSpec, buffer, loopFrames);
+      nodes.source.start(this.musicStartAt);
+      this.stemNodes.set(stemSpec.id, nodes);
     }
+  }
+
+  buildStemChain(stemSpec, buffer, loopFrames) {
+    const ctx = this.context;
+    const source = ctx.createBufferSource();
+    source.buffer = this.conform(buffer, loopFrames);
+    source.loop = true;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+
+    // Distance is heard as dullness: far stems are muffled and thin.
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.value = 600;
+    const highpass = ctx.createBiquadFilter();
+    highpass.type = "highpass";
+    highpass.frequency.value = 20;
+
+    const inHead = ctx.createGain();
+    inHead.gain.value = 1;
+    const located = ctx.createGain();
+    located.gain.value = 0;
+    const panner = this.makePanner();
+
+    source.connect(gain);
+    gain.connect(lowpass);
+    lowpass.connect(highpass);
+    highpass.connect(inHead);
+    highpass.connect(located);
+    located.connect(panner);
+    panner.connect(this.musicBus);
+    inHead.connect(this.musicBus);
+
+    return {
+      source, gain, lowpass, highpass, inHead, located, panner,
+      trim: dbToGain(stemSpec.gainDb || 0),
+      bearingDeg: null,
+      elevationDeg: 0,
+      mode: "off",
+      holdUntil: 0,
+    };
   }
 
   stopMusic() {
-    for (const s of this.stems.values()) {
-      try {
-        s.source.stop();
-      } catch {
-        // never started
-      }
-      s.source.disconnect();
+    for (const nodes of this.stemNodes.values()) {
+      try { nodes.source.stop(); } catch { /* never started */ }
+      nodes.source.disconnect();
     }
-    this.stems.clear();
+    this.stemNodes.clear();
   }
 
-  /** HUSH's theme: a loop that rises as HUSH holds the frequency. */
+  /** The antagonist theme loop; its gain follows antagonistLevel. */
   setTheme(buffer, gainDb) {
     if (this.theme) {
       this.theme.source.stop();
       this.theme.source.disconnect();
+      this.theme = null;
     }
-    if (!buffer) return (this.theme = null);
-    const source = this.ctx.createBufferSource();
+    if (!buffer) return;
+    const source = this.context.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
-    const gain = this.ctx.createGain();
+    const gain = this.context.createGain();
     gain.gain.value = 0;
     source.connect(gain).connect(this.musicBus);
     source.start(this.now + 0.05);
-    this.theme = { source, gain, base: DB(gainDb || 0) };
+    this.theme = { source, gain, baseGain: dbToGain(gainDb || 0) };
   }
 
-  /** When does the next bar start? Collected layers come in on it, like in the app. */
-  nextBar() {
+  /** Start time of the next bar; captured stems enter on it. */
+  nextBarStart() {
     if (!this.barSeconds) return this.now;
-    const into = (this.now - this.t0) % this.barSeconds;
-    return this.now + (into < 0 ? -into : this.barSeconds - into);
+    const intoBar = (this.now - this.musicStartAt) % this.barSeconds;
+    return this.now + (intoBar < 0 ? -intoBar : this.barSeconds - intoBar);
   }
 
-  // ------------------------------------------------------------------ the scene
+  // -- scene -----------------------------------------------------------------
 
-  /** Applies the engine's AudioScene (see AudioSceneComposer). Called ~20 times a second. */
+  /** Applies one AudioScene from the engine (called ~20x/second). */
   setScene(scene) {
-    const t = this.now;
-    this.paused = scene.paused;
-    const pausedFactor = scene.paused ? PAUSED_FACTOR : 1;
-    for (const [id, s] of this.stems) {
-      const st = scene.stems[id];
-      const target = st ? st.gain * s.trim * pausedFactor : 0;
-      const located = st && st.bearingDeg != null;
-      const clarity = st ? st.clarity : 1;
-      const mode = !st ? "off" : located ? "located" : "head";
-      if (mode === "head" && s.mode !== "head") {
-        // Into the head (captured): it comes in on the next bar, like in the app.
-        const bar = this.nextBar();
-        for (const [param, v] of [[s.gain.gain, target], [s.inHead.gain, 1], [s.located.gain, 0]]) {
-          param.cancelScheduledValues(t);
-          param.setTargetAtTime(v, bar, 0.04);
-        }
-        s.holdUntil = bar + 0.2;
-      } else if (t >= s.holdUntil) {
-        s.gain.gain.setTargetAtTime(target, t, 0.12);
-        s.inHead.gain.setTargetAtTime(mode === "located" ? 0 : 1, t, 0.1);
-        s.located.gain.setTargetAtTime(mode === "located" ? 1 : 0, t, 0.1);
-      }
-      s.mode = mode;
-      s.bearing = located ? st.bearingDeg : null;
-      s.elevation = st.elevationDeg ?? 0;
-      if (located) this.aim(s.panner, st.bearingDeg, t, st.elevationDeg ?? 0);
-      s.low.frequency.setTargetAtTime(500 + Math.pow(clarity, 2) * 17500, t, 0.15);
-      s.high.frequency.setTargetAtTime(20 + (1 - clarity) * 520, t, 0.15);
-    }
-    if (this.theme) this.theme.gain.gain.setTargetAtTime(scene.antagonistLevel * this.theme.base * pausedFactor, t, 0.3);
+    const at = this.now;
+    this.isPaused = scene.paused;
+    const pauseFactor = scene.paused ? PAUSED_GAIN : 1;
 
-    this.staticGain.gain.setTargetAtTime(scene.staticLevel * 0.22 * pausedFactor, t, 0.2);
-    this.staticBearing = scene.staticBearingDeg;
-    this.staticElevation = scene.staticElevationDeg ?? 0;
-    if (scene.staticBearingDeg != null) this.aim(this.staticPanner, scene.staticBearingDeg, t, scene.staticElevationDeg ?? 0);
+    for (const [stemId, nodes] of this.stemNodes) {
+      const state = scene.stems[stemId];
+      const targetGain = state ? state.gain * nodes.trim * pauseFactor : 0;
+      const isLocated = Boolean(state && state.bearingDeg != null);
+      const clarity = state ? state.clarity : 1;
+      const mode = !state ? "off" : isLocated ? "located" : "head";
+
+      if (mode === "head" && nodes.mode !== "head") {
+        // Just captured: the stem joins the head mix on the next bar.
+        const barAt = this.nextBarStart();
+        const arrivals = [
+          [nodes.gain.gain, targetGain],
+          [nodes.inHead.gain, 1],
+          [nodes.located.gain, 0],
+        ];
+        for (const [param, value] of arrivals) {
+          param.cancelScheduledValues(at);
+          param.setTargetAtTime(value, barAt, 0.04);
+        }
+        nodes.holdUntil = barAt + 0.2;
+      } else if (at >= nodes.holdUntil) {
+        nodes.gain.gain.setTargetAtTime(targetGain, at, 0.12);
+        nodes.inHead.gain.setTargetAtTime(mode === "located" ? 0 : 1, at, 0.1);
+        nodes.located.gain.setTargetAtTime(mode === "located" ? 1 : 0, at, 0.1);
+      }
+
+      nodes.mode = mode;
+      nodes.bearingDeg = isLocated ? state.bearingDeg : null;
+      nodes.elevationDeg = state?.elevationDeg ?? 0;
+      if (isLocated) this.aimPanner(nodes.panner, state.bearingDeg, at, state.elevationDeg ?? 0);
+      nodes.lowpass.frequency.setTargetAtTime(500 + Math.pow(clarity, 2) * 17500, at, 0.15);
+      nodes.highpass.frequency.setTargetAtTime(20 + (1 - clarity) * 520, at, 0.15);
+    }
+
+    if (this.theme) {
+      const themeGain = scene.antagonistLevel * this.theme.baseGain * pauseFactor;
+      this.theme.gain.gain.setTargetAtTime(themeGain, at, 0.3);
+    }
+
+    this.staticGain.gain.setTargetAtTime(scene.staticLevel * 0.22 * pauseFactor, at, 0.2);
+    this.staticBearingDeg = scene.staticBearingDeg;
+    this.staticElevationDeg = scene.staticElevationDeg ?? 0;
+    if (scene.staticBearingDeg != null) {
+      this.aimPanner(this.staticPanner, scene.staticBearingDeg, at, scene.staticElevationDeg ?? 0);
+    }
 
     if (scene.pingIntervalMs && !scene.paused) {
-      if (t >= this.nextPingAt) {
-        this.ping(scene.pingBearingDeg, scene.pingElevationDeg ?? 0);
-        this.nextPingAt = t + scene.pingIntervalMs / 1000;
+      if (at >= this.nextPingAt) {
+        this.playPing(scene.pingBearingDeg, scene.pingElevationDeg ?? 0);
+        this.nextPingAt = at + scene.pingIntervalMs / 1000;
       }
     } else {
-      this.nextPingAt = t;
+      this.nextPingAt = at;
     }
-    this.applyComms();
+
+    this.applyCommsDuck();
   }
 
-  /** The runner's head (or phone) heading in degrees from north, or null when unknown. */
-  setHeading(deg, pitchDeg = null) {
-    this.heading = deg;
-    this.pitch = pitchDeg;
-    const t = this.now;
-    for (const s of this.stems.values()) if (s.bearing != null) this.aim(s.panner, s.bearing, t, s.elevation ?? 0);
-    if (this.staticBearing != null) this.aim(this.staticPanner, this.staticBearing, t, this.staticElevation ?? 0);
+  /** Head/phone heading (and pitch) in degrees; null when unknown. */
+  setHeading(headingDeg, pitchDeg = null) {
+    this.headingDeg = headingDeg;
+    this.pitchDeg = pitchDeg;
+    const at = this.now;
+    for (const nodes of this.stemNodes.values()) {
+      if (nodes.bearingDeg != null) {
+        this.aimPanner(nodes.panner, nodes.bearingDeg, at, nodes.elevationDeg ?? 0);
+      }
+    }
+    if (this.staticBearingDeg != null) {
+      this.aimPanner(this.staticPanner, this.staticBearingDeg, at, this.staticElevationDeg ?? 0);
+    }
   }
 
-  panner() {
-    const p = this.ctx.createPanner();
-    p.panningModel = "HRTF";
-    p.distanceModel = "linear";
-    p.refDistance = 1;
-    p.maxDistance = 10000;
-    p.rolloffFactor = 0; // the engine sets loudness; the panner only places
-    p.positionZ.value = -1;
-    return p;
+  makePanner() {
+    const panner = this.context.createPanner();
+    panner.panningModel = "HRTF";
+    panner.distanceModel = "linear";
+    panner.refDistance = 1;
+    panner.maxDistance = 10000;
+    panner.rolloffFactor = 0; // Loudness comes from the engine; this only places.
+    panner.positionZ.value = -1;
+    return panner;
   }
 
-  /** Points a panner at a world bearing, relative to where the runner is facing. */
-  aim(panner, worldBearingDeg, t = this.now, elevationDeg = 0) {
-    const rel = ((worldBearingDeg - (this.heading ?? 0)) * Math.PI) / 180;
-    const relElev = ((elevationDeg - (this.pitch ?? 0)) * Math.PI) / 180;
-    panner.positionX.setTargetAtTime(Math.sin(rel) * Math.cos(relElev), t, 0.03);
-    panner.positionY.setTargetAtTime(Math.sin(relElev), t, 0.03);
-    panner.positionZ.setTargetAtTime(-Math.cos(rel) * Math.cos(relElev), t, 0.03);
+  /** Points a panner at a world bearing relative to the runner's facing. */
+  aimPanner(panner, worldBearingDeg, at = this.now, elevationDeg = 0) {
+    const relativeAzimuth = ((worldBearingDeg - (this.headingDeg ?? 0)) * Math.PI) / 180;
+    const relativeElevation = ((elevationDeg - (this.pitchDeg ?? 0)) * Math.PI) / 180;
+    panner.positionX.setTargetAtTime(Math.sin(relativeAzimuth) * Math.cos(relativeElevation), at, 0.03);
+    panner.positionY.setTargetAtTime(Math.sin(relativeElevation), at, 0.03);
+    panner.positionZ.setTargetAtTime(-Math.cos(relativeAzimuth) * Math.cos(relativeElevation), at, 0.03);
   }
 
-  // ------------------------------------------------------------------ static and ping
+  // -- static and ping ----------------------------------------------------------
 
-  makeStatic() {
-    const ctx = this.ctx;
-    const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-    const d = noise.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const src = ctx.createBufferSource();
-    src.buffer = noise;
-    src.loop = true;
-    const band = ctx.createBiquadFilter();
-    band.type = "bandpass";
-    band.frequency.value = 1800;
-    band.Q.value = 0.6;
+  buildStaticSource() {
+    const ctx = this.context;
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const samples = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+
+    const source = ctx.createBufferSource();
+    source.buffer = noiseBuffer;
+    source.loop = true;
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = "bandpass";
+    bandpass.frequency.value = 1800;
+    bandpass.Q.value = 0.6;
+
     this.staticGain = ctx.createGain();
     this.staticGain.gain.value = 0;
-    this.staticPanner = this.panner();
-    src.connect(band).connect(this.staticGain).connect(this.staticPanner).connect(this.master);
-    src.start();
-    this.staticBearing = null;
+    this.staticPanner = this.makePanner();
+    this.staticBearingDeg = null;
+    this.staticElevationDeg = 0;
+
+    source.connect(bandpass).connect(this.staticGain).connect(this.staticPanner).connect(this.master);
+    source.start();
   }
 
-  ping(bearingDeg, elevationDeg = 0) {
-    const t = this.now + 0.01;
-    const osc = this.ctx.createOscillator();
-    osc.frequency.value = 1320;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.18, t + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-    const p = this.panner();
-    if (bearingDeg != null) this.aim(p, bearingDeg, t, elevationDeg);
-    osc.connect(g).connect(p).connect(this.sfxBus);
-    osc.start(t);
-    osc.stop(t + 0.2);
+  playPing(bearingDeg, elevationDeg = 0) {
+    const at = this.now + 0.01;
+    const oscillator = this.context.createOscillator();
+    oscillator.frequency.value = 1320;
+    const envelope = this.context.createGain();
+    envelope.gain.setValueAtTime(0.0001, at);
+    envelope.gain.exponentialRampToValueAtTime(0.18, at + 0.008);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+    const panner = this.makePanner();
+    if (bearingDeg != null) this.aimPanner(panner, bearingDeg, at, elevationDeg);
+    oscillator.connect(envelope).connect(panner).connect(this.sfxBus);
+    oscillator.start(at);
+    oscillator.stop(at + 0.2);
   }
 
-  // ------------------------------------------------------------------ comms ducking
+  // -- comms ducking --------------------------------------------------------------
 
-  /** "voice" while a character speaks, "mic" while listening: the music steps back. */
+  /** "voice" while a character speaks, "mic" while listening. */
   setComms(mode) {
-    this.comms = mode;
-    this.applyComms();
+    this.commsMode = mode;
+    this.applyCommsDuck();
   }
 
-  applyComms() {
-    const duck = this.comms === "mic" ? 0.3 : this.comms === "voice" ? 0.5 : 1;
+  applyCommsDuck() {
+    const duck = this.commsMode === "mic" ? 0.3 : this.commsMode === "voice" ? 0.5 : 1;
     this.musicBus.gain.setTargetAtTime(duck, this.now, 0.12);
   }
 
-  // ------------------------------------------------------------------ voices
+  // -- voices -----------------------------------------------------------------------
 
   /**
-   * Plays one rendered line. [radio] 0 = clean, 1 = crushed walkie-talkie; a [bearingDeg] places
-   * the voice at its relay in the park, otherwise it plays in the head. Resolves when it ends.
+   * Plays one rendered voice line. [radio] runs 0 (clean) to 1 (crushed
+   * walkie-talkie). A bearing places the voice at its relay; otherwise it
+   * plays in the head. Returns { ended, stop }.
    */
   playVoice(buffer, { bearingDeg = null, radio = 0.4 } = {}) {
-    const ctx = this.ctx;
-    const t = this.now + 0.02;
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
+    const ctx = this.context;
+    const startAt = this.now + 0.02;
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
     const dry = ctx.createGain();
     dry.gain.value = 1 - radio * 0.75;
-    const band = ctx.createBiquadFilter();
-    band.type = "bandpass";
-    band.frequency.value = 1400;
-    band.Q.value = 0.9;
-    const crush = ctx.createWaveShaper();
-    crush.curve = drive(1 + radio * 18);
+
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = "bandpass";
+    bandpass.frequency.value = 1400;
+    bandpass.Q.value = 0.9;
+
+    const waveshaper = ctx.createWaveShaper();
+    waveshaper.curve = driveCurve(1 + radio * 18);
+
     const wet = ctx.createGain();
     wet.gain.value = radio * 0.9;
-    const sum = ctx.createGain();
-    src.connect(dry).connect(sum);
-    src.connect(band).connect(crush).connect(wet).connect(sum);
-    let out = sum;
+
+    const mix = ctx.createGain();
+    source.connect(dry).connect(mix);
+    source.connect(bandpass).connect(waveshaper).connect(wet).connect(mix);
+
+    let output = mix;
     if (bearingDeg != null) {
-      const p = this.panner();
-      this.aim(p, bearingDeg, t);
-      sum.connect(p);
-      out = p;
+      const panner = this.makePanner();
+      this.aimPanner(panner, bearingDeg, startAt);
+      mix.connect(panner);
+      output = panner;
     }
-    out.connect(this.voiceBus);
-    let done;
-    const ended = new Promise((resolve) => (done = resolve));
-    src.onended = () => done();
-    src.start(t);
-    return { ended, stop: () => { try { src.stop(); } catch { /* not started */ } done(); } };
+    output.connect(this.voiceBus);
+
+    let resolveEnded;
+    const ended = new Promise((resolve) => { resolveEnded = resolve; });
+    source.onended = () => resolveEnded();
+    source.start(startAt);
+
+    return {
+      ended,
+      stop: () => {
+        try { source.stop(); } catch { /* not started yet */ }
+        resolveEnded();
+      },
+    };
   }
 
-  // ------------------------------------------------------------------ effects
+  // -- effects ------------------------------------------------------------------------
 
   sfx(name, bearingDeg = null) {
-    const S = SFX[name];
-    if (!S) return;
-    const t = this.now + 0.01;
-    let out = this.sfxBus;
+    const cue = SFX_CUES[name];
+    if (!cue) return;
+    const at = this.now + 0.01;
+    let output = this.sfxBus;
     if (bearingDeg != null) {
-      const p = this.panner();
-      this.aim(p, bearingDeg, t);
-      p.connect(this.sfxBus);
-      out = p;
+      const panner = this.makePanner();
+      this.aimPanner(panner, bearingDeg, at);
+      panner.connect(this.sfxBus);
+      output = panner;
     }
-    S(this.ctx, out, t);
+    cue(this.context, output, at);
   }
 
-  /** The rhythm challenge: clicks on the track's beat grid, then [onDone]. */
+  /** Rhythm challenge: clicks on the track's beat grid, then onDone. */
   playRhythm(onsetsBeats, onDone) {
-    const beat = this.beatSeconds || 0.5;
-    const pos = (this.now - this.t0) / beat;
-    let start = this.t0 + Math.ceil(pos) * beat;
-    if (start - this.now < beat / 2) start += beat;
-    for (const b of onsetsBeats) SFX.CLICK(this.ctx, this.sfxBus, start + b * beat);
-    const end = start + Math.max(...onsetsBeats) * beat + beat / 2;
-    setTimeout(onDone, Math.max(0, (end - this.now) * 1000));
+    const beatSeconds = this.beatSeconds || 0.5;
+    const positionBeats = (this.now - this.musicStartAt) / beatSeconds;
+    let gridStart = this.musicStartAt + Math.ceil(positionBeats) * beatSeconds;
+    if (gridStart - this.now < beatSeconds / 2) gridStart += beatSeconds;
+    for (const onset of onsetsBeats) {
+      SFX_CUES.CLICK(this.context, this.sfxBus, gridStart + onset * beatSeconds);
+    }
+    const endAt = gridStart + Math.max(...onsetsBeats) * beatSeconds + beatSeconds / 2;
+    setTimeout(onDone, Math.max(0, (endAt - this.now) * 1000));
   }
 
-  /** A ping that circles the head once: left, behind, right, ahead. Proves the glasses are the output. */
+  /** A ping circling the head once: left, behind, right, ahead. */
   soundCheck() {
-    const t0 = this.now + 0.05;
-    [270, 180, 90, 0].forEach((b, i) => {
-      const t = t0 + i * 0.45;
-      const osc = this.ctx.createOscillator();
-      osc.frequency.value = 880;
-      const g = this.ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-      const p = this.panner();
-      const rel = (b * Math.PI) / 180;
-      p.positionX.value = Math.sin(rel);
-      p.positionZ.value = -Math.cos(rel);
-      osc.connect(g).connect(p).connect(this.sfxBus);
-      osc.start(t);
-      osc.stop(t + 0.32);
+    const startAt = this.now + 0.05;
+    [270, 180, 90, 0].forEach((bearing, index) => {
+      const at = startAt + index * 0.45;
+      const oscillator = this.context.createOscillator();
+      oscillator.frequency.value = 880;
+      const envelope = this.context.createGain();
+      envelope.gain.setValueAtTime(0.0001, at);
+      envelope.gain.exponentialRampToValueAtTime(0.25, at + 0.01);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, at + 0.3);
+      const panner = this.makePanner();
+      const radians = (bearing * Math.PI) / 180;
+      panner.positionX.value = Math.sin(radians);
+      panner.positionZ.value = -Math.cos(radians);
+      oscillator.connect(envelope).connect(panner).connect(this.sfxBus);
+      oscillator.start(at);
+      oscillator.stop(at + 0.32);
     });
   }
 
@@ -403,63 +470,84 @@ export class AudioEngine {
     this.stopMusic();
     this.setTheme(null);
     if (this.element) this.element.pause();
-    this.ctx.close();
+    this.context.close();
   }
 }
 
-function drive(k) {
-  const n = 1024;
-  const curve = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const x = (i / (n - 1)) * 2 - 1;
-    curve[i] = Math.tanh(k * x) / Math.tanh(k);
+/** Soft-clipping drive curve for the radio voice chain. */
+function driveCurve(amount) {
+  const length = 1024;
+  const curve = new Float32Array(length);
+  for (let i = 0; i < length; i++) {
+    const x = (i / (length - 1)) * 2 - 1;
+    curve[i] = Math.tanh(amount * x) / Math.tanh(amount);
   }
   return curve;
 }
 
-/** A short tone with an attack and an exponential tail. */
-function tone(ctx, out, t, freq, dur, { type = "sine", level = 0.2, to = null } = {}) {
-  const osc = ctx.createOscillator();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, t);
-  if (to) osc.frequency.exponentialRampToValueAtTime(to, t + dur);
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(level, t + 0.008);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(g).connect(out);
-  osc.start(t);
-  osc.stop(t + dur + 0.02);
+/** One short tone with a fast attack and an exponential tail. */
+function playTone(ctx, output, at, frequency, durationS, { type = "sine", level = 0.2, glideTo = null } = {}) {
+  const oscillator = ctx.createOscillator();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, at);
+  if (glideTo) oscillator.frequency.exponentialRampToValueAtTime(glideTo, at + durationS);
+  const envelope = ctx.createGain();
+  envelope.gain.setValueAtTime(0.0001, at);
+  envelope.gain.exponentialRampToValueAtTime(level, at + 0.008);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, at + durationS);
+  oscillator.connect(envelope).connect(output);
+  oscillator.start(at);
+  oscillator.stop(at + durationS + 0.02);
 }
 
-function noiseBurst(ctx, out, t, dur, freq, level) {
-  const b = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
-  const d = b.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-  const src = ctx.createBufferSource();
-  src.buffer = b;
-  const f = ctx.createBiquadFilter();
-  f.type = "bandpass";
-  f.frequency.value = freq;
-  const g = ctx.createGain();
-  g.gain.value = level;
-  src.connect(f).connect(g).connect(out);
-  src.start(t);
+function playNoiseBurst(ctx, output, at, durationS, frequency, level) {
+  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * durationS), ctx.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) {
+    samples[i] = (Math.random() * 2 - 1) * (1 - i / samples.length);
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const bandpass = ctx.createBiquadFilter();
+  bandpass.type = "bandpass";
+  bandpass.frequency.value = frequency;
+  const gain = ctx.createGain();
+  gain.gain.value = level;
+  source.connect(bandpass).connect(gain).connect(output);
+  source.start(at);
 }
 
-/** The same cues the app plays, synthesized. */
-const SFX = {
-  SIGNAL_ACQUIRED: (c, o, t) => { tone(c, o, t, 660, 0.14); tone(c, o, t + 0.12, 990, 0.22); },
-  LOCK_AVAILABLE: (c, o, t) => [0, 0.11, 0.22].forEach((d) => tone(c, o, t + d, 1200, 0.08, { level: 0.16 })),
-  LOCK: (c, o, t) => { tone(c, o, t, 110, 0.25, { type: "triangle", level: 0.35, to: 60 }); tone(c, o, t + 0.05, 1760, 0.18, { level: 0.12 }); },
-  DENIED: (c, o, t) => tone(c, o, t, 180, 0.28, { type: "square", level: 0.08 }),
-  COLLECT: (c, o, t) => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(c, o, t + i * 0.07, f, 0.3, { level: 0.14 })),
-  PAUSE: (c, o, t) => { tone(c, o, t, 880, 0.12); tone(c, o, t + 0.1, 587, 0.18); },
-  RESUME: (c, o, t) => { tone(c, o, t, 587, 0.12); tone(c, o, t + 0.1, 880, 0.18); },
-  RECORD_START: (c, o, t) => tone(c, o, t, 880, 0.2, { level: 0.18 }),
-  TRANSMISSION: (c, o, t) => { noiseBurst(c, o, t, 0.25, 2200, 0.25); tone(c, o, t + 0.05, 1500, 0.2, { level: 0.1, to: 2400 }); },
-  FINALE: (c, o, t) => [293.66, 369.99, 440, 587.33].forEach((f) => tone(c, o, t, f, 2.2, { type: "triangle", level: 0.08 })),
-  MIC_OPEN: (c, o, t) => tone(c, o, t, 1500, 0.09, { level: 0.12, to: 2200 }),
-  MIC_CLOSE: (c, o, t) => tone(c, o, t, 2200, 0.09, { level: 0.1, to: 1400 }),
-  CLICK: (c, o, t) => tone(c, o, t, 2000, 0.04, { type: "square", level: 0.12 }),
+// Synthesized cues, matching the app's set.
+const SFX_CUES = {
+  SIGNAL_ACQUIRED: (ctx, out, at) => {
+    playTone(ctx, out, at, 660, 0.14);
+    playTone(ctx, out, at + 0.12, 990, 0.22);
+  },
+  LOCK_AVAILABLE: (ctx, out, at) =>
+    [0, 0.11, 0.22].forEach((delay) => playTone(ctx, out, at + delay, 1200, 0.08, { level: 0.16 })),
+  LOCK: (ctx, out, at) => {
+    playTone(ctx, out, at, 110, 0.25, { type: "triangle", level: 0.35, glideTo: 60 });
+    playTone(ctx, out, at + 0.05, 1760, 0.18, { level: 0.12 });
+  },
+  DENIED: (ctx, out, at) => playTone(ctx, out, at, 180, 0.28, { type: "square", level: 0.08 }),
+  COLLECT: (ctx, out, at) =>
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => playTone(ctx, out, at + i * 0.07, freq, 0.3, { level: 0.14 })),
+  PAUSE: (ctx, out, at) => {
+    playTone(ctx, out, at, 880, 0.12);
+    playTone(ctx, out, at + 0.1, 587, 0.18);
+  },
+  RESUME: (ctx, out, at) => {
+    playTone(ctx, out, at, 587, 0.12);
+    playTone(ctx, out, at + 0.1, 880, 0.18);
+  },
+  RECORD_START: (ctx, out, at) => playTone(ctx, out, at, 880, 0.2, { level: 0.18 }),
+  TRANSMISSION: (ctx, out, at) => {
+    playNoiseBurst(ctx, out, at, 0.25, 2200, 0.25);
+    playTone(ctx, out, at + 0.05, 1500, 0.2, { level: 0.1, glideTo: 2400 });
+  },
+  FINALE: (ctx, out, at) =>
+    [293.66, 369.99, 440, 587.33].forEach((freq) => playTone(ctx, out, at, freq, 2.2, { type: "triangle", level: 0.08 })),
+  MIC_OPEN: (ctx, out, at) => playTone(ctx, out, at, 1500, 0.09, { level: 0.12, glideTo: 2200 }),
+  MIC_CLOSE: (ctx, out, at) => playTone(ctx, out, at, 2200, 0.09, { level: 0.1, glideTo: 1400 }),
+  CLICK: (ctx, out, at) => playTone(ctx, out, at, 2000, 0.04, { type: "square", level: 0.12 }),
 };

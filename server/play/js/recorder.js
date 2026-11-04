@@ -1,57 +1,72 @@
-/**
- * The Record challenge: a message for the next runner, kept in this browser only (IndexedDB),
- * like the app keeps it on the phone.
- */
+// The Record challenge: a message for the next runner, kept in this
+// browser only (IndexedDB), mirroring how the app keeps it on the phone.
+
+const DB_NAME = "ghostsignal";
+const STORE_NAME = "recordings";
+
+function saveRecording(key, blob) {
+  return new Promise((resolve, reject) => {
+    const openRequest = indexedDB.open(DB_NAME, 1);
+    openRequest.onupgradeneeded = () => {
+      openRequest.result.createObjectStore(STORE_NAME);
+    };
+    openRequest.onerror = () => reject(openRequest.error);
+    openRequest.onsuccess = () => {
+      const transaction = openRequest.result.transaction(STORE_NAME, "readwrite");
+      transaction.objectStore(STORE_NAME).put(blob, key);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    };
+  });
+}
+
 export class Recorder {
   constructor() {
-    this.media = null;
+    this.mediaRecorder = null;
     this.stopTimer = null;
   }
 
-  /** Records up to [maxSeconds]; [onDone] gets a stored key, or null if nothing was recorded. */
+  /** Records up to [maxSeconds]; onDone receives a stored key or null. */
   async start(signalId, maxSeconds, onDone) {
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      return onDone(null);
+      onDone(null);
+      return;
     }
+
     const chunks = [];
-    const media = new MediaRecorder(stream);
-    this.media = media;
-    media.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-    media.onstop = async () => {
-      stream.getTracks().forEach((t) => t.stop());
+    const recorder = new MediaRecorder(stream);
+    this.mediaRecorder = recorder;
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size) chunks.push(event.data);
+    };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
       clearTimeout(this.stopTimer);
-      this.media = null;
-      if (!chunks.length) return onDone(null);
+      this.mediaRecorder = null;
+      if (!chunks.length) {
+        onDone(null);
+        return;
+      }
       const key = `${signalId}-${Date.now()}`;
       try {
-        await save(key, new Blob(chunks, { type: media.mimeType || "audio/webm" }));
+        await saveRecording(key, new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
         onDone(`idb:${key}`);
       } catch {
         onDone(null);
       }
     };
-    media.start();
+
+    recorder.start();
     this.stopTimer = setTimeout(() => this.stop(), maxSeconds * 1000);
   }
 
   stop() {
-    if (this.media && this.media.state !== "inactive") this.media.stop();
+    if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
+      this.mediaRecorder.stop();
+    }
   }
-}
-
-function save(key, blob) {
-  return new Promise((resolve, reject) => {
-    const open = indexedDB.open("ghostsignal", 1);
-    open.onupgradeneeded = () => open.result.createObjectStore("recordings");
-    open.onerror = () => reject(open.error);
-    open.onsuccess = () => {
-      const tx = open.result.transaction("recordings", "readwrite");
-      tx.objectStore("recordings").put(blob, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    };
-  });
 }

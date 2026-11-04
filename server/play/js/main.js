@@ -1,10 +1,9 @@
-/**
- * GhostSignal in the browser. The same game engine as the Android app (compiled from core/ to
- * JavaScript), driven the way the app's GameController drives it: sensors and buttons in as
- * events, effects out to the audio, voices, microphone and screen.
- *
- * The phone runs everything; the glasses are its Bluetooth speakers, microphone and buttons.
- */
+// GhostSignal in the browser. This drives the same engine the Android app
+// runs (core/, compiled to JS) the way the app's GameController does:
+// sensors and buttons in as events, effects out to audio, voices, the
+// microphone, and the screen. The phone runs everything; the glasses are
+// its Bluetooth speakers, microphone, and buttons.
+
 import * as Engine from "../engine/ghostsignal-core.mjs";
 import { api, store } from "./api.js";
 import { AudioEngine } from "./audio.js";
@@ -13,236 +12,316 @@ import { Compass, Gps, SimWalker, step } from "./sensors.js";
 import { Speech } from "./speech.js";
 import { Voices } from "./voices.js";
 
-const $ = (id) => document.getElementById(id);
-const HOLD_MS = 450;
-const base = { missionJson: null, mission: null, routeJson: null, catalog: null, catalogJson: null, plan: null };
-let audio = null;
-let run = null;
+const byId = (id) => document.getElementById(id);
+const HOLD_TO_TALK_MS = 450;
+const NPC_TIMEOUT_MS = 10_000;
 
-function el(tag, attrs = {}, ...children) {
+const loaded = {
+  missionJson: null,
+  mission: null,
+  routeJson: null,
+  catalog: null,
+  catalogJson: null,
+  plan: null,
+};
+
+let audioEngine = null;
+let activeRun = null;
+
+/** Small DOM builder: attrs may set text/class, on* handlers, plain attrs. */
+function createElement(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (v === null || v === undefined || v === false) continue;
-    if (k === "text") node.textContent = v;
-    else if (k === "class") node.className = v;
-    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
-    else node.setAttribute(k, v === true ? "" : v);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === null || value === undefined || value === false) continue;
+    if (key === "text") node.textContent = value;
+    else if (key === "class") node.className = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? "" : value);
   }
-  for (const c of children) if (c !== null && c !== undefined) node.append(c);
+  for (const child of children) {
+    if (child !== null && child !== undefined) node.append(child);
+  }
   return node;
 }
 
-const measure = (lat1, lon1, lat2, lon2) => Engine.distanceAndBearing(lat1, lon1, lat2, lon2);
+const measureBetween = (lat1, lon1, lat2, lon2) =>
+  Engine.distanceAndBearing(lat1, lon1, lat2, lon2);
 
 function ensureAudio() {
-  if (!audio) {
-    audio = new AudioEngine();
-    audio.setVolume(store.settings().volume);
+  if (!audioEngine) {
+    audioEngine = new AudioEngine();
+    audioEngine.setVolume(store.settings().volume);
   }
-  return audio;
+  return audioEngine;
 }
 
-// ==================================================================== setup
+// -- setup ---------------------------------------------------------------------
 
 async function boot() {
   try {
     const mission = await api.mission();
-    base.mission = mission;
-    base.missionJson = JSON.stringify(mission);
+    loaded.mission = mission;
+    loaded.missionJson = JSON.stringify(mission);
+
     const [route, catalog, plan] = await Promise.all([
       api.route(mission.id).catch(() => null),
       api.tracks(mission.id).catch(() => null),
       api.me(),
     ]);
-    base.routeJson = route ? JSON.stringify(route) : null;
-    base.catalog = catalog;
-    base.catalogJson = catalog ? JSON.stringify(catalog) : null;
-    base.plan = plan;
-    // Finished runs follow a signed-in runner: take the account's count if it's higher.
-    const r = store.rewards();
-    const remote = plan?.account?.completions?.[mission.id] ?? 0;
-    if (remote > r.completions) store.saveRewards({ ...r, completions: remote });
-    else if (plan && r.completions > remote) api.progress(mission.id, r.completions).catch(() => {});
-    $("loading").hidden = true;
+    loaded.routeJson = route ? JSON.stringify(route) : null;
+    loaded.catalog = catalog;
+    loaded.catalogJson = catalog ? JSON.stringify(catalog) : null;
+    loaded.plan = plan;
+
+    syncCompletionCount(mission.id, plan);
+    byId("loading").hidden = true;
     renderSetup();
-    $("setup").hidden = false;
-  } catch (e) {
-    $("loading").hidden = true;
-    $("fatal").hidden = false;
-    $("fatal").textContent = `Couldn't reach the GhostSignal server: ${e.message}`;
+    byId("setup").hidden = false;
+  } catch (error) {
+    byId("loading").hidden = true;
+    byId("fatal").hidden = false;
+    byId("fatal").textContent = `Couldn't reach the GhostSignal server: ${error.message}`;
+  }
+}
+
+/** Finished runs follow a signed-in runner; keep the higher count in sync. */
+function syncCompletionCount(missionId, plan) {
+  const rewards = store.rewards();
+  const remoteCount = plan?.account?.completions?.[missionId] ?? 0;
+  if (remoteCount > rewards.completions) {
+    store.saveRewards({ ...rewards, completions: remoteCount });
+  } else if (plan && rewards.completions > remoteCount) {
+    api.progress(missionId, rewards.completions).catch(() => {});
   }
 }
 
 function renderSetup() {
-  const plan = base.plan;
-  const who = $("who");
-  who.textContent = plan ? plan.account.email : "Sign in";
-  who.href = plan ? "/account/" : "/account/?return=/play/";
+  const plan = loaded.plan;
+  const whoLink = byId("who");
+  whoLink.textContent = plan ? plan.account.email : "Sign in";
+  whoLink.href = plan ? "/account/" : "/account/?return=/play/";
 
-  const rewards = store.rewards();
-  const list = $("soundtracks");
-  list.textContent = "";
-  const choices = JSON.parse(Engine.soundtrackChoices(base.missionJson, base.catalogJson, rewards.completions));
-  const picked = choices.find((c) => c.id === rewards.soundtrack && c.unlocked) ? rewards.soundtrack : "original";
-  for (const c of choices) {
-    const runs = c.unlockAfterCompletions === 1 ? "a run" : `${c.unlockAfterCompletions} runs`;
-    const input = el("input", { type: "radio", name: "soundtrack", value: c.id, disabled: !c.unlocked, checked: c.id === picked });
-    input.addEventListener("change", () => store.saveRewards({ ...store.rewards(), soundtrack: c.id }));
-    list.append(
-      el("label", { class: c.unlocked ? "choice" : "choice locked" }, input,
-        el("span", {}, el("b", { text: c.title }), c.unlocked ? c.description : `Finish ${runs} to unlock`)),
-    );
-  }
-  for (const t of base.catalog?.locked ?? []) {
-    list.append(
-      el("label", { class: "choice locked" }, el("input", { type: "radio", disabled: true }),
-        el("span", {}, el("b", {}, t.title, el("span", { class: "tag", text: "PREMIUM" })), t.description || "For premium players")),
-    );
-  }
-  const unlockedCount = choices.filter((c) => c.unlocked).length;
-  $("soundtrackNote").textContent = base.catalog?.locked?.length
-    ? plan ? "Premium soundtracks come with premium, on the account page." : "Sign in for premium soundtracks."
-    : unlockedCount < choices.length ? "Finish runs to unlock more." : "";
+  renderSoundtrackChoices();
 
   const settings = store.settings();
-  document.querySelectorAll('input[name="mode"]').forEach((i) => {
-    i.checked = i.value === settings.mode;
-    i.onchange = () => store.saveSettings({ ...store.settings(), mode: i.value });
+  document.querySelectorAll('input[name="mode"]').forEach((input) => {
+    input.checked = input.value === settings.mode;
+    input.onchange = () => store.saveSettings({ ...store.settings(), mode: input.value });
   });
 
-  $("accountText").textContent = plan
+  byId("accountText").textContent = plan
     ? `Signed in as ${plan.account.email}${plan.account.premium.active ? " · premium" : ""}. This browser reads the lines aloud, characters answer your questions live, and your finished runs follow you.`
     : "Signed out: this browser reads the lines in its own voice, and characters answer with written lines. Sign in for live answers and premium soundtracks.";
 
-  const progress = store.progress();
-  $("resume").hidden = !(progress && !progress.complete && progress.missionId === base.mission.id && progress.collected.length > 0);
-  $("micNote").textContent = new Speech().available
+  const saved = store.progress();
+  const resumable = saved && !saved.complete &&
+    saved.missionId === loaded.mission.id && saved.collected.length > 0;
+  byId("resume").hidden = !resumable;
+
+  byId("micNote").textContent = new Speech().available
     ? "To answer out loud. You can always tap the answer instead."
     : "No microphone here, so you'll tap or type your answers.";
 }
 
-function markCheck(id, ok, note) {
-  const li = $(id);
-  li.classList.toggle("done", ok === true);
-  li.classList.toggle("warn", ok === false);
-  if (note) li.querySelector("span").textContent = note;
+function renderSoundtrackChoices() {
+  const rewards = store.rewards();
+  const list = byId("soundtracks");
+  list.textContent = "";
+
+  const choices = JSON.parse(
+    Engine.soundtrackChoices(loaded.missionJson, loaded.catalogJson, rewards.completions),
+  );
+  const pickedId = choices.some((c) => c.id === rewards.soundtrack && c.unlocked)
+    ? rewards.soundtrack
+    : "original";
+
+  for (const choice of choices) {
+    const runsLabel = choice.unlockAfterCompletions === 1
+      ? "a run"
+      : `${choice.unlockAfterCompletions} runs`;
+    const input = createElement("input", {
+      type: "radio",
+      name: "soundtrack",
+      value: choice.id,
+      disabled: !choice.unlocked,
+      checked: choice.id === pickedId,
+    });
+    input.addEventListener("change", () =>
+      store.saveRewards({ ...store.rewards(), soundtrack: choice.id }));
+    list.append(createElement(
+      "label",
+      { class: choice.unlocked ? "choice" : "choice locked" },
+      input,
+      createElement("span", {},
+        createElement("b", { text: choice.title }),
+        choice.unlocked ? choice.description : `Finish ${runsLabel} to unlock`),
+    ));
+  }
+
+  for (const lockedTrack of loaded.catalog?.locked ?? []) {
+    list.append(createElement(
+      "label",
+      { class: "choice locked" },
+      createElement("input", { type: "radio", disabled: true }),
+      createElement("span", {},
+        createElement("b", {}, lockedTrack.title,
+          createElement("span", { class: "tag", text: "PREMIUM" })),
+        lockedTrack.description || "For premium players"),
+    ));
+  }
+
+  const unlockedCount = choices.filter((c) => c.unlocked).length;
+  byId("soundtrackNote").textContent = loaded.catalog?.locked?.length
+    ? (loaded.plan
+      ? "Premium soundtracks come with premium, on the account page."
+      : "Sign in for premium soundtracks.")
+    : (unlockedCount < choices.length ? "Finish runs to unlock more." : "");
 }
 
-$("soundCheck").addEventListener("click", async () => {
-  const a = ensureAudio();
-  await a.resume();
-  a.soundCheck();
-  markCheck("checkAudio", true, "A ping went round your head: left, behind, right, ahead. If it came from the phone, connect the glasses and try again.");
+function markCheck(checkId, ok, note) {
+  const item = byId(checkId);
+  item.classList.toggle("done", ok === true);
+  item.classList.toggle("warn", ok === false);
+  if (note) item.querySelector("span").textContent = note;
+}
+
+function capitalise(text) {
+  return `${text[0].toUpperCase()}${text.slice(1)}`;
+}
+
+byId("soundCheck").addEventListener("click", async () => {
+  const engine = ensureAudio();
+  await engine.resume();
+  engine.soundCheck();
+  markCheck("checkAudio", true,
+    "A ping went round your head: left, behind, right, ahead. If it came from the phone, connect the glasses and try again.");
 });
 
-$("allowLocation").addEventListener("click", async () => {
+byId("allowLocation").addEventListener("click", async () => {
   try {
-    const acc = await Gps.check();
-    markCheck("checkLocation", true, `Location on, accurate to about ${Math.round(acc)} m.`);
-  } catch (e) {
-    markCheck("checkLocation", false, `${e.message[0].toUpperCase()}${e.message.slice(1)}. You can still try it at a desk.`);
+    const accuracy = await Gps.check();
+    markCheck("checkLocation", true, `Location on, accurate to about ${Math.round(accuracy)} m.`);
+  } catch (error) {
+    markCheck("checkLocation", false, `${capitalise(error.message)}. You can still try it at a desk.`);
   }
 });
 
-$("allowCompass").addEventListener("click", async () => {
+byId("allowCompass").addEventListener("click", async () => {
   try {
     await Compass.permit();
-    let got = false;
-    const c = new Compass((deg) => {
-      got = true;
-      markCheck("checkCompass", true, `Compass on: facing ${Math.round(deg)}°.`);
+    let received = false;
+    const compass = new Compass((degrees) => {
+      received = true;
+      markCheck("checkCompass", true, `Compass on: facing ${Math.round(degrees)}°.`);
     });
-    c.start();
+    compass.start();
     setTimeout(() => {
-      c.stop();
-      if (!got) markCheck("checkCompass", false, "No compass reading. The game will use your walking direction instead.");
+      compass.stop();
+      if (!received) {
+        markCheck("checkCompass", false,
+          "No compass reading. The game will use your walking direction instead.");
+      }
     }, 2500);
-  } catch (e) {
-    markCheck("checkCompass", false, `${e.message[0].toUpperCase()}${e.message.slice(1)}. The game will use your walking direction instead.`);
+  } catch (error) {
+    markCheck("checkCompass", false,
+      `${capitalise(error.message)}. The game will use your walking direction instead.`);
   }
 });
 
-$("allowMic").addEventListener("click", async () => {
+byId("allowMic").addEventListener("click", async () => {
   try {
-    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-    s.getTracks().forEach((t) => t.stop());
-    markCheck("checkMic", true, new Speech().available ? "Microphone on. Answer out loud, or tap." : "Microphone on (for the Record challenge). Tap or type your answers.");
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    markCheck("checkMic", true, new Speech().available
+      ? "Microphone on. Answer out loud, or tap."
+      : "Microphone on (for the Record challenge). Tap or type your answers.");
   } catch {
     markCheck("checkMic", false, "Microphone blocked. Tap or type your answers instead.");
   }
 });
 
-$("start").addEventListener("click", () => startRun(false));
-$("resume").addEventListener("click", () => startRun(true));
+byId("start").addEventListener("click", () => startRun(false));
+byId("resume").addEventListener("click", () => startRun(true));
 
-// ==================================================================== a run
+// -- a run -----------------------------------------------------------------------
 
 async function startRun(resume) {
-  const a = ensureAudio();
-  await a.resume(); // inside the tap, so the browser lets sound start
-  $("setup").hidden = true;
-  $("run").hidden = false;
-  $("objective").textContent = "Loading the soundtrack…";
+  const engine = ensureAudio();
+  await engine.resume(); // Inside the tap, so the browser allows sound.
+  byId("setup").hidden = true;
+  byId("run").hidden = false;
+  byId("objective").textContent = "Loading the soundtrack…";
+
   const rewards = store.rewards();
-  const game = new Engine.WebGame(base.missionJson, base.routeJson, base.catalogJson, rewards.soundtrack, rewards.completions);
-  const mission = JSON.parse(game.missionJson());
-  const buffers = new Map();
-  await Promise.all(
-    mission.music.stems.map(async (s) => {
-      try {
-        buffers.set(s.id, await a.decode(await api.audio(s.file)));
-      } catch (e) {
-        console.warn(`stem ${s.file} didn't load`, e);
-      }
-    }),
+  const game = new Engine.WebGame(
+    loaded.missionJson, loaded.routeJson, loaded.catalogJson,
+    rewards.soundtrack, rewards.completions,
   );
-  let theme = null;
+  const mission = JSON.parse(game.missionJson());
+
+  const buffers = new Map();
+  await Promise.all(mission.music.stems.map(async (stem) => {
+    try {
+      buffers.set(stem.id, await engine.decode(await api.audio(stem.file)));
+    } catch (error) {
+      console.warn(`stem ${stem.file} didn't load`, error);
+    }
+  }));
+
+  let themeBuffer = null;
   if (mission.antagonist?.theme) {
     try {
-      theme = await a.decode(await api.audio(mission.antagonist.theme));
-    } catch (e) {
-      console.warn("theme didn't load", e);
+      themeBuffer = await engine.decode(await api.audio(mission.antagonist.theme));
+    } catch (error) {
+      console.warn("theme didn't load", error);
     }
   }
-  a.startMusic(mission.music, buffers);
-  a.setTheme(theme, mission.antagonist?.gainDb ?? 0);
-  run = new Run(game, mission, a);
-  run.begin(resume ? store.progress() : null);
+
+  engine.startMusic(mission.music, buffers);
+  engine.setTheme(themeBuffer, mission.antagonist?.gainDb ?? 0);
+
+  activeRun = new Run(game, mission, engine);
+  activeRun.begin(resume ? store.progress() : null);
 }
 
 class Run {
-  constructor(game, mission, a) {
+  constructor(game, mission, audio) {
     this.game = game;
     this.mission = mission;
-    this.audio = a;
-    this.voices = new Voices(a, mission.id);
+    this.audio = audio;
+    this.voices = new Voices(audio, mission.id);
     this.speech = new Speech();
     this.recorder = new Recorder();
     this.simulated = store.settings().mode === "sim";
     this.lastFix = null;
-    this.speakSeq = 0;
+    this.speechGeneration = 0;
     this.voiceActive = false;
     this.micActive = false;
     this.completionRecorded = false;
-    this.pocket = false;
-    this.lastUi = 0;
+    this.pocketMode = false;
+    this.lastRenderAt = 0;
     this.simHeading = 0;
     this.wakeLock = null;
     this.timers = [];
-    const onFix = (fix) => this.onFix(fix);
+    this.broadcastsSince = 0;
+
+    const onFix = (fix) => this.handleFix(fix);
     this.gps = this.simulated ? null : new Gps(onFix);
-    this.sim = this.simulated ? new SimWalker(onFix, measure) : null;
-    this.compass = new Compass((deg) => this.game.phoneHeading(deg, Date.now(), !this.pocket));
+    this.simulator = this.simulated ? new SimWalker(onFix, measureBetween) : null;
+    this.compass = new Compass((degrees) =>
+      this.game.phoneHeading(degrees, Date.now(), !this.pocketMode));
   }
 
-  begin(progress) {
-    $("sim").hidden = !this.simulated;
-    this.apply(this.game.start(Date.now(), progress ? JSON.stringify(progress) : null));
+  begin(savedProgress) {
+    byId("sim").hidden = !this.simulated;
+    this.applyEffects(this.game.start(
+      Date.now(), savedProgress ? JSON.stringify(savedProgress) : null,
+    ));
     if (this.simulated) {
-      const s = JSON.parse(this.game.state());
-      const target = this.mission.signals[s.signalIndex] ?? this.mission.signals[0];
+      const state = JSON.parse(this.game.state());
+      const target = this.mission.signals[state.signalIndex] ?? this.mission.signals[0];
       const [lat, lon] = step(target.location.lat, target.location.lon, 180, 90);
-      this.sim.start(lat, lon);
+      this.simulator.start(lat, lon);
       this.game.phoneHeading(this.simHeading, Date.now(), true);
     } else {
       this.gps.start();
@@ -250,379 +329,477 @@ class Run {
     this.compass.start();
     this.timers.push(setInterval(() => this.tick(), 50));
     this.timers.push(setInterval(() => this.pollBroadcasts(), 10_000));
-    this.since = Date.now();
-    this.mediaSession(true);
-    this.keepAwake();
+    this.broadcastsSince = Date.now();
+    this.configureMediaSession(true);
+    this.keepScreenAwake();
   }
 
   end() {
     this.timers.forEach(clearInterval);
     this.timers = [];
-    this.speakSeq++;
+    this.speechGeneration++;
     this.voices.stop();
     this.speech.stop();
     this.recorder.stop();
     this.gps?.stop();
-    this.sim?.stop();
+    this.simulator?.stop();
     this.compass.stop();
     this.audio.stopMusic();
     this.audio.setTheme(null);
     this.audio.setComms("none");
-    this.mediaSession(false);
+    this.configureMediaSession(false);
     this.wakeLock?.release().catch(() => {});
     this.wakeLock = null;
-    setPocket(false);
+    setPocketMode(false);
   }
 
-  // ---------------------------------------------------------------- engine loop
+  // -- engine loop ---------------------------------------------------------------
 
   tick() {
     const now = Date.now();
-    this.apply(this.game.tick(now));
+    this.applyEffects(this.game.tick(now));
     this.audio.setScene(JSON.parse(this.game.scene()));
-    this.audio.setHeading(this.game.listenerHeading(now) ?? null, this.game.listenerPitch(now) ?? null);
-    if (now - this.lastUi > 150) this.render();
+    this.audio.setHeading(
+      this.game.listenerHeading(now) ?? null,
+      this.game.listenerPitch(now) ?? null,
+    );
+    if (now - this.lastRenderAt > 150) this.render();
   }
 
-  apply(json) {
-    for (const e of JSON.parse(json)) {
+  applyEffects(effectsJson) {
+    for (const effect of JSON.parse(effectsJson)) {
       try {
-        this.execute(e);
-      } catch (err) {
-        console.error("effect failed", e, err);
+        this.executeEffect(effect);
+      } catch (error) {
+        console.error("effect failed", effect, error);
       }
     }
   }
 
-  /** Each effect, as the app's GameController carries it out. */
-  execute(e) {
-    switch (e.type) {
+  /** Carries out one engine effect, as the app's GameController does. */
+  executeEffect(effect) {
+    switch (effect.type) {
       case "speak":
-        return this.speak(e);
+        return this.speakLines(effect);
       case "stopSpeaking":
-        this.speakSeq++;
+        this.speechGeneration++;
         this.voices.stop();
         this.voiceActive = false;
-        this.comms();
-        $("speaking").hidden = true;
+        this.updateComms();
+        byId("speaking").hidden = true;
         return;
       case "sfx":
-        return this.audio.sfx(e.sfx, e.bearingDeg);
+        return this.audio.sfx(effect.sfx, effect.bearingDeg);
       case "listen":
-        return this.listen(e);
+        return this.openListening(effect);
       case "stopListening":
         return this.speech.stop();
       case "ask":
-        return this.ask(e);
+        return this.askCharacter(effect);
       case "startRecording":
         this.micActive = true;
-        this.comms();
-        this.recorder.start(e.signalId, e.maxSeconds, (key) => {
+        this.updateComms();
+        this.recorder.start(effect.signalId, effect.maxSeconds, (key) => {
           this.micActive = false;
-          this.comms();
-          this.apply(this.game.recordingFinished(key));
+          this.updateComms();
+          this.applyEffects(this.game.recordingFinished(key));
         });
         return;
       case "stopRecording":
         return this.recorder.stop();
       case "rhythm":
-        return this.audio.playRhythm(e.onsetsBeats, () => this.apply(this.game.rhythmPlayed(e.token, Date.now())));
+        return this.audio.playRhythm(effect.onsetsBeats, () =>
+          this.applyEffects(this.game.rhythmPlayed(effect.token, Date.now())));
       case "unlockStem":
-        return; // the audio scene brings it in on the next bar
+        return; // The audio scene brings the stem in on the next bar.
       case "persist":
-        return this.persist(e.progress);
+        return this.persistProgress(effect.progress);
+      default:
+        return;
     }
   }
 
-  async speak(e) {
-    const id = ++this.speakSeq;
+  async speakLines(effect) {
+    const generation = ++this.speechGeneration;
     this.voices.stop();
     this.voiceActive = true;
-    this.comms();
-    e.utterances.forEach((u) => this.voices.prefetch(u));
-    for (const u of e.utterances) {
-      if (id !== this.speakSeq) return;
-      $("speaking").hidden = false;
-      $("speaker").textContent = u.speakerName;
-      $("spoken").textContent = u.text;
-      const bearing = u.fromLat != null && this.lastFix ? measure(this.lastFix.lat, this.lastFix.lon, u.fromLat, u.fromLon)[1] : null;
-      await this.voices.say(u, bearing);
+    this.updateComms();
+    effect.utterances.forEach((u) => this.voices.prefetch(u));
+
+    for (const utterance of effect.utterances) {
+      if (generation !== this.speechGeneration) return;
+      byId("speaking").hidden = false;
+      byId("speaker").textContent = utterance.speakerName;
+      byId("spoken").textContent = utterance.text;
+      const bearing = utterance.fromLat != null && this.lastFix
+        ? measureBetween(this.lastFix.lat, this.lastFix.lon, utterance.fromLat, utterance.fromLon)[1]
+        : null;
+      await this.voices.say(utterance, bearing);
     }
-    if (id !== this.speakSeq) return;
+
+    if (generation !== this.speechGeneration) return;
     this.voiceActive = false;
-    this.comms();
-    $("speaking").hidden = true;
-    this.apply(this.game.speechFinished(e.token));
+    this.updateComms();
+    byId("speaking").hidden = true;
+    this.applyEffects(this.game.speechFinished(effect.token));
   }
 
-  listen(e) {
+  openListening(effect) {
     this.micActive = true;
-    this.comms();
+    this.updateComms();
     this.audio.sfx("MIC_OPEN");
-    $("listening").hidden = false;
-    $("partial").textContent = this.speech.available ? "Listening…" : "Tap or type your answer";
-    const hints = $("hints");
+    byId("listening").hidden = false;
+    byId("partial").textContent = this.speech.available
+      ? "Listening…"
+      : "Tap or type your answer";
+
+    const hints = byId("hints");
     hints.textContent = "";
-    for (const h of e.hints) hints.append(el("button", { type: "button", text: h, onclick: () => this.speech.answer(h) }));
-    $("typed").value = "";
-    this.speech.listen(e, {
+    for (const hint of effect.hints) {
+      hints.append(createElement("button", {
+        type: "button",
+        text: hint,
+        onclick: () => this.speech.answer(hint),
+      }));
+    }
+    byId("typed").value = "";
+
+    this.speech.listen(effect, {
       onText: (text, isFinal, confidence) => {
-        $("partial").textContent = text;
-        this.apply(this.game.heard(e.token, text, isFinal, confidence));
+        byId("partial").textContent = text;
+        this.applyEffects(this.game.heard(effect.token, text, isFinal, confidence));
       },
       onEnd: () => {
         this.micActive = false;
-        this.comms();
+        this.updateComms();
         this.audio.sfx("MIC_CLOSE");
-        $("listening").hidden = true;
-        this.apply(this.game.listenEnded(e.token));
+        byId("listening").hidden = true;
+        this.applyEffects(this.game.listenEnded(effect.token));
       },
     });
   }
 
-  async ask(e) {
+  async askCharacter(effect) {
     let reply = null;
     if (store.token()) {
       try {
-        const res = await Promise.race([api.npc(e.body), new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 10_000))]);
-        reply = res.reply ?? null;
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), NPC_TIMEOUT_MS));
+        const result = await Promise.race([api.npc(effect.body), timeout]);
+        reply = result.reply ?? null;
       } catch {
-        reply = null; // the engine falls back to written lines
+        reply = null; // The engine falls back to its written lines.
       }
     }
-    // Never answer inside the effect that asked: the engine expects it later, like a network reply.
-    setTimeout(() => this.apply(this.game.characterReplied(e.requestId, reply)), 0);
+    // Answer asynchronously, as a real network reply would arrive.
+    setTimeout(() =>
+      this.applyEffects(this.game.characterReplied(effect.requestId, reply)), 0);
   }
 
-  persist(progress) {
+  persistProgress(progress) {
     store.saveProgress(progress);
     if (!progress.complete || this.completionRecorded) return;
     this.completionRecorded = true;
-    const r = store.rewards();
-    const unlocked = JSON.parse(Engine.unlockedByNextCompletion(base.missionJson, base.catalogJson, r.completions));
-    const next = { ...r, completions: r.completions + 1, soundtrack: unlocked.length ? unlocked[unlocked.length - 1].id : r.soundtrack };
-    store.saveRewards(next);
-    if (unlocked.length) {
-      $("unlocked").hidden = false;
-      $("unlocked").textContent = `★ UNLOCKED · ${unlocked.map((u) => u.title).join(", ")} · plays on your next run`;
+
+    const rewards = store.rewards();
+    const newlyUnlocked = JSON.parse(Engine.unlockedByNextCompletion(
+      loaded.missionJson, loaded.catalogJson, rewards.completions,
+    ));
+    const nextRewards = {
+      ...rewards,
+      completions: rewards.completions + 1,
+      soundtrack: newlyUnlocked.length
+        ? newlyUnlocked[newlyUnlocked.length - 1].id
+        : rewards.soundtrack,
+    };
+    store.saveRewards(nextRewards);
+
+    if (newlyUnlocked.length) {
+      byId("unlocked").hidden = false;
+      byId("unlocked").textContent =
+        `★ UNLOCKED · ${newlyUnlocked.map((u) => u.title).join(", ")} · plays on your next run`;
     }
-    if (base.plan) api.progress(this.mission.id, next.completions).catch(() => {});
+    if (loaded.plan) api.progress(this.mission.id, nextRewards.completions).catch(() => {});
   }
 
-  comms() {
+  updateComms() {
     this.audio.setComms(this.micActive ? "mic" : this.voiceActive ? "voice" : "none");
   }
 
-  // ---------------------------------------------------------------- inputs
+  // -- inputs -----------------------------------------------------------------------
 
-  input(action) {
-    this.apply(this.game.input(action, Date.now()));
+  sendInput(action) {
+    this.applyEffects(this.game.input(action, Date.now()));
     this.render();
   }
 
-  onFix(fix) {
+  handleFix(fix) {
     this.lastFix = fix;
-    this.apply(this.game.position(fix.lat, fix.lon, fix.accuracyM, fix.timeMs, fix.speedMps, fix.courseDeg, fix.simulated));
+    this.applyEffects(this.game.position(
+      fix.lat, fix.lon, fix.accuracyM, fix.timeMs,
+      fix.speedMps, fix.courseDeg, fix.simulated,
+    ));
   }
 
   async pollBroadcasts() {
     try {
-      const { broadcasts } = await api.broadcasts(this.since);
-      for (const b of broadcasts.sort((x, y) => x.createdAtMs - y.createdAtMs)) {
-        this.apply(this.game.broadcast(b.speaker, b.text));
-        this.since = Math.max(this.since, b.createdAtMs);
+      const { broadcasts } = await api.broadcasts(this.broadcastsSince);
+      const ordered = [...broadcasts].sort((a, b) => a.createdAtMs - b.createdAtMs);
+      for (const broadcast of ordered) {
+        this.applyEffects(this.game.broadcast(broadcast.speaker, broadcast.text));
+        this.broadcastsSince = Math.max(this.broadcastsSince, broadcast.createdAtMs);
       }
     } catch {
-      // offline for a moment; try again next time
+      // Offline for a moment; the next poll retries.
     }
   }
 
-  /** The glasses' touchpad arrives as media keys: tap = capture, next = hint, previous = repeat. */
-  mediaSession(on) {
+  /** Glasses touchpad taps arrive as media keys: tap=capture, next=hint, prev=repeat. */
+  configureMediaSession(enabled) {
     if (!("mediaSession" in navigator)) return;
-    const ms = navigator.mediaSession;
+    const mediaSession = navigator.mediaSession;
     const handlers = { play: "SCAN", pause: "SCAN", nexttrack: "HINT", previoustrack: "REPEAT" };
-    for (const [event, action] of Object.entries(handlers)) {
+    for (const [eventName, action] of Object.entries(handlers)) {
       try {
-        ms.setActionHandler(event, on ? () => {
-          this.input(action);
-          this.audio.element?.play().catch(() => {});
-          ms.playbackState = "playing";
-        } : null);
+        mediaSession.setActionHandler(eventName, enabled
+          ? () => {
+              this.sendInput(action);
+              this.audio.element?.play().catch(() => {});
+              mediaSession.playbackState = "playing";
+            }
+          : null);
       } catch {
-        // this browser doesn't support that action
+        // This browser does not support that media action.
       }
     }
-    if (on) {
-      ms.metadata = new MediaMetadata({ title: "GhostSignal", artist: "GHOST 93.3", album: this.mission.music.title || "The Last Eight Bars" });
-      ms.playbackState = "playing";
+    if (enabled) {
+      mediaSession.metadata = new MediaMetadata({
+        title: "GhostSignal",
+        artist: "GHOST 93.3",
+        album: this.mission.music.title || "The Last Eight Bars",
+      });
+      mediaSession.playbackState = "playing";
     } else {
-      ms.playbackState = "none";
+      mediaSession.playbackState = "none";
     }
   }
 
-  async keepAwake() {
+  async keepScreenAwake() {
     try {
-      if ("wakeLock" in navigator) this.wakeLock = await navigator.wakeLock.request("screen");
+      if ("wakeLock" in navigator) {
+        this.wakeLock = await navigator.wakeLock.request("screen");
+      }
     } catch {
-      // not allowed (battery saver, or no tap yet): the screen may dim
+      // Not allowed (battery saver, no gesture yet): the screen may dim.
     }
   }
 
-  // ---------------------------------------------------------------- the screen
+  // -- screen -------------------------------------------------------------------------
 
   render() {
-    this.lastUi = Date.now();
-    const s = JSON.parse(this.game.state());
-    $("phase").textContent = s.paused ? "PAUSED" : s.phase;
-    $("count").textContent = s.phase === "COMPLETE" ? "8 OF 8" : `SIGNAL ${Math.min(s.signalIndex + 1, s.total)} OF ${s.total}`;
-    $("objective").textContent = s.objective;
-    const near = s.distanceM;
-    $("distance").textContent = near == null ? "—" : near < 12 ? "here" : `${Math.round(near)} m`;
-    $("direction").textContent = s.direction ?? (this.lastFix ? "" : this.simulated ? "" : "waiting for GPS…");
-    $("accuracy").textContent = this.lastFix ? `GPS ±${Math.round(this.lastFix.accuracyM)} m${this.lastFix.simulated ? " · simulated" : ""}` : "";
-    const rel = s.bearingDeg == null ? 0 : s.bearingDeg - (s.headingDeg ?? 0);
-    $("arrow").style.transform = `rotate(${rel}deg)`;
-    $("arrow").style.opacity = s.bearingDeg == null ? "0.2" : "1";
-    $("capture").classList.toggle("ready", s.lockAvailable);
-    $("pauseBtn").textContent = s.paused ? "Resume" : "Pause";
-    $("pocketStatus").textContent = `${s.objective}${near != null ? ` · ${Math.round(near)} m` : ""}`;
+    this.lastRenderAt = Date.now();
+    const state = JSON.parse(this.game.state());
 
-    const layers = $("layers");
-    if (layers.childElementCount !== s.layers.length) {
-      layers.textContent = "";
-      s.layers.forEach(() => layers.append(el("li", {}, el("b"), el("span"))));
+    byId("phase").textContent = state.paused ? "PAUSED" : state.phase;
+    byId("count").textContent = state.phase === "COMPLETE"
+      ? `${state.total} OF ${state.total}`
+      : `SIGNAL ${Math.min(state.signalIndex + 1, state.total)} OF ${state.total}`;
+    byId("objective").textContent = state.objective;
+
+    const distance = state.distanceM;
+    byId("distance").textContent = distance == null
+      ? "—"
+      : distance < 12 ? "here" : `${Math.round(distance)} m`;
+    byId("direction").textContent = state.direction ??
+      (this.lastFix || this.simulated ? "" : "waiting for GPS…");
+    byId("accuracy").textContent = this.lastFix
+      ? `GPS ±${Math.round(this.lastFix.accuracyM)} m${this.lastFix.simulated ? " · simulated" : ""}`
+      : "";
+
+    const relativeBearing = state.bearingDeg == null
+      ? 0
+      : state.bearingDeg - (state.headingDeg ?? 0);
+    byId("arrow").style.transform = `rotate(${relativeBearing}deg)`;
+    byId("arrow").style.opacity = state.bearingDeg == null ? "0.2" : "1";
+    byId("capture").classList.toggle("ready", state.lockAvailable);
+    byId("pauseBtn").textContent = state.paused ? "Resume" : "Pause";
+    byId("pocketStatus").textContent =
+      `${state.objective}${distance != null ? ` · ${Math.round(distance)} m` : ""}`;
+
+    this.renderLayers(state);
+    this.renderTranscript(state);
+    if (state.phase === "COMPLETE") byId("stop").textContent = "Done";
+  }
+
+  renderLayers(state) {
+    const list = byId("layers");
+    if (list.childElementCount !== state.layers.length) {
+      list.textContent = "";
+      state.layers.forEach(() =>
+        list.append(createElement("li", {}, createElement("b"), createElement("span"))));
     }
-    s.layers.forEach((l, i) => {
-      const li = layers.children[i];
-      li.className = l.collected ? "got" : i === s.signalIndex && s.phase !== "COMPLETE" ? "now" : "";
-      li.querySelector("b").textContent = String(i + 1).padStart(2, "0");
-      // A layer is named once it's found: discovery, not a spoiler list.
-      li.querySelector("span").textContent = l.collected ? l.name : i === s.signalIndex ? (s.signalName ?? "") : "";
+    state.layers.forEach((layer, index) => {
+      const item = list.children[index];
+      item.className = layer.collected
+        ? "got"
+        : index === state.signalIndex && state.phase !== "COMPLETE" ? "now" : "";
+      item.querySelector("b").textContent = String(index + 1).padStart(2, "0");
+      // Layers are named only once found: discovery, not a spoiler list.
+      item.querySelector("span").textContent = layer.collected
+        ? layer.name
+        : index === state.signalIndex ? (state.signalName ?? "") : "";
     });
+  }
 
-    const t = $("transcript");
-    t.textContent = "";
-    for (const line of s.transcript) {
-      const who = line.fromPlayer ? "YOU" : this.mission.characters.find((c) => c.id === line.speaker)?.name ?? line.speaker;
-      t.append(el("li", { class: line.fromPlayer ? "you" : "" }, el("b", { text: who.toUpperCase() }), line.text));
+  renderTranscript(state) {
+    const list = byId("transcript");
+    list.textContent = "";
+    for (const entry of state.transcript) {
+      const speakerName = entry.fromPlayer
+        ? "YOU"
+        : this.mission.characters.find((c) => c.id === entry.speaker)?.name ?? entry.speaker;
+      list.append(createElement(
+        "li",
+        { class: entry.fromPlayer ? "you" : "" },
+        createElement("b", { text: speakerName.toUpperCase() }),
+        entry.text,
+      ));
     }
-    if (s.phase === "COMPLETE") $("stop").textContent = "Done";
   }
 }
 
-// ==================================================================== buttons and keys
+// -- buttons, keys, pocket mode -------------------------------------------------
 
-/** Tap for capture, hold for talk: on the big button, in pocket mode, and on the space bar. */
-function holdable(node, { onPress = () => {}, onRelease = () => {} } = {}) {
-  let timer = null;
-  let held = false;
-  node.addEventListener("pointerdown", (e) => {
-    if (!run || e.button > 0) return;
-    e.preventDefault();
-    held = false;
+/** Tap = capture, hold = talk: big button, pocket overlay, and space bar. */
+function makeHoldable(node, { onPress = () => {}, onRelease = () => {} } = {}) {
+  let holdTimer = null;
+  let wasHeld = false;
+
+  node.addEventListener("pointerdown", (event) => {
+    if (!activeRun || event.button > 0) return;
+    event.preventDefault();
+    wasHeld = false;
     onPress();
-    timer = setTimeout(() => {
-      held = true;
-      timer = null;
-      run.input("TALK");
-    }, HOLD_MS);
+    holdTimer = setTimeout(() => {
+      wasHeld = true;
+      holdTimer = null;
+      activeRun.sendInput("TALK");
+    }, HOLD_TO_TALK_MS);
   });
-  const up = () => {
+
+  const release = () => {
     onRelease();
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-      if (!held && run) run.input("SCAN");
-    }
+    if (!holdTimer) return;
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (!wasHeld && activeRun) activeRun.sendInput("SCAN");
   };
-  node.addEventListener("pointerup", up);
+  node.addEventListener("pointerup", release);
   node.addEventListener("pointercancel", () => {
     onRelease();
-    clearTimeout(timer);
-    timer = null;
+    clearTimeout(holdTimer);
+    holdTimer = null;
   });
-  node.addEventListener("contextmenu", (e) => e.preventDefault());
+  node.addEventListener("contextmenu", (event) => event.preventDefault());
 }
 
-holdable($("capture"), { onPress: () => $("capture").classList.add("held"), onRelease: () => $("capture").classList.remove("held") });
-holdable($("pocketOverlay"), { onPress: () => $("pocketOverlay").classList.add("held"), onRelease: () => $("pocketOverlay").classList.remove("held") });
+makeHoldable(byId("capture"), {
+  onPress: () => byId("capture").classList.add("held"),
+  onRelease: () => byId("capture").classList.remove("held"),
+});
+makeHoldable(byId("pocketOverlay"), {
+  onPress: () => byId("pocketOverlay").classList.add("held"),
+  onRelease: () => byId("pocketOverlay").classList.remove("held"),
+});
 
-document.querySelectorAll("[data-action]").forEach((b) => b.addEventListener("click", () => run?.input(b.dataset.action)));
+document.querySelectorAll("[data-action]").forEach((button) =>
+  button.addEventListener("click", () => activeRun?.sendInput(button.dataset.action)));
 
-let spaceAt = 0;
+let spacePressedAt = 0;
 let spaceTimer = null;
-document.addEventListener("keydown", (e) => {
-  if (!run || e.repeat || e.target.tagName === "INPUT") return;
-  const keys = { h: "HINT", r: "REPEAT", s: "STATUS", p: "PAUSE_TOGGLE" };
-  if (e.code === "Space") {
-    e.preventDefault();
-    spaceAt = Date.now();
+document.addEventListener("keydown", (event) => {
+  if (!activeRun || event.repeat || event.target.tagName === "INPUT") return;
+  const keyActions = { h: "HINT", r: "REPEAT", s: "STATUS", p: "PAUSE_TOGGLE" };
+  if (event.code === "Space") {
+    event.preventDefault();
+    spacePressedAt = Date.now();
     spaceTimer = setTimeout(() => {
       spaceTimer = null;
-      run?.input("TALK");
-    }, HOLD_MS);
-  } else if (keys[e.key]) run.input(keys[e.key]);
+      activeRun?.sendInput("TALK");
+    }, HOLD_TO_TALK_MS);
+  } else if (keyActions[event.key]) {
+    activeRun.sendInput(keyActions[event.key]);
+  }
 });
-document.addEventListener("keyup", (e) => {
-  if (!run || e.code !== "Space" || e.target.tagName === "INPUT") return;
-  if (spaceTimer && Date.now() - spaceAt < HOLD_MS) {
+document.addEventListener("keyup", (event) => {
+  if (!activeRun || event.code !== "Space" || event.target.tagName === "INPUT") return;
+  if (spaceTimer && Date.now() - spacePressedAt < HOLD_TO_TALK_MS) {
     clearTimeout(spaceTimer);
     spaceTimer = null;
-    run.input("SCAN");
+    activeRun.sendInput("SCAN");
   }
 });
 
-$("typeForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  run?.speech.answer($("typed").value);
+byId("typeForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  activeRun?.speech.answer(byId("typed").value);
 });
 
-function setPocket(on) {
-  if (run) run.pocket = on;
-  $("pocketOverlay").hidden = !on;
-  if (on && run) run.keepAwake();
+function setPocketMode(on) {
+  if (activeRun) activeRun.pocketMode = on;
+  byId("pocketOverlay").hidden = !on;
+  if (on && activeRun) activeRun.keepScreenAwake();
 }
-$("pocket").addEventListener("click", () => setPocket(true));
-$("pocketExit").addEventListener("pointerdown", (e) => e.stopPropagation());
-$("pocketExit").addEventListener("click", (e) => {
-  e.stopPropagation();
-  setPocket(false);
+byId("pocket").addEventListener("click", () => setPocketMode(true));
+byId("pocketExit").addEventListener("pointerdown", (event) => event.stopPropagation());
+byId("pocketExit").addEventListener("click", (event) => {
+  event.stopPropagation();
+  setPocketMode(false);
 });
 
-$("stop").addEventListener("click", () => {
-  if (!run) return;
-  const done = JSON.parse(run.game.state()).phase === "COMPLETE";
-  if (!done && !confirm("End this run? Your progress is saved; you can resume it.")) return;
-  run.end();
-  run = null;
-  $("run").hidden = true;
-  $("unlocked").hidden = true;
-  $("stop").textContent = "End run";
+byId("stop").addEventListener("click", () => {
+  if (!activeRun) return;
+  const finished = JSON.parse(activeRun.game.state()).phase === "COMPLETE";
+  if (!finished && !confirm("End this run? Your progress is saved; you can resume it.")) return;
+  activeRun.end();
+  activeRun = null;
+  byId("run").hidden = true;
+  byId("unlocked").hidden = true;
+  byId("stop").textContent = "End run";
   renderSetup();
-  $("setup").hidden = false;
+  byId("setup").hidden = false;
 });
 
-// The simulated walk.
-function simTarget() {
-  const s = JSON.parse(run.game.state());
-  return run.mission.signals[s.signalIndex];
+// Simulated-walk controls (desk mode).
+function currentSimTarget() {
+  const state = JSON.parse(activeRun.game.state());
+  return activeRun.mission.signals[state.signalIndex];
 }
-$("simWalk").addEventListener("click", () => { const t = simTarget(); if (t) run.sim.walkTo(t.location.lat, t.location.lon, 1.6); });
-$("simRun").addEventListener("click", () => { const t = simTarget(); if (t) run.sim.walkTo(t.location.lat, t.location.lon, 6); });
-$("simArrive").addEventListener("click", () => { const t = simTarget(); if (t) run.sim.teleport(t.location.lat, t.location.lon); });
-const turn = (d) => {
-  run.simHeading = (run.simHeading + d + 360) % 360;
-  run.game.phoneHeading(run.simHeading, Date.now(), true);
+byId("simWalk").addEventListener("click", () => {
+  const target = currentSimTarget();
+  if (target) activeRun.simulator.walkTo(target.location.lat, target.location.lon, 1.6);
+});
+byId("simRun").addEventListener("click", () => {
+  const target = currentSimTarget();
+  if (target) activeRun.simulator.walkTo(target.location.lat, target.location.lon, 6);
+});
+byId("simArrive").addEventListener("click", () => {
+  const target = currentSimTarget();
+  if (target) activeRun.simulator.teleport(target.location.lat, target.location.lon);
+});
+byId("simSolve").addEventListener("click", () =>
+  activeRun.applyEffects(activeRun.game.forceSolve()));
+const turnSimulated = (deltaDegrees) => {
+  activeRun.simHeading = (activeRun.simHeading + deltaDegrees + 360) % 360;
+  activeRun.game.phoneHeading(activeRun.simHeading, Date.now(), true);
 };
-$("simSolve").addEventListener("click", () => run.apply(run.game.forceSolve()));
-$("simLeft").addEventListener("click", () => turn(-30));
-$("simRight").addEventListener("click", () => turn(30));
+byId("simLeft").addEventListener("click", () => turnSimulated(-30));
+byId("simRight").addEventListener("click", () => turnSimulated(30));
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState !== "visible" || !run) return;
-  run.keepAwake();
-  audio?.resume().catch(() => {});
+  if (document.visibilityState !== "visible" || !activeRun) return;
+  activeRun.keepScreenAwake();
+  audioEngine?.resume().catch(() => {});
 });
 
 boot();
