@@ -7,200 +7,224 @@ import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
+/** Minimal 3-vector for IMU work. */
 data class Vec3(val x: Double, val y: Double, val z: Double) {
-  fun dot(o: Vec3) = x * o.x + y * o.y + z * o.z
+  fun dot(other: Vec3): Double = x * other.x + y * other.y + z * other.z
+  fun norm(): Double = sqrt(dot(this))
+  operator fun minus(other: Vec3) = Vec3(x - other.x, y - other.y, z - other.z)
+  operator fun plus(other: Vec3) = Vec3(x + other.x, y + other.y, z + other.z)
+  operator fun times(scale: Double) = Vec3(x * scale, y * scale, z * scale)
 
-  fun norm() = sqrt(dot(this))
-
-  operator fun minus(o: Vec3) = Vec3(x - o.x, y - o.y, z - o.z)
-
-  operator fun times(k: Double) = Vec3(x * k, y * k, z * k)
-
-  operator fun plus(o: Vec3) = Vec3(x + o.x, y + o.y, z + o.z)
-
-  fun unit(): Vec3 = norm().let { if (it < 1e-9) this else this * (1.0 / it) }
+  fun unit(): Vec3 {
+    val length = norm()
+    return if (length < 1e-9) this else this * (1.0 / length)
+  }
 
   companion object {
     val ZERO = Vec3(0.0, 0.0, 0.0)
   }
 }
 
-/** w + xi + yj + zk */
+/** Quaternion in w + xi + yj + zk form (components stored x, y, z, w). */
 data class Quat(val x: Double, val y: Double, val z: Double, val w: Double)
 
-/** One IMU sample from the glasses. Any field can be missing. */
+/** One glasses IMU sample. Any channel may be missing on a given frame. */
 data class ImuSample(
     val timestampNs: Long,
-    /** m/s^2, device frame. At rest it points away from the ground. */
+    /** Acceleration in m/s², device frame. At rest it points away from ground. */
     val accel: Vec3?,
-    /** rad/s, device frame. */
+    /** Angular velocity in rad/s, device frame. */
     val gyro: Vec3?,
     val orientation: Quat?,
 )
 
-enum class HeadingSource {
-  GLASSES,
-  PHONE,
-  COURSE,
-  NONE,
-}
+enum class HeadingSource { GLASSES, PHONE, COURSE, NONE }
 
 data class HeadingEstimate(
     val deg: Double?,
     val source: HeadingSource,
     val glassesAligned: Boolean,
-    /** Head pitch in degrees: positive = looking up, negative = looking down. Glasses-derived. */
+    /** Head pitch in degrees: positive looks up. Glasses-derived. */
     val pitchDeg: Double? = null,
-    /** Head roll in degrees: positive = tilted toward the right shoulder. Glasses-derived. */
+    /** Head roll in degrees: positive tilts toward the right shoulder. */
     val rollDeg: Double? = null,
 )
 
 /**
- * Estimates where the runner's head is pointing, in degrees clockwise from true north.
+ * Estimates head heading (degrees clockwise from true north) from whatever
+ * the hardware offers, best source first.
  *
- * The glasses IMU tells us how the head turns, quickly and smoothly, but not which way is north
- * (and we don't know the glasses' axis conventions). So yaw is integrated from the gyroscope
- * around the measured gravity axis, which works whatever the frame, and an offset ties it to the
- * world. The offset comes from the phone compass (when the runner is looking at the phone, or on
- * an explicit calibrate) and is nudged by the GPS course while walking, on the assumption that
+ * The glasses IMU measures head *turns* beautifully but has no north, and
+ * its axis conventions are unknown. So yaw is integrated from the gyroscope
+ * about the measured gravity axis — frame-agnostic by construction — and a
+ * single offset anchors that relative yaw to the world. The anchor comes
+ * from the phone compass (calibration, or looking at the phone) and is
+ * continuously nudged by GPS course while walking, on the theory that
  * people mostly look where they walk.
  *
- * Without fresh glasses data it falls back to the phone compass (phone in hand), then the GPS
- * course (walking), then nothing, in which case the game drops to non-directional cues.
+ * Fallback chain when glasses data goes stale: phone compass in hand, then
+ * GPS course, then nothing (the game switches to non-directional cues).
  */
 class HeadingFusion(
     var mode: YawMode = YawMode.GYRO,
-    /** Flip if turning right moves the in-app needle left. Checked during the field test. */
+    /** Flip when a right turn moves the rendered needle left. Field-checked. */
     var invertYaw: Boolean = false,
-    /** Flip if nodding down reads as pitch up. Checked during the field test, like [invertYaw]. */
+    /** Flip when nodding down reads as pitch up. Field-checked. */
     var invertPitch: Boolean = false,
 ) {
+
   enum class YawMode {
-    /** Integrate gyro around gravity. Frame-agnostic; drifts slowly, corrected by GPS course. */
+    /** Integrate gyro about gravity. Slow drift, corrected by GPS course. */
     GYRO,
-    /** Use the fused orientation quaternion's yaw, assuming a Z-up world frame. */
+    /** Take yaw from the fused orientation quaternion (assumes Z-up world). */
     QUATERNION,
   }
 
-  private var relYawDeg = 0.0
+  // Gyro integration state.
+  private var relativeYawDeg: Double = 0.0
   private var lastImuNs: Long? = null
   private var lastImuWallMs: Long? = null
   private var gravity: Vec3? = null
-  private var gyroBias = Vec3.ZERO
+  private var gyroBias: Vec3 = Vec3.ZERO
   private var stillSinceNs: Long? = null
 
+  // World anchor for the relative yaw.
   private var offsetDeg: Double? = null
 
+  // Phone compass state.
   private var phoneAzimuthDeg: Double? = null
-  private var phoneAzimuthMs: Long = 0
-  private var phoneInHand = false
+  private var phoneAzimuthMs: Long = 0L
+  private var phoneInHand: Boolean = false
 
+  // GPS course state.
   private var courseDeg: Double? = null
-  private var courseMs: Long = 0
-  private var speedMps = 0.0
+  private var courseMs: Long = 0L
+  private var speedMps: Double = 0.0
 
-  val glassesAligned: Boolean
-    get() = offsetDeg != null
-
+  // Pitch/roll state.
   private var lastPitchDeg: Double? = null
   private var lastRollDeg: Double? = null
   private var pitchGravity: Vec3? = null
 
+  val glassesAligned: Boolean
+    get() = offsetDeg != null
+
   fun onImu(sample: ImuSample, wallMs: Long) {
-    updatePitch(sample)
+    updatePitchAndRoll(sample)
     lastImuWallMs = wallMs
     val yaw = when (mode) {
       YawMode.GYRO -> integrateGyro(sample)
-      YawMode.QUATERNION -> sample.orientation?.let { quaternionYawDeg(it) }
+      YawMode.QUATERNION -> sample.orientation?.let { quat -> quaternionYawDeg(quat) }
     } ?: return
-    relYawDeg = yaw
+    relativeYawDeg = yaw
     lastImuWallMs = wallMs
-    // First chance to align: whichever absolute reference is fresh right now.
+    // First chance to anchor: adopt any fresh absolute reference.
     if (offsetDeg == null) {
-      absoluteReference(wallMs)?.let { offsetDeg = Geo.normalizeDeg(it - signed(relYawDeg)) }
+      absoluteReference(wallMs)?.let { reference ->
+        offsetDeg = Geo.normalizeDeg(reference - signed(relativeYawDeg))
+      }
     }
   }
 
   private fun integrateGyro(sample: ImuSample): Double? {
-    sample.accel?.let { a ->
-      gravity = gravity?.let { g -> g * 0.92 + a * 0.08 } ?: a
+    sample.accel?.let { accel ->
+      val previous = gravity
+      gravity = if (previous == null) accel else previous * 0.92 + accel * 0.08
     }
-    val g = gravity ?: return null
-    val w = sample.gyro ?: return null
-    val prev = lastImuNs
-    lastImuNs = sample.timestampNs
-    if (prev == null) return relYawDeg
-    val dt = (sample.timestampNs - prev) / 1e9
-    if (dt <= 0.0 || dt > 0.5) return relYawDeg
+    val gravityNow = gravity ?: return null
+    val angular = sample.gyro ?: return null
 
-    // Learn gyro bias while the head is still.
-    if (w.norm() < 0.03) {
-      val since = stillSinceNs ?: sample.timestampNs.also { stillSinceNs = it }
-      if (sample.timestampNs - since > 1_000_000_000L) gyroBias = gyroBias * 0.98 + w * 0.02
+    val previousNs = lastImuNs
+    lastImuNs = sample.timestampNs
+    if (previousNs == null) return relativeYawDeg
+    val dtSeconds = (sample.timestampNs - previousNs) / 1e9
+    if (dtSeconds <= 0.0 || dtSeconds > 0.5) return relativeYawDeg
+
+    trackGyroBias(angular, sample.timestampNs)
+
+    // Rotation about "up" is counter-clockwise from above; headings run
+    // clockwise, hence the subtraction.
+    val yawRateCcw = (angular - gyroBias).dot(gravityNow.unit())
+    return relativeYawDeg - yawRateCcw * dtSeconds * 180.0 / PI
+  }
+
+  /** Learns the gyro's resting bias while the head is held still. */
+  private fun trackGyroBias(angular: Vec3, timestampNs: Long) {
+    if (angular.norm() < 0.03) {
+      val since = stillSinceNs ?: timestampNs.also { stillSinceNs = it }
+      if (timestampNs - since > 1_000_000_000L) {
+        gyroBias = gyroBias * 0.98 + angular * 0.02
+      }
     } else {
       stillSinceNs = null
     }
-
-    val up = g.unit()
-    // Positive rotation about "up" is counter-clockwise seen from above; heading runs clockwise.
-    val yawRateCcw = (w - gyroBias).dot(up)
-    return relYawDeg - (yawRateCcw * dt) * 180.0 / PI
   }
 
   /** Yaw of a Z-up orientation quaternion, as a clockwise heading. */
   fun quaternionYawDeg(q: Quat): Double {
-    val sinyCosp = 2 * (q.w * q.z + q.x * q.y)
-    val cosyCosp = 1 - 2 * (q.y * q.y + q.z * q.z)
-    return -atan2(sinyCosp, cosyCosp) * 180.0 / PI
+    val sinTerm = 2.0 * (q.w * q.z + q.x * q.y)
+    val cosTerm = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    return -atan2(sinTerm, cosTerm) * 180.0 / PI
   }
 
   /**
-   * Pitch and roll from the same sample. Device convention (as the gyro tests assume): X is
-   * ear-to-ear, Y points up out of the top of the glasses, Z points forward out of the face.
-   * The orientation quaternion wins when present; otherwise the smoothed gravity vector gives
-   * tilt against the horizon, which needs no world anchor and never drifts.
+   * Pitch and roll from the same frame. Assumed device convention: X runs
+   * ear-to-ear, Y up out of the frame top, Z forward out of the face. The
+   * orientation quaternion wins when present; otherwise smoothed gravity
+   * gives horizon tilt, which needs no world anchor and never drifts.
    */
-  private fun updatePitch(sample: ImuSample) {
-    val q = sample.orientation
-    if (q != null) {
-      val (p, r) = quaternionPitchRollDeg(q)
-      lastPitchDeg = p
-      lastRollDeg = r
+  private fun updatePitchAndRoll(sample: ImuSample) {
+    val orientation = sample.orientation
+    if (orientation != null) {
+      val (pitch, roll) = quaternionPitchRollDeg(orientation)
+      lastPitchDeg = pitch
+      lastRollDeg = roll
       return
     }
-    val a = sample.accel ?: return
-    val g = pitchGravity?.let { it * 0.92 + a * 0.08 } ?: a
-    pitchGravity = g
-    if (g.norm() < 1e-9) return
-    val u = g.unit()
-    lastPitchDeg = -atan2(u.z, u.y) * 180.0 / PI
-    lastRollDeg = atan2(u.x, u.y) * 180.0 / PI
+    val accel = sample.accel ?: return
+    val previous = pitchGravity
+    val smoothed = if (previous == null) accel else previous * 0.92 + accel * 0.08
+    pitchGravity = smoothed
+    if (smoothed.norm() < 1e-9) return
+    val up = smoothed.unit()
+    lastPitchDeg = -atan2(up.z, up.y) * 180.0 / PI
+    lastRollDeg = atan2(up.x, up.y) * 180.0 / PI
   }
 
-  /** Pitch/roll of a fused orientation quaternion. World up is +Y in the quaternion frame. */
+  /** Pitch/roll of a fused orientation quaternion (world up is +Y there). */
   fun quaternionPitchRollDeg(q: Quat): Pair<Double, Double> {
-    val f = rotate(q, Vec3(0.0, 0.0, 1.0))
-    val u = rotate(q, Vec3(0.0, 1.0, 0.0))
-    val up = Vec3(0.0, 1.0, 0.0)
-    val pitch = asin((f.dot(up)).coerceIn(-1.0, 1.0)) * 180.0 / PI
-    val fu = f * f.dot(up)
-    val uu = u * u.dot(up)
-    val fHoriz = (f - fu).let { if (it.norm() < 1e-9) it else it.unit() }
-    val uHoriz = (u - uu).let { if (it.norm() < 1e-9) it else it.unit() }
-    val rollRef = uHoriz
-    val roll = atan2(cross(rollRef, u).dot(fHoriz), rollRef.dot(u).coerceIn(-1.0, 1.0)) * 180.0 / PI
+    val worldUp = Vec3(0.0, 1.0, 0.0)
+    val forward = rotate(q, Vec3(0.0, 0.0, 1.0))
+    val headUp = rotate(q, worldUp)
+
+    val pitch = asin(forward.dot(worldUp).coerceIn(-1.0, 1.0)) * 180.0 / PI
+
+    val forwardFlat = forward.flattenAgainst(worldUp)
+    val upFlat = headUp.flattenAgainst(worldUp)
+    val roll = atan2(
+        cross(upFlat, headUp).dot(forwardFlat),
+        upFlat.dot(headUp).coerceIn(-1.0, 1.0),
+    ) * 180.0 / PI
     return pitch to roll
   }
 
+  private fun Vec3.flattenAgainst(axis: Vec3): Vec3 {
+    val projected = this - axis * dot(axis)
+    return if (projected.norm() < 1e-9) projected else projected.unit()
+  }
+
   private fun rotate(q: Quat, v: Vec3): Vec3 {
-    val u = Vec3(q.x, q.y, q.z)
-    val uv = cross(u, v)
-    val uuv = cross(u, uv)
+    val vectorPart = Vec3(q.x, q.y, q.z)
+    val uv = cross(vectorPart, v)
+    val uuv = cross(vectorPart, uv)
     return v + (uv * q.w + uuv) * 2.0
   }
 
-  private fun cross(a: Vec3, b: Vec3) =
-      Vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+  private fun cross(a: Vec3, b: Vec3): Vec3 = Vec3(
+      a.y * b.z - a.z * b.y,
+      a.z * b.x - a.x * b.z,
+      a.x * b.y - a.y * b.x,
+  )
 
   fun onPhoneAzimuth(deg: Double, wallMs: Long, inHand: Boolean) {
     phoneAzimuthDeg = Geo.normalizeDeg(deg)
@@ -213,20 +237,21 @@ class HeadingFusion(
     if (courseDeg == null || (speedMps ?: 0.0) < WALKING_MPS) return
     this.courseDeg = Geo.normalizeDeg(courseDeg)
     courseMs = wallMs
-    // Drift correction: pull the glasses offset gently toward the walking direction.
-    val offset = offsetDeg
-    if (offset != null && glassesFresh(wallMs)) {
-      val headNow = Geo.normalizeDeg(signed(relYawDeg) + offset)
-      val err = Geo.deltaDeg(headNow, courseDeg)
-      if (abs(err) < 60) offsetDeg = Geo.normalizeDeg(offset + err * COURSE_GAIN)
+    // Walking correction: ease the glasses anchor toward travel direction.
+    val offset = offsetDeg ?: return
+    if (!glassesFresh(wallMs)) return
+    val headNow = Geo.normalizeDeg(signed(relativeYawDeg) + offset)
+    val error = Geo.deltaDeg(headNow, courseDeg)
+    if (abs(error) < 60.0) {
+      offsetDeg = Geo.normalizeDeg(offset + error * COURSE_GAIN)
     }
   }
 
-  /** Ties glasses yaw to the phone compass. The runner faces the way the phone's top points. */
+  /** Anchors glasses yaw to the phone compass (runner faces the phone top). */
   fun calibrateToPhone(wallMs: Long): Boolean {
-    val az = phoneAzimuthDeg ?: return false
+    val azimuth = phoneAzimuthDeg ?: return false
     if (wallMs - phoneAzimuthMs > FRESH_MS || !glassesFresh(wallMs)) return false
-    offsetDeg = Geo.normalizeDeg(az - signed(relYawDeg))
+    offsetDeg = Geo.normalizeDeg(azimuth - signed(relativeYawDeg))
     return true
   }
 
@@ -235,39 +260,43 @@ class HeadingFusion(
   }
 
   fun estimate(wallMs: Long): HeadingEstimate {
+    val pitch = pitchNow(wallMs)
+    val roll = rollNow(wallMs)
     val offset = offsetDeg
     if (offset != null && glassesFresh(wallMs)) {
-      return HeadingEstimate(Geo.normalizeDeg(signed(relYawDeg) + offset), HeadingSource.GLASSES, true, pitchNow(wallMs), rollNow(wallMs))
+      val fused = Geo.normalizeDeg(signed(relativeYawDeg) + offset)
+      return HeadingEstimate(fused, HeadingSource.GLASSES, glassesAligned = true, pitch, roll)
     }
     if (phoneInHand && wallMs - phoneAzimuthMs <= FRESH_MS) {
-      return HeadingEstimate(phoneAzimuthDeg, HeadingSource.PHONE, glassesAligned, pitchNow(wallMs), rollNow(wallMs))
+      return HeadingEstimate(phoneAzimuthDeg, HeadingSource.PHONE, glassesAligned, pitch, roll)
     }
     if (wallMs - courseMs <= COURSE_FRESH_MS && speedMps >= WALKING_MPS) {
-      return HeadingEstimate(courseDeg, HeadingSource.COURSE, glassesAligned, pitchNow(wallMs), rollNow(wallMs))
+      return HeadingEstimate(courseDeg, HeadingSource.COURSE, glassesAligned, pitch, roll)
     }
-    return HeadingEstimate(null, HeadingSource.NONE, glassesAligned, pitchNow(wallMs), rollNow(wallMs))
+    return HeadingEstimate(null, HeadingSource.NONE, glassesAligned, pitch, roll)
   }
 
-  private fun absoluteReference(wallMs: Long): Double? =
-      when {
-        phoneInHand && wallMs - phoneAzimuthMs <= FRESH_MS -> phoneAzimuthDeg
-        wallMs - courseMs <= COURSE_FRESH_MS && speedMps >= WALKING_MPS -> courseDeg
-        else -> null
-      }
+  private fun absoluteReference(wallMs: Long): Double? = when {
+    phoneInHand && wallMs - phoneAzimuthMs <= FRESH_MS -> phoneAzimuthDeg
+    wallMs - courseMs <= COURSE_FRESH_MS && speedMps >= WALKING_MPS -> courseDeg
+    else -> null
+  }
 
-  private fun glassesFresh(wallMs: Long) = lastImuWallMs?.let { wallMs - it <= FRESH_MS } ?: false
+  private fun glassesFresh(wallMs: Long): Boolean =
+      lastImuWallMs?.let { stamp -> wallMs - stamp <= FRESH_MS } ?: false
 
   private fun pitchNow(wallMs: Long): Double? =
-      if (glassesFresh(wallMs)) lastPitchDeg?.let { if (invertPitch) -it else it } else null
+      if (glassesFresh(wallMs)) lastPitchDeg?.let { pitch -> if (invertPitch) -pitch else pitch } else null
 
-  private fun rollNow(wallMs: Long): Double? = if (glassesFresh(wallMs)) lastRollDeg else null
+  private fun rollNow(wallMs: Long): Double? =
+      if (glassesFresh(wallMs)) lastRollDeg else null
 
-  private fun signed(yaw: Double) = if (invertYaw) -yaw else yaw
+  private fun signed(yaw: Double): Double = if (invertYaw) -yaw else yaw
 
   companion object {
-    const val FRESH_MS = 1_500L
-    const val COURSE_FRESH_MS = 4_000L
-    const val WALKING_MPS = 0.8
-    const val COURSE_GAIN = 0.04
+    const val FRESH_MS: Long = 1_500L
+    const val COURSE_FRESH_MS: Long = 4_000L
+    const val WALKING_MPS: Double = 0.8
+    const val COURSE_GAIN: Double = 0.04
   }
 }

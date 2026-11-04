@@ -1,5 +1,24 @@
 # Handoffs
 
+# Handoff — 2026-11-03, Meta Wonder (Phase 1: core rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 1 of 5** (plan: `docs/REWRITE-PLAN.md`). Every V1-origin file in `core/` was re-implemented from scratch — fresh structure and docs, same public API and behaviour contracts — so the submitted code is original work after the hack start date. The V1 base (`09128e8`) stays in history, disclosed. Rewritten: `Format`, `Geo`, `SignalField`, `Types`, `AudioScene`, `GameEngine`, `HeadingFusion`, `Mission`, `MissionTools`, `RhythmMatcher`, `PhraseMatcher`, `WebGame`. Web engine bundle rebuilt (`server/play/engine/ghostsignal-core.mjs`); the `.d.mts` API surface is unchanged.
+
+## Verified
+
+- `./gradlew -p core jvmTest` — 47/47 pass (fresh results, 2026-11-03).
+- `compileKotlinJs` pass; `tools/build_web_engine.sh` rebuilt the bundle cleanly.
+
+## Not verified
+
+- Android app compile (no SDK build this round) and live play; unchanged by this phase.
+
+## Next
+
+- Phase 2: rewrite `server/src/` module by module, `npm test` as the gate.
+
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
 # Handoff — 2026-10-30, Claude

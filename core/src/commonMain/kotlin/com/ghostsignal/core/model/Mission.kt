@@ -1,36 +1,35 @@
 package com.ghostsignal.core.model
 
 import com.ghostsignal.core.geo.LatLon
+import kotlin.math.floor
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.math.floor
 
-/**
- * A complete authored mission: characters, route, script and soundtrack.
- *
- * Missions are plain JSON (see `app/src/main/assets/mission/ghostsignal.json`) so writers and the
- * story agent can edit them without touching code. Positions can be overridden at the venue with a
- * [RouteOverride] produced by the in-app route editor.
- */
+// Mission data model. A mission is authored entirely as JSON (bundled at
+// app/src/main/assets/mission/ghostsignal.json, or edited from the admin
+// page) so writers can change story, route, and soundtrack without a rebuild.
+// Field names and defaults below are the file format: do not rename them
+// without migrating every authored mission.
+
 @Serializable
 data class Mission(
     val id: String,
     val title: String,
     val version: Int = 1,
-    /** Shared world description handed to the character agent with every request. */
+    /** Shared world brief passed to the character agent on every request. */
     val world: String = "",
     val characters: List<Character>,
     val music: MusicManifest,
-    /** Spoken before the briefing, under the [antagonist]'s theme: the threat is there first. */
+    /** Played before the briefing under the antagonist theme: threat first. */
     val prologue: List<Line> = emptyList(),
     val briefing: List<Line>,
     val signals: List<Signal>,
     val finale: Finale,
     val system: SystemLines = SystemLines(),
-    /** Alternative soundtracks a runner can unlock. [music] is always the original. */
+    /** Unlockable alternative recordings; [music] is always the original. */
     val soundtracks: List<Soundtrack> = emptyList(),
-    /** The character who answers free talk while hunting. Blank = the first briefing speaker. */
+    /** Character who fields free talk while hunting. Blank: first briefer. */
     val handler: String = "",
     val antagonist: Antagonist? = null,
 ) {
@@ -38,56 +37,74 @@ data class Mission(
 
   fun signal(id: String): Signal? = signals.firstOrNull { it.id == id }
 
-  /** This mission playing [soundtrackId]'s music, or unchanged if that isn't one of [soundtracks]. */
-  fun withSoundtrack(soundtrackId: String?): Mission =
-      soundtracks.firstOrNull { it.id == soundtrackId }?.let { copy(music = it.music) } ?: this
+  /** A copy of this mission playing [soundtrackId], or `this` if unknown. */
+  fun withSoundtrack(soundtrackId: String?): Mission {
+    val chosen = soundtracks.firstOrNull { it.id == soundtrackId } ?: return this
+    return copy(music = chosen.music)
+  }
 
   /**
-   * Venue placements and admin renames applied. A renamed signal renames its stem in every
-   * soundtrack too, since the runner knows the layer by the signal's name.
+   * Applies venue placements and admin renames from [route]. Renaming a
+   * signal also renames the stem it unlocks in every soundtrack, because
+   * runners know each layer by the signal's name.
    */
   fun withRoute(route: RouteOverride?): Mission {
     if (route == null || route.missionId != id) return this
-    val placed =
-        signals.map { s ->
-          val p = route.placements[s.id]
-          val label = route.labels[s.id]
-          s.copy(
-              location = p?.location ?: s.location,
-              radiusM = p?.radiusM ?: s.radiusM,
-              lockRadiusM = p?.lockRadiusM ?: s.lockRadiusM,
-              name = label?.name?.trim()?.ifBlank { null } ?: s.name,
-              place = label?.place?.trim()?.ifBlank { null } ?: s.place,
-          )
-        }
-    val stemNames = signals.mapNotNull { s -> route.labels[s.id]?.name?.trim()?.ifBlank { null }?.let { s.stem to it } }.toMap()
-    if (stemNames.isEmpty()) return copy(signals = placed)
-    fun MusicManifest.renamed() = copy(stems = stems.map { st -> stemNames[st.id]?.let { st.copy(name = it) } ?: st })
+
+    fun SignalLabel.cleanName(): String? = name.trim().ifBlank { null }
+    fun SignalLabel.cleanPlace(): String? = place.trim().ifBlank { null }
+
+    val movedSignals = signals.map { signal ->
+      val placement = route.placements[signal.id]
+      val label = route.labels[signal.id]
+      signal.copy(
+          location = placement?.location ?: signal.location,
+          radiusM = placement?.radiusM ?: signal.radiusM,
+          lockRadiusM = placement?.lockRadiusM ?: signal.lockRadiusM,
+          name = label?.cleanName() ?: signal.name,
+          place = label?.cleanPlace() ?: signal.place,
+      )
+    }
+
+    val renamedStems: Map<String, String> = signals.mapNotNull { signal ->
+      route.labels[signal.id]?.cleanName()?.let { newName -> signal.stem to newName }
+    }.toMap()
+
+    if (renamedStems.isEmpty()) return copy(signals = movedSignals)
+
+    fun MusicManifest.withStemNames(): MusicManifest = copy(
+        stems = stems.map { stem ->
+          renamedStems[stem.id]?.let { stem.copy(name = it) } ?: stem
+        },
+    )
     return copy(
-        signals = placed,
-        music = music.renamed(),
-        soundtracks = soundtracks.map { it.copy(music = it.music.renamed()) },
+        signals = movedSignals,
+        music = music.withStemNames(),
+        soundtracks = soundtracks.map { track -> track.copy(music = track.music.withStemNames()) },
     )
   }
 
   /**
-   * Adds the soundtracks deployed from the admin page. A deployed track is left out until every
-   * one of its stems is [ready] on the phone, if it doesn't fill every slot a signal unlocks, or if
-   * its id is already taken by a bundled one.
+   * Merges in soundtracks deployed from the admin page. A deployed track is
+   * admitted only when every stem is [ready] on the device, it fills every
+   * slot the signals unlock, and its id is not already taken.
    */
   fun withTracks(catalog: TrackCatalog?, ready: (StemSpec) -> Boolean = { true }): Mission {
     if (catalog == null || catalog.missionId != id) return this
-    val taken = soundtracks.map { it.id }.toSet() + Soundtracks.ORIGINAL
-    val slots = signals.map { it.stem }.toSet()
-    val added =
-        catalog.soundtracks
-            .filter { t -> t.id !in taken && slots.all { slot -> t.music.stems.any { it.id == slot } } && t.music.stems.all(ready) }
-            .distinctBy { it.id }
-    return if (added.isEmpty()) this else copy(soundtracks = soundtracks + added)
+    val takenIds = soundtracks.map { it.id }.toSet() + Soundtracks.ORIGINAL
+    val requiredSlots = signals.map { it.stem }.toSet()
+
+    val admitted = catalog.soundtracks
+        .filter { track -> track.id !in takenIds }
+        .filter { track -> requiredSlots.all { slot -> track.music.stems.any { it.id == slot } } }
+        .filter { track -> track.music.stems.all(ready) }
+        .distinctBy { it.id }
+
+    return if (admitted.isEmpty()) this else copy(soundtracks = soundtracks + admitted)
   }
 
   companion object {
-    val json = Json {
+    val json: Json = Json {
       ignoreUnknownKeys = true
       encodeDefaults = true
       prettyPrint = true
@@ -103,25 +120,25 @@ data class Character(
     val id: String,
     val name: String,
     val role: String = "",
-    /** Personality, speech style and boundaries for the character agent. */
+    /** Persona, speech style, and boundaries for the character agent. */
     val persona: String = "",
     val voice: VoiceSpec = VoiceSpec(),
-    /** 0 = clean studio voice, 1 = crushed walkie-talkie. */
+    /** Radio treatment: 0 = clean studio voice, 1 = crushed walkie-talkie. */
     val radio: Double = 0.5,
 )
 
 @Serializable
 data class VoiceSpec(
-    /** Legacy cloud-voice id, kept for mission compatibility. Voices render on-device now. */
+    /** Legacy cloud voice id, retained so old missions still parse. */
     val ttsVoice: String = "",
-    /** Pitch and rate for the on-phone Android TTS fallback. */
+    /** Pitch/rate for the on-device speech fallback. */
     val pitch: Double = 1.0,
     val rate: Double = 1.0,
 )
 
 /**
- * One spoken line. [requires] gates variants on story flags, e.g. `{"hush": "comply"}` only plays
- * if the player chose "comply" at the HUSH signal.
+ * One line of authored dialogue. [requires] gates a line on story flags:
+ * `{"hush": "comply"}` plays only if that flag holds that value.
  */
 @Serializable
 data class Line(
@@ -135,16 +152,16 @@ data class Line(
 data class Signal(
     val id: String,
     val name: String,
-    /** Short spoken description of the real place, for hints. */
+    /** Short spoken description of the real place; used by hints. */
     val place: String = "",
     val location: LatLon,
-    /** Within this radius the player is "near" and hears the approach line. */
+    /** Inside this radius the runner is "near" and hears the approach. */
     val radiusM: Double = 45.0,
-    /** Within this radius a capture press locks the signal. */
+    /** Inside this radius a capture press locks the signal. */
     val lockRadiusM: Double = 28.0,
-    /** Authored height of the source in degrees (-60..60): rendered elevation for spatial audio. */
+    /** Authored source height for spatial audio, degrees in -60..60. */
     val elevationDeg: Double = 0.0,
-    /** Music stem this signal unlocks. */
+    /** Music stem collected at this signal. */
     val stem: String,
     val speaker: String,
     val teaser: List<Line> = emptyList(),
@@ -160,12 +177,12 @@ data class Signal(
 sealed class Challenge {
   abstract val prompt: List<Line>
 
-  /** Say one of [phrases] ("decode", "broadcast"). */
+  /** Say one of [phrases], e.g. "decode" or "broadcast". */
   @Serializable
   @SerialName("command")
   data class Command(override val prompt: List<Line>, val phrases: List<String>) : Challenge()
 
-  /** Speak a passphrase learned earlier in the story. */
+  /** Speak a passphrase learned earlier in the run. */
   @Serializable
   @SerialName("passphrase")
   data class Passphrase(
@@ -174,12 +191,12 @@ sealed class Challenge {
       val hintAfterAttempts: Int = 2,
   ) : Challenge()
 
-  /** Pick a story branch aloud. The chosen option id is stored as flag `<signalId>`. */
+  /** Choose a story branch aloud; the option id is stored as a flag. */
   @Serializable
   @SerialName("choice")
   data class Choice(override val prompt: List<Line>, val options: List<ChoiceOption>) : Challenge()
 
-  /** Ask the character free-form questions (answered by the character agent), then "accept". */
+  /** Free-form questions to the character agent, ended by accepting. */
   @Serializable
   @SerialName("ask")
   data class Ask(
@@ -187,11 +204,11 @@ sealed class Challenge {
       val maxQuestions: Int = 2,
       val acceptPhrases: List<String> = listOf("accept", "deal", "i accept"),
       val acceptPrompt: List<Line> = emptyList(),
-      /** Used when the character agent is offline. */
+      /** Replies used when the character agent cannot be reached. */
       val fallbackReplies: List<String> = emptyList(),
   ) : Challenge()
 
-  /** Hear a rhythm, then tap it back on the glasses touchpad. Onsets are in beats. */
+  /** Hear a rhythm, then tap it back. [onsetsBeats] are beat positions. */
   @Serializable
   @SerialName("rhythm")
   data class Rhythm(
@@ -201,12 +218,12 @@ sealed class Challenge {
       val maxAttempts: Int = 3,
   ) : Challenge()
 
-  /** Record a message for the next runner. Stored on the phone only. */
+  /** Record a message for the next runner. Stored on-device only. */
   @Serializable
   @SerialName("record")
   data class Record(override val prompt: List<Line>, val maxSeconds: Int = 15) : Challenge()
 
-  /** Turn to face a real landmark until the static clears, then press capture. */
+  /** Face a real landmark until the static clears, then capture. */
   @Serializable
   @SerialName("tune")
   data class Tune(
@@ -218,39 +235,41 @@ sealed class Challenge {
 }
 
 @Serializable
-data class ChoiceOption(val id: String, val phrases: List<String>, val reply: List<Line> = emptyList())
+data class ChoiceOption(
+    val id: String,
+    val phrases: List<String>,
+    val reply: List<Line> = emptyList(),
+)
 
 @Serializable
 data class Finale(val lines: List<Line>, val outro: List<Line> = emptyList())
 
 @Serializable
 data class MusicManifest(
-    /** What the runner sees when choosing a soundtrack. */
+    /** Display title shown when choosing a soundtrack. */
     val title: String = "",
     val bpm: Double,
     val beatsPerBar: Int = 4,
     /**
-     * Loop length in bars. Every stem is trimmed or padded to exactly this length so the parts
-     * stay sample-locked forever, even if an encoder padded one file by a few samples.
+     * Loop length in bars. Every stem is conformed to exactly this length
+     * so the parts stay sample-locked indefinitely.
      */
     val loopBars: Int = 8,
     val stems: List<StemSpec>,
 ) {
-  val beatMs: Double
-    get() = 60_000.0 / bpm
+  val beatMs: Double get() = 60_000.0 / bpm
 
-  val barMs: Double
-    get() = beatMs * beatsPerBar
+  val barMs: Double get() = beatMs * beatsPerBar
 
-  /** Exact loop length in frames at [sampleRate]. */
-  fun loopFrames(sampleRate: Int): Int = floor(barMs * loopBars * sampleRate / 1000.0 + 0.5).toInt() // rounds half up, like Math.round
+  /** Exact loop length in sample frames at [sampleRate] (rounds half up). */
+  fun loopFrames(sampleRate: Int): Int =
+      floor(barMs * loopBars * sampleRate / 1000.0 + 0.5).toInt()
 }
 
 /**
- * Another recording of the mission's music. It fills the same slots as the original (a stem for
- * every id a signal unlocks), so the story still matches whichever one is playing. It becomes
- * available once the runner has finished the mission [unlockAfterCompletions] times; 0 means from
- * the start.
+ * An alternative recording of the mission music. It must fill the same stem
+ * slots as the original so the story matches whichever track is playing.
+ * Available after [unlockAfterCompletions] finished runs; 0 = from the start.
  */
 @Serializable
 data class Soundtrack(
@@ -258,23 +277,23 @@ data class Soundtrack(
     val title: String,
     val description: String = "",
     val unlockAfterCompletions: Int = 1,
-    /** Spoken once, after the outro of the run that unlocks it. */
+    /** Spoken once, after the outro of the run that unlocks this track. */
     val unlockLines: List<Line> = emptyList(),
     val music: MusicManifest,
 )
 
 /**
- * The force the runner is up against. Its theme takes the frequency during the prologue and around
- * any signal it guards (one whose speaker is [speaker]), pushing the pirate music down by [duck].
+ * The opposing force. Its theme takes the frequency during the prologue and
+ * near signals it guards, pushing the pirate music down by [duck].
  */
 @Serializable
 data class Antagonist(
-    /** Character id. */
+    /** Character id of the antagonist. */
     val speaker: String,
-    /** Looping theme in the app's assets, e.g. `music/hush/hush_theme.ogg`. */
+    /** Looping theme asset, e.g. `music/hush/hush_theme.ogg`. */
     val theme: String,
     val gainDb: Double = 0.0,
-    /** How far the pirate music drops while the theme holds: 0 = not at all, 1 = silenced. */
+    /** Music suppression while the theme holds: 0 = none, 1 = silence. */
     val duck: Double = 0.85,
 )
 
@@ -282,22 +301,22 @@ data class Antagonist(
 data class StemSpec(
     val id: String,
     /**
-     * Path inside the app's assets, e.g. `music/01_kick.ogg`, or `server:<sha256>.<ext>` for a stem
-     * deployed from the admin page (see [TrackCatalog]).
+     * Asset path such as `music/01_kick.ogg`, or `server:<sha256>.<ext>`
+     * for a stem deployed from the admin page (see [TrackCatalog]).
      */
     val file: String,
     val name: String,
     val gainDb: Double = 0.0,
-    /** Checksum and size of a deployed stem, so the phone can verify its download. */
+    /** Checksum/size of a deployed stem so downloads can be verified. */
     val sha256: String = "",
     val bytes: Long = 0,
 )
 
 /**
- * Soundtracks deployed from the admin page rather than bundled with the app. The phone downloads
- * each stem once, checks it against its [StemSpec.sha256], and plays it from its own storage.
- * [Soundtrack.unlockAfterCompletions] 0 makes a track part of the base game. Premium tracks come
- * only to premium players; everyone else gets their titles in [locked], so the app can offer them.
+ * Soundtracks deployed from the admin page rather than bundled. Stems are
+ * downloaded once, verified against [StemSpec.sha256], and played from local
+ * storage. Premium tracks a player has not earned appear in [locked] so the
+ * app can show (but not play) them.
  */
 @Serializable
 data class TrackCatalog(
@@ -309,14 +328,15 @@ data class TrackCatalog(
   companion object {
     const val SERVER_PREFIX = "server:"
 
-    /** The stored file name (`<sha256>.<ext>`) of a deployed stem, or null for a bundled one. */
-    fun blobOf(stem: StemSpec): String? = stem.file.takeIf { it.startsWith(SERVER_PREFIX) }?.removePrefix(SERVER_PREFIX)
+    /** Stored blob name (`<sha256>.<ext>`) of a deployed stem, else null. */
+    fun blobOf(stem: StemSpec): String? =
+        stem.file.takeIf { it.startsWith(SERVER_PREFIX) }?.removePrefix(SERVER_PREFIX)
   }
 }
 
 /**
- * Templates for the runner's SmartSpecs (the system voice). Placeholders: {signal} {distance}
- * {direction} {count} {total} {target}.
+ * System-voice templates spoken by the runner's SmartSpecs.
+ * Placeholders: {signal} {distance} {direction} {count} {total} {target}.
  */
 @Serializable
 data class SystemLines(
@@ -339,15 +359,17 @@ data class SystemLines(
     val npcOffline: String = "Their channel is jammed. Try again in a moment.",
 )
 
-/** Placement of one signal at the venue, captured with the route editor. */
+/** Venue placement for one signal, captured with the route editor. */
 @Serializable
 data class SignalPlacement(val location: LatLon, val radiusM: Double, val lockRadiusM: Double)
 
-/** A premium soundtrack this player doesn't have: shown, not playable. */
-@Serializable data class LockedTrack(val id: String, val title: String, val description: String = "")
+/** A premium soundtrack the player has not earned: shown, not playable. */
+@Serializable
+data class LockedTrack(val id: String, val title: String, val description: String = "")
 
-/** An admin's rename of a signal. Blank keeps the authored text. Scripted dialogue is unchanged. */
-@Serializable data class SignalLabel(val name: String = "", val place: String = "")
+/** Admin rename of a signal. Blank fields keep the authored text. */
+@Serializable
+data class SignalLabel(val name: String = "", val place: String = "")
 
 @Serializable
 data class RouteOverride(
@@ -355,6 +377,6 @@ data class RouteOverride(
     val name: String = "",
     val placements: Map<String, SignalPlacement> = emptyMap(),
     val updatedAtMs: Long = 0,
-    /** Signal names and place descriptions set from the admin page, by signal id. */
+    /** Admin-set signal names/places, keyed by signal id. */
     val labels: Map<String, SignalLabel> = emptyMap(),
 )

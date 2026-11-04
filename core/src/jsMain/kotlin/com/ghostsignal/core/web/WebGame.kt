@@ -31,302 +31,365 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
 /**
- * The game engine for the web player. Same engine, same rules as the Android app; this class only
- * translates. Everything crosses the boundary as strings and numbers: each event method returns
- * the effects it caused as a JSON array, and [scene] and [state] describe what to play and show.
+ * Browser facade over the shared engine. The web player runs exactly the
+ * same rules as the Android app; this class only translates at the border.
+ * JavaScript passes strings and numbers in, and every event method returns
+ * the effects it caused as a JSON array; [scene] and [state] say what to
+ * play and what to show. All times are milliseconds (JS numbers).
  *
- * Times are milliseconds as JavaScript numbers. The mission is the bundled one with the server's
- * deployed soundtracks ([catalogJson]) and venue route ([routeJson]) applied, playing whichever
- * soundtrack the runner chose if they've unlocked it.
+ * The mission that plays is the bundled one with the server's deployed
+ * soundtracks and venue route applied, on the runner's chosen soundtrack
+ * when they have unlocked it.
  */
 @JsExport
-class WebGame(missionJson: String, routeJson: String?, catalogJson: String?, soundtrackId: String?, completions: Int) {
+class WebGame(
+    missionJson: String,
+    routeJson: String?,
+    catalogJson: String?,
+    soundtrackId: String?,
+    completions: Int,
+) {
   private val mission: Mission
   private val engine: GameEngine
   private val fusion = HeadingFusion()
 
   init {
-    val route = routeJson?.let { Mission.json.decodeFromString(RouteOverride.serializer(), it) }
-    val catalog = catalogJson?.let { Mission.json.decodeFromString(TrackCatalog.serializer(), it) }
-    val full = Mission.parse(missionJson).withTracks(catalog).withRoute(route)
-    mission = full.withSoundtrack(Soundtracks.resolve(full, soundtrackId, completions))
-    // If finishing this run unlocks a soundtrack, the handler announces it after the outro.
-    engine = GameEngine(mission, Soundtracks.unlockedByNextCompletion(mission, completions).flatMap { it.unlockLines })
+    val json = Mission.json
+    val route = routeJson?.let { text -> json.decodeFromString(RouteOverride.serializer(), text) }
+    val catalog = catalogJson?.let { text -> json.decodeFromString(TrackCatalog.serializer(), text) }
+    val prepared = Mission.parse(missionJson).withTracks(catalog).withRoute(route)
+    mission = prepared.withSoundtrack(Soundtracks.resolve(prepared, soundtrackId, completions))
+    // A finish that unlocks a soundtrack is announced after the outro.
+    val rewardLines = Soundtracks.unlockedByNextCompletion(mission, completions)
+        .flatMap { track -> track.unlockLines }
+    engine = GameEngine(mission, rewardLines)
   }
 
-  /** The mission as this run plays it, as JSON: stems to load, characters' voices, signal positions. */
+  /** The mission as this run plays it, as JSON. */
   fun missionJson(): String = Mission.json.encodeToString(Mission.serializer(), mission)
 
-  // ---------------------------------------------------------------- events in, effects out
+  // -- events in, effects out ------------------------------------------------
 
-  fun start(nowMs: Double, progressJson: String?): String =
-      run(GameEvent.Start(nowMs.toLong(), progressJson?.let { Mission.json.decodeFromString(Progress.serializer(), it) }))
-
-  fun position(lat: Double, lon: Double, accuracyM: Double, timeMs: Double, speedMps: Double?, courseDeg: Double?, simulated: Boolean): String {
-    fusion.onCourse(courseDeg, speedMps, timeMs.toLong())
-    return run(GameEvent.Position(GeoFix(LatLon(lat, lon), accuracyM, timeMs.toLong(), speedMps, courseDeg, simulated)))
+  fun start(nowMs: Double, progressJson: String?): String {
+    val resume = progressJson?.let { text ->
+      Mission.json.decodeFromString(Progress.serializer(), text)
+    }
+    return dispatch(GameEvent.Start(nowMs.toLong(), resume))
   }
 
-  /** The phone's compass heading (degrees from north). [inHand]: the screen is on and being looked at. */
-  fun phoneHeading(deg: Double, nowMs: Double, inHand: Boolean) = fusion.onPhoneAzimuth(deg, nowMs.toLong(), inHand)
+  fun position(
+      lat: Double,
+      lon: Double,
+      accuracyM: Double,
+      timeMs: Double,
+      speedMps: Double?,
+      courseDeg: Double?,
+      simulated: Boolean,
+  ): String {
+    fusion.onCourse(courseDeg, speedMps, timeMs.toLong())
+    val fix = GeoFix(LatLon(lat, lon), accuracyM, timeMs.toLong(), speedMps, courseDeg, simulated)
+    return dispatch(GameEvent.Position(fix))
+  }
 
-  /** Where the runner is facing for the audio, or null: the fused phone compass and walking course. */
+  /** Phone compass heading. [inHand] means the screen is up and looked at. */
+  fun phoneHeading(deg: Double, nowMs: Double, inHand: Boolean) {
+    fusion.onPhoneAzimuth(deg, nowMs.toLong(), inHand)
+  }
+
+  /** Fused facing for the audio listener, or null when no source is fresh. */
   fun listenerHeading(nowMs: Double): Double? = fusion.estimate(nowMs.toLong()).deg
 
-  /** Head pitch for the audio (degrees, up positive), or null when no glasses pitch is fresh. */
+  /** Head pitch for the listener (degrees, up positive), or null. */
   fun listenerPitch(nowMs: Double): Double? = fusion.estimate(nowMs.toLong()).pitchDeg
 
-  /** Call about 20 times a second: feeds the fused heading, then advances timers. */
+  /** Call ~20x/second: refreshes the fused heading, then advances timers. */
   fun tick(nowMs: Double): String {
     val now = nowMs.toLong()
-    val out = engine.handle(GameEvent.Heading(fusion.estimate(now))) + engine.handle(GameEvent.Tick(now))
-    return effects(out)
+    val effects = engine.handle(GameEvent.Heading(fusion.estimate(now))) +
+        engine.handle(GameEvent.Tick(now))
+    return encodeEffects(effects)
   }
 
-  /** SCAN, TAP, TALK, REPEAT, HINT, STATUS or PAUSE_TOGGLE. */
+  /** One of SCAN, TAP, TALK, REPEAT, HINT, STATUS, PAUSE_TOGGLE. */
   fun input(action: String, nowMs: Double): String {
-    val a = PlayerAction.entries.firstOrNull { it.name == action } ?: return "[]"
-    return run(GameEvent.Input(a, nowMs.toLong()))
+    val parsed = PlayerAction.entries.firstOrNull { entry -> entry.name == action }
+      ?: return "[]"
+    return dispatch(GameEvent.Input(parsed, nowMs.toLong()))
   }
 
-  fun heard(token: String, text: String, isFinal: Boolean, confidence: Double): String = run(GameEvent.Heard(token, text, isFinal, confidence))
+  fun heard(token: String, text: String, isFinal: Boolean, confidence: Double): String =
+      dispatch(GameEvent.Heard(token, text, isFinal, confidence))
 
-  fun listenEnded(token: String): String = run(GameEvent.ListenEnded(token))
+  fun listenEnded(token: String): String = dispatch(GameEvent.ListenEnded(token))
 
-  fun speechFinished(token: String): String = run(GameEvent.SpeechFinished(token))
+  fun speechFinished(token: String): String = dispatch(GameEvent.SpeechFinished(token))
 
-  fun rhythmPlayed(token: String, nowMs: Double): String = run(GameEvent.RhythmPlayed(token, nowMs.toLong()))
+  fun rhythmPlayed(token: String, nowMs: Double): String =
+      dispatch(GameEvent.RhythmPlayed(token, nowMs.toLong()))
 
-  fun characterReplied(requestId: Int, text: String?): String = run(GameEvent.CharacterReplied(requestId, text))
+  fun characterReplied(requestId: Int, text: String?): String =
+      dispatch(GameEvent.CharacterReplied(requestId, text))
 
-  fun recordingFinished(path: String?): String = run(GameEvent.RecordingFinished(path))
+  fun recordingFinished(path: String?): String = dispatch(GameEvent.RecordingFinished(path))
 
-  fun broadcast(speaker: String, text: String): String = run(GameEvent.Broadcast(speaker, text))
+  fun broadcast(speaker: String, text: String): String =
+      dispatch(GameEvent.Broadcast(speaker, text))
 
-  /** Operator overrides, for testing at a desk. */
-  fun forceLock(): String = run(GameEvent.ForceLock)
+  /** Operator overrides, for desk testing. */
+  fun forceLock(): String = dispatch(GameEvent.ForceLock)
 
-  fun forceSolve(): String = run(GameEvent.ForceSolve)
+  fun forceSolve(): String = dispatch(GameEvent.ForceSolve)
 
-  fun jumpTo(signalIndex: Int): String = run(GameEvent.JumpTo(signalIndex))
+  fun jumpTo(signalIndex: Int): String = dispatch(GameEvent.JumpTo(signalIndex))
 
-  private fun run(event: GameEvent): String = effects(engine.handle(event))
+  private fun dispatch(event: GameEvent): String = encodeEffects(engine.handle(event))
 
-  // ---------------------------------------------------------------- what to play and show
+  // -- what to play and show ---------------------------------------------------
 
-  /** What each stem, the static, the ping and the antagonist's theme should sound like now. */
-  fun scene(): String = sceneJson(AudioSceneComposer.compose(engine)).toString()
+  /** Current stem/static/ping/antagonist playback picture, as JSON. */
+  fun scene(): String = encodeScene(AudioSceneComposer.compose(engine)).toString()
 
-  /** Everything the screen shows. */
+  /** Everything the run screen renders, as JSON. */
   fun state(): String {
-    val e = engine
-    val signal = e.currentSignal
-    val r = e.reading
+    val eng = engine
+    val signal = eng.currentSignal
+    val currentReading = eng.reading
     return buildJsonObject {
-      put("phase", e.phase.name)
-      put("objective", e.objective())
-      put("signalIndex", e.signalIndex)
-      put("total", e.total)
+      put("phase", eng.phase.name)
+      put("objective", eng.objective())
+      put("signalIndex", eng.signalIndex)
+      put("total", eng.total)
       put("signalId", signal?.id)
       put("signalName", signal?.name)
       put("signalPlace", signal?.place)
-      put("distanceM", r?.distanceM)
-      put("bearingDeg", r?.bearingDeg)
-      put("strength", r?.strength)
-      put("zone", r?.zone?.name)
-      put("direction", r?.let { e.direction(it.bearingDeg) })
-      put("lockAvailable", e.lockAvailable)
-      put("paused", e.paused)
-      put("speakingKind", e.speakingKind)
-      put("recording", e.recording)
-      put("listening", e.listening?.let { l -> buildJsonObject { put("token", l.token); put("mode", l.mode.name); put("purpose", l.purpose.name) } } ?: JsonNull)
-      put("headingDeg", e.heading.deg)
-      put("pitchDeg", e.heading.pitchDeg)
-      put("rollDeg", e.heading.rollDeg)
-      put("headingSource", e.heading.source.name)
-      putJsonArray("collected") { e.collected.forEach { add(JsonPrimitive(it)) } }
+      put("distanceM", currentReading?.distanceM)
+      put("bearingDeg", currentReading?.bearingDeg)
+      put("strength", currentReading?.strength)
+      put("zone", currentReading?.zone?.name)
+      put("direction", currentReading?.let { r -> eng.direction(r.bearingDeg) })
+      put("lockAvailable", eng.lockAvailable)
+      put("paused", eng.paused)
+      put("speakingKind", eng.speakingKind)
+      put("recording", eng.recording)
+      val listenState = eng.listening
+      if (listenState == null) {
+        put("listening", JsonNull)
+      } else {
+        put("listening", buildJsonObject {
+          put("token", listenState.token)
+          put("mode", listenState.mode.name)
+          put("purpose", listenState.purpose.name)
+        })
+      }
+      put("headingDeg", eng.heading.deg)
+      put("pitchDeg", eng.heading.pitchDeg)
+      put("rollDeg", eng.heading.rollDeg)
+      put("headingSource", eng.heading.source.name)
+      putJsonArray("collected") {
+        eng.collected.forEach { id -> add(JsonPrimitive(id)) }
+      }
       putJsonArray("layers") {
-        mission.signals.forEach { s ->
+        for (sig in mission.signals) {
           add(buildJsonObject {
-            put("signalId", s.id)
-            put("stem", s.stem)
-            put("name", mission.music.stems.firstOrNull { it.id == s.stem }?.name ?: s.name)
-            put("collected", s.id in e.collected)
+            put("signalId", sig.id)
+            put("stem", sig.stem)
+            put("name", mission.music.stems.firstOrNull { stem -> stem.id == sig.stem }?.name ?: sig.name)
+            put("collected", sig.id in eng.collected)
           })
         }
       }
       putJsonArray("transcript") {
-        e.transcript.toList().takeLast(12).forEach { t ->
-          add(buildJsonObject { put("speaker", t.speaker); put("text", t.text); put("fromPlayer", t.fromPlayer) })
+        for (entry in eng.transcript.toList().takeLast(12)) {
+          add(buildJsonObject {
+            put("speaker", entry.speaker)
+            put("text", entry.text)
+            put("fromPlayer", entry.fromPlayer)
+          })
         }
       }
     }.toString()
   }
 
-  /** Where this run's progress stands, for saving. */
-  fun progressJson(): String = Mission.json.encodeToString(Progress.serializer(), engine.progress())
+  /** Run progress as JSON, for the host to persist. */
+  fun progressJson(): String =
+      Mission.json.encodeToString(Progress.serializer(), engine.progress())
 
-  // ---------------------------------------------------------------- translation
+  // -- JSON translation ----------------------------------------------------------
 
-  private fun effects(list: List<Effect>): String = JsonArray(list.map(::effectJson)).toString()
+  private fun encodeEffects(effects: List<Effect>): String =
+      JsonArray(effects.map { effect -> encodeEffect(effect) }).toString()
 
-  private fun effectJson(effect: Effect): JsonElement =
-      when (effect) {
-        is Effect.Speak ->
-            buildJsonObject {
-              put("type", "speak")
-              put("token", effect.token)
-              put("interruptible", effect.interruptible)
-              putJsonArray("utterances") {
-                effect.utterances.forEach { u ->
-                  val character = mission.character(u.speaker)
-                  val from = u.fromSignal?.let { mission.signal(it) }
-                  add(buildJsonObject {
-                    put("lineId", u.lineId)
-                    put("speaker", u.speaker)
-                    put("speakerName", character?.name ?: u.speaker)
-                    put("text", u.text)
-                    put("fromSignal", u.fromSignal)
-                    put("fromLat", from?.location?.lat)
-                    put("fromLon", from?.location?.lon)
-                    put("radio", character?.radio ?: 0.4)
-                    put("pitch", character?.voice?.pitch ?: 1.0)
-                    put("rate", character?.voice?.rate ?: 1.0)
-                  })
-                }
-              }
-            }
-        Effect.StopSpeaking -> type("stopSpeaking")
-        is Effect.PlaySfx ->
-            buildJsonObject {
-              put("type", "sfx")
-              put("sfx", effect.sfx.name)
-              val located = effect.sfx == Sfx.SIGNAL_ACQUIRED || effect.sfx == Sfx.LOCK_AVAILABLE
-              put("bearingDeg", if (located) engine.reading?.bearingDeg else null)
-            }
-        is Effect.Listen ->
-            buildJsonObject {
-              put("type", "listen")
-              put("mode", effect.mode.name)
-              put("timeoutMs", effect.timeoutMs.toDouble())
-              put("token", effect.token)
-              putJsonArray("hints") { effect.hints.forEach { add(JsonPrimitive(it)) } }
-            }
-        Effect.StopListening -> type("stopListening")
-        is Effect.AskCharacter -> {
-          val r = effect.request
-          val c = r.context
-          buildJsonObject {
-            put("type", "ask")
-            put("requestId", r.requestId)
-            // The body POST /v1/npc expects, as the Android app sends it.
-            putJsonObject("body") {
-              put("missionId", mission.id)
-              put("characterId", r.characterId)
-              put("signalId", r.signalId)
-              put("utterance", r.utterance.take(400))
-              putJsonObject("context") {
-                put("phase", c.phase.name)
-                put("objective", c.objective)
-                put("signalName", c.signalName)
-                put("place", c.place)
-                put("distance", c.distance)
-                put("direction", c.direction)
-                put("collected", c.collected)
-                put("total", c.total)
-                putJsonObject("flags") { c.flags.forEach { (k, v) -> put(k, v) } }
-                put("challenge", c.challenge)
-              }
-              putJsonArray("history") {
-                r.history.forEach { t -> add(buildJsonObject { put("role", if (t.fromPlayer) "runner" else "character"); put("text", t.text) }) }
-              }
-            }
-          }
-        }
-        is Effect.StartRecording ->
-            buildJsonObject {
-              put("type", "startRecording")
-              put("signalId", effect.signalId)
-              put("maxSeconds", effect.maxSeconds)
-            }
-        Effect.StopRecording -> type("stopRecording")
-        is Effect.PlayRhythm ->
-            buildJsonObject {
-              put("type", "rhythm")
-              put("token", effect.token)
-              putJsonArray("onsetsBeats") { effect.onsetsBeats.forEach { add(JsonPrimitive(it)) } }
-            }
-        is Effect.UnlockStem ->
-            buildJsonObject {
-              put("type", "unlockStem")
-              put("stemId", effect.stemId)
-            }
-        is Effect.Persist ->
-            buildJsonObject {
-              put("type", "persist")
-              put("progress", Mission.json.encodeToJsonElement(Progress.serializer(), effect.progress))
-            }
-      }
-
-  private fun type(name: String): JsonObject = buildJsonObject { put("type", name) }
-
-  private fun sceneJson(s: AudioScene): JsonObject = buildJsonObject {
-    putJsonObject("stems") {
-      s.stems.forEach { (id, st) ->
-        putJsonObject(id) {
-          put("gain", st.gain)
-          put("bearingDeg", st.worldBearingDeg)
-          put("distanceM", st.distanceM)
-          put("clarity", st.clarity)
-          put("elevationDeg", st.elevationDeg)
+  private fun encodeEffect(effect: Effect): JsonElement = when (effect) {
+    is Effect.Speak -> buildJsonObject {
+      put("type", "speak")
+      put("token", effect.token)
+      put("interruptible", effect.interruptible)
+      putJsonArray("utterances") {
+        for (utterance in effect.utterances) {
+          val character = mission.character(utterance.speaker)
+          val origin = utterance.fromSignal?.let { id -> mission.signal(id) }
+          add(buildJsonObject {
+            put("lineId", utterance.lineId)
+            put("speaker", utterance.speaker)
+            put("speakerName", character?.name ?: utterance.speaker)
+            put("text", utterance.text)
+            put("fromSignal", utterance.fromSignal)
+            put("fromLat", origin?.location?.lat)
+            put("fromLon", origin?.location?.lon)
+            put("radio", character?.radio ?: 0.4)
+            put("pitch", character?.voice?.pitch ?: 1.0)
+            put("rate", character?.voice?.rate ?: 1.0)
+          })
         }
       }
     }
-    put("staticLevel", s.staticLevel)
-    put("staticBearingDeg", s.staticBearingDeg)
-    put("pingIntervalMs", s.pingIntervalMs?.toDouble())
-    put("pingBearingDeg", s.pingBearingDeg)
-    put("pingElevationDeg", s.pingElevationDeg)
-    put("staticElevationDeg", s.staticElevationDeg)
-    put("paused", s.paused)
-    put("antagonistLevel", s.antagonistLevel)
+    Effect.StopSpeaking -> typed("stopSpeaking")
+    is Effect.PlaySfx -> buildJsonObject {
+      put("type", "sfx")
+      put("sfx", effect.sfx.name)
+      val located = effect.sfx == Sfx.SIGNAL_ACQUIRED || effect.sfx == Sfx.LOCK_AVAILABLE
+      put("bearingDeg", if (located) engine.reading?.bearingDeg else null)
+    }
+    is Effect.Listen -> buildJsonObject {
+      put("type", "listen")
+      put("mode", effect.mode.name)
+      put("timeoutMs", effect.timeoutMs.toDouble())
+      put("token", effect.token)
+      putJsonArray("hints") {
+        effect.hints.forEach { hint -> add(JsonPrimitive(hint)) }
+      }
+    }
+    Effect.StopListening -> typed("stopListening")
+    is Effect.AskCharacter -> {
+      val request = effect.request
+      val context = request.context
+      buildJsonObject {
+        put("type", "ask")
+        put("requestId", request.requestId)
+        // Request body for POST /v1/npc, matching the Android client.
+        putJsonObject("body") {
+          put("missionId", mission.id)
+          put("characterId", request.characterId)
+          put("signalId", request.signalId)
+          put("utterance", request.utterance.take(400))
+          putJsonObject("context") {
+            put("phase", context.phase.name)
+            put("objective", context.objective)
+            put("signalName", context.signalName)
+            put("place", context.place)
+            put("distance", context.distance)
+            put("direction", context.direction)
+            put("collected", context.collected)
+            put("total", context.total)
+            putJsonObject("flags") {
+              context.flags.forEach { (key, value) -> put(key, value) }
+            }
+            put("challenge", context.challenge)
+          }
+          putJsonArray("history") {
+            for (turn in request.history) {
+              add(buildJsonObject {
+                put("role", if (turn.fromPlayer) "runner" else "character")
+                put("text", turn.text)
+              })
+            }
+          }
+        }
+      }
+    }
+    is Effect.StartRecording -> buildJsonObject {
+      put("type", "startRecording")
+      put("signalId", effect.signalId)
+      put("maxSeconds", effect.maxSeconds)
+    }
+    Effect.StopRecording -> typed("stopRecording")
+    is Effect.PlayRhythm -> buildJsonObject {
+      put("type", "rhythm")
+      put("token", effect.token)
+      putJsonArray("onsetsBeats") {
+        effect.onsetsBeats.forEach { onset -> add(JsonPrimitive(onset)) }
+      }
+    }
+    is Effect.UnlockStem -> buildJsonObject {
+      put("type", "unlockStem")
+      put("stemId", effect.stemId)
+    }
+    is Effect.Persist -> buildJsonObject {
+      put("type", "persist")
+      put("progress", Mission.json.encodeToJsonElement(Progress.serializer(), effect.progress))
+    }
+  }
+
+  private fun typed(name: String): JsonObject = buildJsonObject { put("type", name) }
+
+  private fun encodeScene(scene: AudioScene): JsonObject = buildJsonObject {
+    putJsonObject("stems") {
+      scene.stems.forEach { (stemId, stem) ->
+        putJsonObject(stemId) {
+          put("gain", stem.gain)
+          put("bearingDeg", stem.worldBearingDeg)
+          put("distanceM", stem.distanceM)
+          put("clarity", stem.clarity)
+          put("elevationDeg", stem.elevationDeg)
+        }
+      }
+    }
+    put("staticLevel", scene.staticLevel)
+    put("staticBearingDeg", scene.staticBearingDeg)
+    put("pingIntervalMs", scene.pingIntervalMs?.toDouble())
+    put("pingBearingDeg", scene.pingBearingDeg)
+    put("pingElevationDeg", scene.pingElevationDeg)
+    put("staticElevationDeg", scene.staticElevationDeg)
+    put("paused", scene.paused)
+    put("antagonistLevel", scene.antagonistLevel)
   }
 }
 
-/** The soundtracks a runner can pick, as JSON: id, title, description, unlocked, unlockAfterCompletions. */
+/** Playable soundtracks as JSON: id, title, description, unlocked, unlockAfterCompletions. */
 @JsExport
 fun soundtrackChoices(missionJson: String, catalogJson: String?, completions: Int): String {
-  val catalog = catalogJson?.let { Mission.json.decodeFromString(TrackCatalog.serializer(), it) }
-  val m = Mission.parse(missionJson).withTracks(catalog)
+  val catalog = decodeCatalog(catalogJson)
+  val parsed = Mission.parse(missionJson).withTracks(catalog)
   return buildJsonArray {
-    Soundtracks.choices(m, completions).forEach { c ->
+    for (choice in Soundtracks.choices(parsed, completions)) {
       add(buildJsonObject {
-        put("id", c.id)
-        put("title", c.title)
-        put("description", c.description)
-        put("unlocked", c.unlocked)
-        put("unlockAfterCompletions", c.unlockAfterCompletions)
+        put("id", choice.id)
+        put("title", choice.title)
+        put("description", choice.description)
+        put("unlocked", choice.unlocked)
+        put("unlockAfterCompletions", choice.unlockAfterCompletions)
       })
     }
   }.toString()
 }
 
-/** Soundtracks the next finished run unlocks, as a JSON array of { id, title }. */
+/** Soundtracks the next finish unlocks, as JSON [{ id, title }]. */
 @JsExport
 fun unlockedByNextCompletion(missionJson: String, catalogJson: String?, completions: Int): String {
-  val catalog = catalogJson?.let { Mission.json.decodeFromString(TrackCatalog.serializer(), it) }
-  val m = Mission.parse(missionJson).withTracks(catalog)
-  return JsonArray(Soundtracks.unlockedByNextCompletion(m, completions).map { buildJsonObject { put("id", it.id); put("title", it.title) } }).toString()
+  val parsed = Mission.parse(missionJson).withTracks(decodeCatalog(catalogJson))
+  val unlocking = Soundtracks.unlockedByNextCompletion(parsed, completions).map { track ->
+    buildJsonObject {
+      put("id", track.id)
+      put("title", track.title)
+    }
+  }
+  return JsonArray(unlocking).toString()
 }
 
-/** Authoring problems in a mission, as a JSON array of messages. */
+/** Authoring problems found in a mission, as a JSON string array. */
 @JsExport
-fun validateMission(missionJson: String): String = JsonArray(MissionValidator.validate(Mission.parse(missionJson)).map { JsonPrimitive(it) }).toString()
+fun validateMission(missionJson: String): String {
+  val problems = MissionValidator.validate(Mission.parse(missionJson))
+  return JsonArray(problems.map { problem -> JsonPrimitive(problem) }).toString()
+}
 
-/** Distance in metres and bearing in degrees between two points, as [distance, bearing]. */
+/** [distanceM, bearingDeg] between two coordinates. */
 @JsExport
 fun distanceAndBearing(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Array<Double> {
-  val a = LatLon(lat1, lon1)
-  val b = LatLon(lat2, lon2)
-  return arrayOf(Geo.distanceM(a, b), Geo.bearingDeg(a, b))
+  val from = LatLon(lat1, lon1)
+  val to = LatLon(lat2, lon2)
+  return arrayOf(Geo.distanceM(from, to), Geo.bearingDeg(from, to))
 }
+
+private fun decodeCatalog(catalogJson: String?): TrackCatalog? =
+    catalogJson?.let { text -> Mission.json.decodeFromString(TrackCatalog.serializer(), text) }
