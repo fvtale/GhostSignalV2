@@ -23,6 +23,8 @@ const loaded = {
   catalog: null,
   catalogJson: null,
   plan: null,
+  missions: [],
+  defaultMissionId: "ghostsignal-bryant-park",
 };
 
 let audioEngine = null;
@@ -57,30 +59,184 @@ function ensureAudio() {
 
 // -- setup ---------------------------------------------------------------------
 
+async function loadMissionData(missionId) {
+  const mission = await api.mission(missionId);
+  loaded.mission = mission;
+  loaded.missionJson = JSON.stringify(mission);
+  store.saveMissionId(mission.id);
+
+  const [route, catalog, plan] = await Promise.all([
+    api.route(mission.id).catch(() => null),
+    api.tracks(mission.id).catch(() => null),
+    api.me(),
+  ]);
+  loaded.routeJson = route ? JSON.stringify(route) : null;
+  loaded.catalog = catalog;
+  loaded.catalogJson = catalog ? JSON.stringify(catalog) : null;
+  loaded.plan = plan;
+  syncCompletionCount(mission.id, plan);
+  return mission;
+}
+
 async function boot() {
   try {
-    const mission = await api.mission();
-    loaded.mission = mission;
-    loaded.missionJson = JSON.stringify(mission);
-
-    const [route, catalog, plan] = await Promise.all([
-      api.route(mission.id).catch(() => null),
-      api.tracks(mission.id).catch(() => null),
-      api.me(),
-    ]);
-    loaded.routeJson = route ? JSON.stringify(route) : null;
-    loaded.catalog = catalog;
-    loaded.catalogJson = catalog ? JSON.stringify(catalog) : null;
-    loaded.plan = plan;
-
-    syncCompletionCount(mission.id, plan);
+    try {
+      const payload = await api.missions();
+      loaded.missions = Array.isArray(payload?.missions) ? payload.missions : [];
+      if (payload?.defaultMissionId) loaded.defaultMissionId = payload.defaultMissionId;
+    } catch {
+      loaded.missions = [];
+    }
+    const storedId = store.missionId();
+    const knownIds = new Set(loaded.missions.map((m) => m.id));
+    const initialId = knownIds.size === 0 || knownIds.has(storedId)
+      ? storedId
+      : loaded.defaultMissionId;
+    await loadMissionData(initialId);
     byId("loading").hidden = true;
     renderSetup();
-    byId("setup").hidden = false;
+    byId("opening").hidden = false;
   } catch (error) {
     byId("loading").hidden = true;
     byId("fatal").hidden = false;
     byId("fatal").textContent = `Couldn't reach the GhostSignal server: ${error.message}`;
+  }
+}
+
+async function switchMission(missionId) {
+  if (!missionId || missionId === loaded.mission?.id) return;
+  if (activeRun) return;
+  const previousId = loaded.mission?.id;
+  const select = byId("missionSelect");
+  if (select) select.disabled = true;
+  try {
+    store.saveMissionId(missionId);
+    await loadMissionData(missionId);
+    byId("run").hidden = true;
+    byId("setup").hidden = false;
+    renderSetup();
+  } catch (error) {
+    if (previousId) store.saveMissionId(previousId);
+    if (select) select.value = previousId ?? missionId;
+    const note = byId("missionNote");
+    if (note) note.textContent = `Couldn't load that mission: ${error.message}`;
+  } finally {
+    if (select) select.disabled = false;
+  }
+}
+
+// -- opening ---------------------------------------------------------------------
+// Rain ambience and Vesper's welcome, then a nearest-landmark suggestion:
+// the city has more than one experience now, and the closest one loads
+// first unless the runner says otherwise. Browsers only allow sound
+// after a tap, so the opening starts on Begin — which is also when
+// geolocation is requested.
+
+let openingVoices = null;
+let suggestedMissionId = null;
+
+function openingVoice() {
+  if (!openingVoices) openingVoices = new Voices(ensureAudio(), loaded.mission?.id);
+  return openingVoices;
+}
+
+async function vesperSay(text) {
+  byId("openingLine").textContent = text;
+  const spec = loaded.mission?.characters?.find((c) => c.id === "vesper")?.voice ?? {};
+  await openingVoice().say(
+    { speaker: "vesper", text, pitch: spec.pitch ?? 1, rate: spec.rate ?? 1, lineId: null },
+    null,
+  );
+}
+
+function nearestMission(lat, lon) {
+  let best = null;
+  for (const entry of loaded.missions) {
+    const lm = entry.landmark;
+    if (!lm?.location) continue;
+    const [distanceM] = measureBetween(lat, lon, lm.location.lat, lm.location.lon);
+    if (!best || distanceM < best.distanceM) best = { entry, distanceM };
+  }
+  return best;
+}
+
+function locateNearest() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    const timer = setTimeout(() => resolve(null), 9000);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer);
+        resolve(nearestMission(pos.coords.latitude, pos.coords.longitude));
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+      { timeout: 8000, maximumAge: 60000 },
+    );
+  });
+}
+
+function finishOpening() {
+  byId("opening").hidden = true;
+  byId("setup").hidden = false;
+  renderSetup();
+  const ambience = byId("ambience");
+  if (ambience) ambience.volume = 0.22; // rain stays under the setup screen
+}
+
+function stopAmbience() {
+  const ambience = byId("ambience");
+  if (ambience) ambience.pause();
+}
+
+async function beginOpening() {
+  byId("beginOpening").hidden = true;
+  const ambience = byId("ambience");
+  if (ambience) {
+    ambience.volume = 0.55;
+    ambience.play().catch(() => {});
+  }
+  await vesperSay("Welcome to Ghost Signal, a premium DataRail experience.");
+  const located = await locateNearest();
+  byId("openingChoices").hidden = false;
+  if (located) {
+    suggestedMissionId = located.entry.id;
+    byId("openingYes").hidden = false;
+    await vesperSay(
+      `Your nearest location appears to be ${located.entry.landmark.label}. Is this correct?`,
+    );
+  } else {
+    suggestedMissionId = null;
+    byId("openingYes").hidden = true;
+    await vesperSay("I can't see where you are yet. Choose your location to continue.");
+  }
+}
+
+function renderMissionChoices() {
+  const select = byId("missionSelect");
+  if (!select || !loaded.mission) return;
+  const entries = loaded.missions.length
+    ? loaded.missions
+    : [{ id: loaded.mission.id, title: loaded.mission.title || loaded.mission.id }];
+  const withCurrent = entries.some((m) => m.id === loaded.mission.id)
+    ? entries
+    : [...entries, { id: loaded.mission.id, title: loaded.mission.title || loaded.mission.id }];
+  select.textContent = "";
+  for (const entry of withCurrent) {
+    select.append(createElement("option", { value: entry.id, text: entry.title || entry.id }));
+  }
+  select.value = loaded.mission.id;
+  select.onchange = () => {
+    store.saveMissionId(select.value);
+    switchMission(select.value);
+  };
+  const note = byId("missionNote");
+  if (note) {
+    note.textContent = loaded.mission.title
+      ? `Now playing: ${loaded.mission.title}`
+      : "";
   }
 }
 
@@ -101,6 +257,7 @@ function renderSetup() {
   whoLink.textContent = plan ? plan.account.email : "Sign in";
   whoLink.href = plan ? "/account/" : "/account/?return=/play/";
 
+  renderMissionChoices();
   renderSoundtrackChoices();
 
   const settings = store.settings();
@@ -243,11 +400,58 @@ byId("allowMic").addEventListener("click", async () => {
 byId("start").addEventListener("click", () => startRun(false));
 byId("resume").addEventListener("click", () => startRun(true));
 
+byId("beginOpening").addEventListener("click", () => beginOpening().catch(() => {}));
+byId("openingYes").addEventListener("click", async () => {
+  if (suggestedMissionId && suggestedMissionId !== loaded.mission?.id) {
+    await switchMission(suggestedMissionId); // renders + shows setup
+    byId("opening").hidden = true;
+    const ambience = byId("ambience");
+    if (ambience) ambience.volume = 0.22;
+  } else {
+    finishOpening();
+  }
+});
+byId("openingOther").addEventListener("click", () => {
+  finishOpening();
+  byId("missionSelect")?.focus();
+});
+byId("openingVoice").addEventListener("click", () => {
+  const speech = new Speech();
+  if (!speech.available) return;
+  byId("openingNote").textContent = "Listening — say yes, or no…";
+  speech.listen(
+    { timeoutMs: 5000, hints: ["yes", "no", "correct"] },
+    {
+      onText: (text, isFinal) => {
+        if (!isFinal) return;
+        const said = text.toLowerCase();
+        if (/\b(yes|yeah|correct|right)\b/.test(said)) byId("openingYes").click();
+        else if (/\b(no|nope|wrong|different)\b/.test(said)) byId("openingOther").click();
+      },
+      onEnd: () => {
+        byId("openingNote").textContent = "Rain over the city, while Vesper finds your nearest location.";
+      },
+    },
+  );
+});
+
 // -- a run -----------------------------------------------------------------------
 
 async function startRun(resume) {
+  const desiredId = store.missionId();
+  if (loaded.mission?.id !== desiredId) {
+    try {
+      await loadMissionData(desiredId);
+      renderSetup();
+    } catch (error) {
+      byId("fatal").hidden = false;
+      byId("fatal").textContent = `Couldn't load that mission: ${error.message}`;
+      return;
+    }
+  }
   const engine = ensureAudio();
   await engine.resume(); // Inside the tap, so the browser allows sound.
+  stopAmbience(); // the run's own soundtrack takes over from the rain
   byId("setup").hidden = true;
   byId("run").hidden = false;
   byId("objective").textContent = "Loading the soundtrack…";
@@ -485,7 +689,10 @@ class Run {
       try {
         const timeout = new Promise((_, reject) =>
           setTimeout(() => reject(new Error("timeout")), NPC_TIMEOUT_MS));
-        const result = await Promise.race([api.npc(effect.body), timeout]);
+        const npcBody = effect.body && typeof effect.body === "object"
+          ? { ...effect.body, missionId: effect.body.missionId ?? this.mission.id }
+          : effect.body;
+        const result = await Promise.race([api.npc(npcBody), timeout]);
         reply = result.reply ?? null;
       } catch {
         reply = null; // The engine falls back to its written lines.

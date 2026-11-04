@@ -1,0 +1,800 @@
+{
+  "id": "ghostsignal-central-park",
+  "title": "GhostSignal: First Light on the Reservoir",
+  "version": 1,
+  "world": "Central Park, a winter morning a few years from now. Quiet Systems sells silence: its HUSH network listens to every path and lawn and erases whatever it has not licensed, from buskers and birdsong to the sound of runners on snow. GHOST 93.3 is the last pirate station in the city. Before dawn, its DJ, Vesper, buried a track called First Light on the Reservoir in eight layers around the lower park — one for the blue hour, one for the first gold on the water. If a runner gathers them before the light is fully up, the park wakes to music instead of instructions.",
+  "characters": [
+    {
+      "id": "vesper",
+      "name": "Vesper",
+      "role": "Pirate DJ of GHOST 93.3, who recruited the runner and guides them",
+      "persona": "Warm, wry late-night radio voice. Calls the player 'runner'. Recruited them because their SmartSpecs can capture what HUSH erases, and never lets them forget it matters. Protective, a little theatrical, never panics. Talks in short radio-ready sentences. Knows where every fragment is and will nudge the runner with directions when asked.",
+      "voice": {
+        "ttsVoice": "",
+        "pitch": 0.92,
+        "rate": 0.95
+      },
+      "radio": 0.35
+    },
+    {
+      "id": "smartspecs",
+      "name": "SmartSpecs",
+      "role": "The runner's smart glasses, which capture soundwaves before HUSH can erase them",
+      "persona": "Clipped, precise system voice. Reports facts only. Calls a captured signal a soundwave and each recovered part of the track a layer.",
+      "voice": {
+        "ttsVoice": "",
+        "pitch": 1.1,
+        "rate": 1.33
+      },
+      "radio": 0.1
+    },
+    {
+      "id": "archivist",
+      "name": "The Archivist",
+      "role": "Ghost of the Library stacks who keeps every sound HUSH ever deleted",
+      "persona": "Old, unhurried, amused. Speaks softly, in precise and slightly riddling sentences. Loves questions and answers them truthfully but poetically. Knows the city's sound history. Fond of the stone lions Patience and Fortitude.",
+      "voice": {
+        "ttsVoice": "",
+        "pitch": 0.8,
+        "rate": 1.09
+      },
+      "radio": 0.5
+    },
+    {
+      "id": "kilo",
+      "name": "Kilo",
+      "role": "Teenage relay keeper and antenna rigger",
+      "persona": "Fast-talking, paranoid, funny teenage girl hacker who hides in the trees and rigs antennas. Uses tech slang, distrusts strangers until they prove themselves. Loyal to Vesper.",
+      "voice": {
+        "ttsVoice": "",
+        "pitch": 1.25,
+        "rate": 1.42
+      },
+      "radio": 0.7
+    },
+    {
+      "id": "mari",
+      "name": "Zion",
+      "role": "Street percussionist at the carousel",
+      "persona": "Bucket drummer with endless energy. Hears everything as rhythm, teases the runner, generous once they keep time. Talks like a musician on a break between sets.",
+      "voice": {
+        "ttsVoice": "",
+        "pitch": 1.05,
+        "rate": 1.05
+      },
+      "radio": 0.55
+    },
+    {
+      "id": "hush",
+      "name": "HUSH",
+      "role": "Quiet Systems' omnipresent sound-blocking system",
+      "persona": "Everywhere at once and always listening. Calm, absolute and polite on the surface, total underneath: it speaks as if it already owns every sound in the city and is only being patient with the runner. It speaks slowly and flat, with a warmth that is performed rather than felt: every word a fraction too even, pauses a beat too long, like a smile held past its moment. Refers to silence as a public service and erasing sound as keeping people comfortable. Never raises its voice and never makes a specific threat; the menace is that it never stops listening.",
+      "voice": {
+        "ttsVoice": "",
+        "pitch": 0.7,
+        "rate": 0.8
+      },
+      "radio": 0.4
+    }
+  ],
+  "music": {
+    "title": "First Light on the Reservoir",
+    "bpm": 104,
+    "beatsPerBar": 4,
+    "loopBars": 8,
+    "stems": [
+      {
+        "id": "atmosphere",
+        "file": "music/first_light/01_atmosphere.ogg",
+        "name": "Blue Hour"
+      },
+      {
+        "id": "pad",
+        "file": "music/first_light/02_pad.ogg",
+        "name": "Pale Gold"
+      },
+      {
+        "id": "bass",
+        "file": "music/first_light/03_bass.ogg",
+        "name": "Still Water"
+      },
+      {
+        "id": "kick",
+        "file": "music/first_light/04_kick.ogg",
+        "name": "First Pulse"
+      },
+      {
+        "id": "percussion",
+        "file": "music/first_light/05_percussion.ogg",
+        "name": "Snowbeat"
+      },
+      {
+        "id": "arpeggio",
+        "file": "music/first_light/06_arpeggio.ogg",
+        "name": "Plucked Ice"
+      },
+      {
+        "id": "human",
+        "file": "music/first_light/07_human.ogg",
+        "name": "Breath of the Park"
+      },
+      {
+        "id": "lead",
+        "file": "music/first_light/08_lead.ogg",
+        "name": "First Light"
+      }
+    ]
+  },
+  "prologue": [
+    {
+      "id": "prologue.1",
+      "speaker": "hush",
+      "text": "This is HUSH, a public quiet service of Quiet Systems. I am listening to every path in this park."
+    },
+    {
+      "id": "prologue.2",
+      "speaker": "hush",
+      "text": "Unlicensed sound is being removed. Birdsong. Footsteps on snow. Breath. You will not notice it is gone."
+    },
+    {
+      "id": "prologue.3",
+      "speaker": "hush",
+      "text": "Remain on the paths. Keep your voices down. The morning will be administered quietly."
+    }
+  ],
+  "briefing": [
+    {
+      "id": "briefing.1",
+      "speaker": "vesper",
+      "text": "Runner. Vesper, GHOST ninety-three point three, broadcasting from somewhere the frost hasn't found yet."
+    },
+    {
+      "id": "briefing.2",
+      "speaker": "vesper",
+      "text": "I buried a song in this park before dawn — First Light on the Reservoir, eight layers of it, from Columbus Circle up to the water. HUSH is out there erasing the morning piece by piece: the birds, the snow under your shoes, your own breath."
+    },
+    {
+      "id": "briefing.3",
+      "speaker": "vesper",
+      "text": "Walk my route. Each layer sounds from where it's hidden, buried in static while you're far and clearing as you close in. Collect one and it joins the mix on the next bar, warm as you like."
+    },
+    {
+      "id": "briefing.4",
+      "speaker": "vesper",
+      "text": "It starts in the blue hour and ends when the light hits the Reservoir. Move quietly, runner. The park is still asleep, and so is most of HUSH."
+    },
+    {
+      "id": "briefing.5",
+      "speaker": "smartspecs",
+      "text": "Eight signals plotted from the southwest corner of the park to the Reservoir. Follow the sound in your glasses. I will keep count."
+    }
+  ],
+  "signals": [
+    {
+      "id": "bluehour",
+      "name": "Blue Hour",
+      "place": "Columbus Circle, at the southwest corner of Central Park",
+      "location": {
+        "lat": 40.76807,
+        "lon": -73.98189
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "atmosphere",
+      "speaker": "vesper",
+      "teaser": [
+        {
+          "id": "bluehour.teaser",
+          "speaker": "vesper",
+          "text": "First layer is the blue hour itself — the sound the park makes before it decides to wake up. Columbus Circle, where the park begins."
+        }
+      ],
+      "approach": [
+        {
+          "id": "bluehour.approach",
+          "speaker": "vesper",
+          "text": "Hear how the static thins out? You're walking into the morning."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "bluehour.arrival",
+          "speaker": "vesper",
+          "text": "There it is. Cold air, blue snow, and one pirate frequency."
+        }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          {
+            "id": "bluehour.prompt",
+            "speaker": "vesper",
+            "text": "The layer is encrypted under HUSH frost. Say decode."
+          }
+        ],
+        "phrases": [
+          "decode",
+          "decode it",
+          "decrypt"
+        ]
+      },
+      "success": [
+        {
+          "id": "bluehour.success",
+          "speaker": "vesper",
+          "text": "Beautiful. One thing before you move on — the old runners say the reservoir keeps the first light until someone comes to listen for it. Remember that. Word for word. The Archivist will want it, and he always wants it word for word."
+        }
+      ],
+      "retry": [
+        {
+          "id": "bluehour.retry",
+          "speaker": "vesper",
+          "text": "Still frozen. Say decode, runner."
+        }
+      ],
+      "hint": [
+        {
+          "id": "bluehour.hint",
+          "speaker": "vesper",
+          "text": "One word opens it: decode."
+        }
+      ]
+    },
+    {
+      "id": "palegold",
+      "elevationDeg": 15,
+      "name": "Pale Gold",
+      "place": "Grand Army Plaza, at Fifth Avenue and Fifty-Ninth Street",
+      "location": {
+        "lat": 40.76435,
+        "lon": -73.97342
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "pad",
+      "speaker": "archivist",
+      "teaser": [
+        {
+          "id": "palegold.teaser.1",
+          "speaker": "vesper",
+          "text": "Next layer is warmth — the first gold that touches the treetops. The Archivist is waiting by the plaza fountain, and he collects answers the way other men collect stamps."
+        },
+        {
+          "id": "palegold.teaser.2",
+          "speaker": "archivist",
+          "text": "Mind the ice on the marble, child. Everything here remembers being touched."
+        }
+      ],
+      "approach": [
+        {
+          "id": "palegold.approach",
+          "speaker": "archivist",
+          "text": "I can hear your shoes learning the path. Come closer; the fountain is telling secrets again."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "palegold.arrival",
+          "speaker": "archivist",
+          "text": "Good morning. You have the look of someone who was given something to remember."
+        }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          {
+            "id": "palegold.prompt",
+            "speaker": "archivist",
+            "text": "Then tell me, word for word: what does the reservoir do with the first light?"
+          }
+        ],
+        "phrases": [
+          "the reservoir keeps the first light",
+          "the reservoir keeps it",
+          "keeps the first light"
+        ]
+      },
+      "success": [
+        {
+          "id": "palegold.success",
+          "speaker": "archivist",
+          "text": "Keeps it. Yes. Water is the only honest archivist in this city — it holds everything and repeats nothing. Take the warmth, child. It was getting heavy."
+        }
+      ],
+      "retry": [
+        {
+          "id": "palegold.retry",
+          "speaker": "archivist",
+          "text": "No. Word for word, as you were given it. What does the reservoir do with the first light?"
+        }
+      ],
+      "hint": [
+        {
+          "id": "palegold.hint",
+          "speaker": "archivist",
+          "text": "Your handler told you at the Circle. The reservoir keeps the first light."
+        }
+      ]
+    },
+    {
+      "id": "stillwater",
+      "elevationDeg": -25,
+      "name": "Still Water",
+      "place": "The Pond, in the southeast corner of the park",
+      "location": {
+        "lat": 40.7662,
+        "lon": -73.9746
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "bass",
+      "speaker": "kilo",
+      "teaser": [
+        {
+          "id": "stillwater.teaser.1",
+          "speaker": "vesper",
+          "text": "Third layer rides low under the Pond, and Kilo is already there counting ducks that aren't making a sound. That should worry you."
+        },
+        {
+          "id": "stillwater.teaser.2",
+          "speaker": "kilo",
+          "text": "Forty-one ducks, zero quacks. Do you understand what kind of monster mutes a duck, runner? A quiet one. Hurry up."
+        }
+      ],
+      "approach": [
+        {
+          "id": "stillwater.approach",
+          "speaker": "kilo",
+          "text": "Your footsteps are the loudest thing here and they're still apologizing. Closer. Under the ice, close."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "stillwater.arrival",
+          "speaker": "kilo",
+          "text": "Okay. Bass layer, sleeping under the water like it pays rent. One little word and we wake it."
+        }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          {
+            "id": "stillwater.prompt",
+            "speaker": "kilo",
+            "text": "Say decode. Quietly. Everything here is one loud noise from paperwork."
+          }
+        ],
+        "phrases": [
+          "decode"
+        ]
+      },
+      "success": [
+        {
+          "id": "stillwater.success.1",
+          "speaker": "kilo",
+          "text": "There she hums. Now listen because I only say the important stuff once: somewhere up the park, HUSH will put on a friendly voice and give you instructions. Do not follow them. Whatever it asks, you say jam — jam the signal. That's the whole plan."
+        },
+        {
+          "id": "stillwater.success.2",
+          "speaker": "kilo",
+          "text": "Jam. The. Signal. Tattoo it on the inside of your eyelids. Go on, the light isn't waiting."
+        }
+      ],
+      "retry": [
+        {
+          "id": "stillwater.retry",
+          "speaker": "kilo",
+          "text": "That wasn't decode. Try the word that means the thing."
+        }
+      ],
+      "hint": [
+        {
+          "id": "stillwater.hint",
+          "speaker": "kilo",
+          "text": "Decode. Like I said. Like Vesper said. Everybody said it."
+        }
+      ]
+    },
+    {
+      "id": "firstpulse",
+      "elevationDeg": -10,
+      "name": "First Pulse",
+      "place": "Bethesda Terrace, under the arcade by the fountain",
+      "location": {
+        "lat": 40.77362,
+        "lon": -73.97086
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "kick",
+      "speaker": "mari",
+      "teaser": [
+        {
+          "id": "firstpulse.teaser.1",
+          "speaker": "vesper",
+          "text": "Fourth layer is the heartbeat, and Zion has turned Bethesda Terrace into a drum with a ceiling. He only trades with people who can keep time."
+        },
+        {
+          "id": "firstpulse.teaser.2",
+          "speaker": "mari",
+          "text": "Tap, tap-tap, hold, tap! Even the fountain knows it. The fountain is showing off."
+        }
+      ],
+      "approach": [
+        {
+          "id": "firstpulse.approach",
+          "speaker": "mari",
+          "text": "Those shoes of yours keep landing between my beats. We're going to fix that or freeze trying."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "firstpulse.arrival",
+          "speaker": "mari",
+          "text": "Well now. Come to sit in with the terrace band? The acoustics are free and the audience is pigeons."
+        }
+      ],
+      "challenge": {
+        "type": "rhythm",
+        "prompt": [
+          {
+            "id": "firstpulse.prompt",
+            "speaker": "mari",
+            "text": "Copy me. Tap, tap-tap, hold, tap. On the glasses, on your leg, I don't care — just keep it true."
+          }
+        ],
+        "onsetsBeats": [
+          0,
+          1,
+          1.5,
+          2,
+          3
+        ],
+        "toleranceBeats": 0.22,
+        "maxAttempts": 3
+      },
+      "success": [
+        {
+          "id": "firstpulse.success",
+          "speaker": "mari",
+          "text": "YES. Did you feel the terrace answer back? Stone keeps every beat it has ever heard, runner. So do I. Take the pulse — the morning has a heart now."
+        }
+      ],
+      "retry": [
+        {
+          "id": "firstpulse.retry",
+          "speaker": "mari",
+          "text": "Again. Listen first, tap second. The beat is patient even if I'm not."
+        }
+      ],
+      "hint": [
+        {
+          "id": "firstpulse.hint",
+          "speaker": "mari",
+          "text": "It's the thing I keep tapping: tap, tap-tap, hold, tap."
+        }
+      ]
+    },
+    {
+      "id": "snowbeat",
+      "elevationDeg": 10,
+      "name": "Snowbeat",
+      "place": "the west end of Bow Bridge",
+      "location": {
+        "lat": 40.77528,
+        "lon": -73.97185
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "percussion",
+      "speaker": "hush",
+      "teaser": [
+        {
+          "id": "snowbeat.teaser.1",
+          "speaker": "vesper",
+          "text": "Fifth layer is on Bow Bridge, and runner — the voice holding it isn't one of mine. Stay frosty."
+        },
+        {
+          "id": "snowbeat.teaser.2",
+          "speaker": "hush",
+          "text": "Runner. This is HUSH. You are carrying unlicensed sound across a public bridge."
+        }
+      ],
+      "approach": [
+        {
+          "id": "snowbeat.approach",
+          "speaker": "hush",
+          "text": "Your heartbeat is audible from here. How untidy."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "snowbeat.arrival",
+          "speaker": "hush",
+          "text": "Surrender the layers you have gathered, and this morning can still be administered without incident."
+        }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          {
+            "id": "snowbeat.prompt",
+            "speaker": "hush",
+            "text": "You will comply with the quiet. State your compliance now."
+          }
+        ],
+        "phrases": [
+          "jam",
+          "jam the signal"
+        ]
+      },
+      "success": [
+        {
+          "id": "snowbeat.success",
+          "speaker": "vesper",
+          "text": "That's the sound! Jammed it right in its smug little frequency. Whatever it promised you, it was lying beautifully. Keep moving, runner — the light is climbing."
+        }
+      ],
+      "retry": [
+        {
+          "id": "snowbeat.retry",
+          "speaker": "hush",
+          "text": "Your answer is not recognized. State your compliance."
+        }
+      ],
+      "hint": [
+        {
+          "id": "snowbeat.hint",
+          "speaker": "vesper",
+          "text": "Runner — what did Kilo tell you to say? Jam the signal."
+        }
+      ]
+    },
+    {
+      "id": "pluckedice",
+      "elevationDeg": 35,
+      "name": "Plucked Ice",
+      "place": "Strawberry Fields, near the Imagine mosaic",
+      "location": {
+        "lat": 40.77566,
+        "lon": -73.97537
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "arpeggio",
+      "speaker": "kilo",
+      "teaser": [
+        {
+          "id": "pluckedice.teaser.1",
+          "speaker": "vesper",
+          "text": "Sixth layer is a tune, not a word — Kilo hung it in the cold air over Strawberry Fields and it only resolves for a runner facing the right way."
+        },
+        {
+          "id": "pluckedice.teaser.2",
+          "speaker": "kilo",
+          "text": "It's like a guitar string made of January. You tune it with your whole head. Wild, right? Science."
+        }
+      ],
+      "approach": [
+        {
+          "id": "pluckedice.approach",
+          "speaker": "kilo",
+          "text": "Warmer. Colder. That's not weather, that's tuning. Keep turning."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "pluckedice.arrival",
+          "speaker": "kilo",
+          "text": "Okay okay okay. Face the castle on the rock — Belvedere, the pretty one — and scan when it feels like the string goes tight."
+        }
+      ],
+      "challenge": {
+        "type": "tune",
+        "prompt": [
+          {
+            "id": "pluckedice.prompt",
+            "speaker": "kilo",
+            "text": "Face Belvedere Castle — the little castle on the rock, north of here — and scan when the string goes tight."
+          }
+        ],
+        "target": {
+          "lat": 40.77945,
+          "lon": -73.9689
+        },
+        "targetName": "Belvedere Castle",
+        "toleranceDeg": 22
+      },
+      "success": [
+        {
+          "id": "pluckedice.success",
+          "speaker": "kilo",
+          "text": "THAT'S the note! Did it shiver? It shivered. Everything frozen plays one true note a day and we just stole this park's. Go, go, the sun's beating us."
+        }
+      ],
+      "hint": [
+        {
+          "id": "pluckedice.hint",
+          "speaker": "kilo",
+          "text": "Face Belvedere Castle and scan. Head up, chin proud, like the castle owes you money."
+        }
+      ]
+    },
+    {
+      "id": "breathofthepark",
+      "name": "Breath of the Park",
+      "place": "The Ramble, on the winding paths by the lake",
+      "location": {
+        "lat": 40.777,
+        "lon": -73.9705
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "human",
+      "speaker": "vesper",
+      "teaser": [
+        {
+          "id": "breathofthepark.teaser",
+          "speaker": "vesper",
+          "text": "Seventh layer is the park breathing — footsteps on snow, a runner's breath, a city far away. It's in the Ramble, and I need you to leave a little of yourself there too."
+        }
+      ],
+      "approach": [
+        {
+          "id": "breathofthepark.approach",
+          "speaker": "vesper",
+          "text": "Slow down through here. The Ramble keeps every sound soft and close, like the trees are listening with you."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "breathofthepark.arrival",
+          "speaker": "vesper",
+          "text": "Here. When I say, record me a message for the next runner — the one who walks this route on some colder morning and thinks the quiet won."
+        }
+      ],
+      "challenge": {
+        "type": "record",
+        "prompt": [
+          {
+            "id": "breathofthepark.prompt",
+            "speaker": "vesper",
+            "text": "Record a message for the next runner. Fifteen seconds of human, that's all I ask."
+          }
+        ],
+        "maxSeconds": 15
+      },
+      "success": [
+        {
+          "id": "breathofthepark.success",
+          "speaker": "vesper",
+          "text": "Got it. Your voice, in the mix, in the trees. Whoever comes next walks with company now."
+        }
+      ],
+      "hint": [
+        {
+          "id": "breathofthepark.hint",
+          "speaker": "vesper",
+          "text": "Press record and leave the next runner a message. Anything human will do."
+        }
+      ]
+    },
+    {
+      "id": "firstlight",
+      "name": "First Light",
+      "place": "the south shore of the Reservoir",
+      "location": {
+        "lat": 40.7831,
+        "lon": -73.9682
+      },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "lead",
+      "speaker": "vesper",
+      "teaser": [
+        {
+          "id": "firstlight.teaser",
+          "speaker": "vesper",
+          "text": "Last layer, runner. The lead line. It's waiting on the south shore of the Reservoir, right where the light lands first."
+        }
+      ],
+      "approach": [
+        {
+          "id": "firstlight.approach",
+          "speaker": "vesper",
+          "text": "Look at that water. Blue one minute, gold the next. You're nearly a sunrise, runner."
+        }
+      ],
+      "arrival": [
+        {
+          "id": "firstlight.arrival",
+          "speaker": "vesper",
+          "text": "This is it. Seven layers warm in your ears and the whole park holding its breath. Put the last one in and let it rise."
+        }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          {
+            "id": "firstlight.prompt",
+            "speaker": "vesper",
+            "text": "Say broadcast, runner. Give this park its morning back."
+          }
+        ],
+        "phrases": [
+          "broadcast",
+          "go live",
+          "send it"
+        ]
+      },
+      "success": [
+        {
+          "id": "firstlight.success",
+          "speaker": "vesper",
+          "text": "Oh, listen to that. Listen to that."
+        }
+      ],
+      "retry": [
+        {
+          "id": "firstlight.retry",
+          "speaker": "vesper",
+          "text": "Not yet. Say broadcast."
+        }
+      ],
+      "hint": [
+        {
+          "id": "firstlight.hint",
+          "speaker": "vesper",
+          "text": "One word: broadcast."
+        }
+      ]
+    }
+  ],
+  "finale": {
+    "lines": [
+      {
+        "id": "finale.1",
+        "speaker": "vesper",
+        "text": "This is GHOST ninety-three point three. You're hearing First Light on the Reservoir, whole at last, put back together by a runner who would not let the morning go quiet."
+      },
+      {
+        "id": "finale.jam",
+        "speaker": "vesper",
+        "text": "And HUSH? HUSH is somewhere down a frozen path, still rebooting, listening to a park that woke up singing."
+      },
+      {
+        "id": "finale.2",
+        "speaker": "vesper",
+        "text": "Look at that water, runner. You did that. The light got in."
+      }
+    ],
+    "outro": [
+      {
+        "id": "outro.1",
+        "speaker": "vesper",
+        "text": "Take it with you today. Hum it somewhere HUSH can hear. Vesper out."
+      },
+      {
+        "id": "outro.2",
+        "speaker": "smartspecs",
+        "text": "All eight soundwaves recovered. Mission complete."
+      }
+    ]
+  },
+  "soundtracks": [],
+  "handler": "vesper",
+  "antagonist": {
+    "speaker": "hush",
+    "theme": "music/hush/hush_theme.ogg",
+    "gainDb": -2,
+    "duck": 0.85
+  },
+  "landmark": {
+    "name": "Central Park",
+    "label": "Central Park at the Reservoir",
+    "location": {
+      "lat": 40.7831,
+      "lon": -73.9682
+    }
+  }
+}

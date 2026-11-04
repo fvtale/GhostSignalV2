@@ -3,6 +3,8 @@
 // signing in on either surface signs in on both.
 
 const ACCOUNT_TOKEN_KEY = "ghostsignal-account";
+export const MISSION_ID_KEY = "ghostsignal.missionId";
+export const DEFAULT_MISSION_ID = "ghostsignal-bryant-park";
 const STORAGE_KEYS = {
   progress: "ghostsignal-progress",
   rewards: "ghostsignal-rewards",
@@ -53,6 +55,22 @@ export const store = {
       // Nothing stored to forget.
     }
   },
+
+  missionId() {
+    try {
+      return localStorage.getItem(MISSION_ID_KEY) || DEFAULT_MISSION_ID;
+    } catch {
+      return DEFAULT_MISSION_ID;
+    }
+  },
+  saveMissionId(missionId) {
+    try {
+      if (missionId) localStorage.setItem(MISSION_ID_KEY, missionId);
+      else localStorage.removeItem(MISSION_ID_KEY);
+    } catch {
+      // Private window: selection still applies for this page load.
+    }
+  },
 };
 
 function httpFailure(response, payload) {
@@ -91,7 +109,11 @@ async function requestBytes(path) {
 
 export const api = {
   health: () => requestJson("/health"),
-  mission: () => requestJson("/v1/mission"),
+  missions: () => requestJson("/v1/missions"),
+  mission: (missionId) =>
+    missionId
+      ? requestJson(`/v1/mission?missionId=${encodeURIComponent(missionId)}`)
+      : requestJson("/v1/mission"),
 
   /** The shared venue route, or null when no route has been published. */
   async route(missionId) {

@@ -22,6 +22,22 @@
   <p class="error" id="fatal" role="alert" hidden></p>
 
   <!-- ============================================================ setup -->
+  <section id="opening" hidden>
+    <div class="card">
+      <p class="label">DataRail · Ghost 93.3</p>
+      <h2>Welcome to GhostSignal</h2>
+      <p id="openingLine">A premium DataRail experience.</p>
+      <button type="button" class="btn big" id="beginOpening">Begin</button>
+      <div class="choices" id="openingChoices" hidden>
+        <button type="button" class="btn" id="openingYes">Yes, that's right</button>
+        <button type="button" class="btn ghost" id="openingOther">Choose a different location</button>
+        <button type="button" class="btn ghost" id="openingVoice">Answer by voice</button>
+      </div>
+      <p class="muted small" id="openingNote">Rain over the city, while Vesper finds your nearest location.</p>
+      <audio id="ambience" src="/play/assets/music/ambience/rain_city.ogg" loop preload="auto"></audio>
+    </div>
+  </section>
+
   <section id="setup" hidden>
     <div class="hero">
       <h1>GHOSTSIGNAL</h1>
@@ -46,6 +62,13 @@
         <button type="button" class="btn ghost" id="allowMic">Allow</button>
       </li>
     </ol>
+
+    <div class="card">
+      <h2>Mission</h2>
+      <label class="mission-label" for="missionSelect">Choose a mission</label>
+      <select id="missionSelect" aria-label="Mission"></select>
+      <p class="muted small" id="missionNote"></p>
+    </div>
 
     <div class="card">
       <h2>Soundtrack</h2>

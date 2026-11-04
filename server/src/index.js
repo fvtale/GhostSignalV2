@@ -2,7 +2,7 @@ import { createAccounts } from "./accounts.js";
 import { createAdmin } from "./admin.js";
 import { loadEnvFile } from "./env.js";
 import { createMeta } from "./meta.js";
-import { loadMission } from "./mission.js";
+import { loadMission, loadMissions } from "./mission.js";
 import { createNpc } from "./npc.js";
 import { createServer } from "./server.js";
 import { createStore } from "./store.js";
@@ -17,7 +17,9 @@ import { createTts } from "./tts.js";
 const envFileKeys = loadEnvFile();
 if (envFileKeys.length) console.log(`loaded ${envFileKeys.length} setting(s) from .env`);
 
+const missions = loadMissions();
 const mission = loadMission();
+if (!missions.has(mission.id)) missions.set(mission.id, mission);
 const meta = createMeta();
 const npc = createNpc({ meta });
 const stt = createStt({ meta });
@@ -61,7 +63,7 @@ const adminModes = ["admin accounts", operatorToken && "operator token", datarai
 const paymentProviders = ["stripe", "lemonsqueezy"].filter((key) => billing.secrets[key]).join(", ") || "none";
 
 console.log(
-  `mission ${mission.id} · characters ${npc.enabled ? `on ${npc.model}` : "OFF (no MODEL_API_KEY)"}` +
+  `missions ${[...missions.keys()].join(", ")} (default ${mission.id}) · characters ${npc.enabled ? `on ${npc.model}` : "OFF (no MODEL_API_KEY)"}` +
   ` · speech ${stt.enabled ? `on ${stt.model}` : "OFF (no MODEL_API_KEY)"}` +
   ` · voices on-device · admin sign-in ${adminModes}`,
 );
@@ -77,7 +79,7 @@ const assetsDir = process.env.ASSETS_DIR || undefined;
 const trustProxy = /^(1|true|yes)$/i.test(process.env.TRUST_PROXY ?? "");
 
 const server = createServer({
-  mission, npc, tts, stt, store,
+  mission, missions, npc, tts, stt, store,
   eventToken, operatorToken, accounts, admin, billing,
   assetsDir, trustProxy,
 });

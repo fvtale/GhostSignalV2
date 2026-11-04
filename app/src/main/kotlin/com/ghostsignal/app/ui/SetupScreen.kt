@@ -95,6 +95,16 @@ fun SetupScreen(
       Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
+    var openingDone by remember { mutableStateOf(false) }
+    if (!openingDone) {
+      OpeningCard(
+          graph = graph,
+          hasLocation = perms.location,
+          onChooseDifferent = {},
+          onDone = { openingDone = true },
+      )
+    }
+
     Label("GHOST 93.3 // SIGNAL RUNNER", Rail.Brass, 14, FontWeight.Bold)
     Label(mission.title, Rail.Text, 20, FontWeight.Bold)
     Label(
@@ -102,6 +112,17 @@ fun SetupScreen(
         Rail.Dim,
         12,
     )
+
+    if (graph.missions.availableMissions.size > 1) {
+      Section("Mission") {
+        graph.missions.availableMissions.forEach { entry ->
+          ChoiceRow(entry.title, entry.id == mission.id) {
+            graph.missions.selectMission(entry.id)
+            graph.progress.reload()
+          }
+        }
+      }
+    }
 
     Section("Permissions") {
       Status("Bluetooth", if (perms.bluetooth) "granted" else "needed", perms.bluetooth)

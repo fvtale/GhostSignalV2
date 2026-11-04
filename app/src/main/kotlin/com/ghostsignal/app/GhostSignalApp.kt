@@ -45,7 +45,7 @@ class AppGraph(app: Application) {
   )
 
   val missions: MissionRepository = MissionRepository(app, backend)
-  val progress: ProgressStore = ProgressStore(app)
+  val progress: ProgressStore = ProgressStore(app) { missions.selectedMissionId.value }
   val rewards: RewardsStore = RewardsStore(app)
 
   /** Optional player account: cross-phone progress and premium. */

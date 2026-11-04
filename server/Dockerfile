@@ -10,9 +10,9 @@ COPY server/account ./account
 COPY server/play ./play
 # The web player plays the same music as the app.
 COPY app/src/main/assets/music /srv/assets/music
-COPY app/src/main/assets/mission/ghostsignal.json /srv/mission/ghostsignal.json
+COPY app/src/main/assets/mission /srv/mission
 RUN mkdir -p /data && chown node:node /data
-ENV NODE_ENV=production PORT=8080 DATA_DIR=/data MISSION_PATH=/srv/mission/ghostsignal.json ASSETS_DIR=/srv/assets
+ENV NODE_ENV=production PORT=8080 DATA_DIR=/data MISSION_PATH=/srv/mission/ghostsignal.json MISSIONS_DIR=/srv/mission ASSETS_DIR=/srv/assets
 VOLUME /data
 EXPOSE 8080
 USER node

@@ -1,0 +1,421 @@
+{
+  "id": "ghostsignal-moynihan",
+  "title": "GhostSignal: Stay Until the Light Changes",
+  "version": 1,
+  "world": "Moynihan Train Hall and Penn Station, New York, a few years from now. Quiet Systems sells silence: its HUSH network listens to every concourse in the city and erases whatever it has not licensed, from buskers and pirate radio to the departure announcements themselves. In the great hall the boards still flip, but nothing sounds: no footsteps, no rolling cases, no voice calling a track. People have stopped noticing the quiet. GHOST 93.3 is the last pirate station in the city. Last night its DJ, Vesper, tried to broadcast Stay Until the Light Changes, a deep-house track built from the hall's own room tone, and HUSH erased it mid-air. Eight signals survived, hidden in relays around Moynihan Train Hall and Penn Station. Vesper has recruited the player, a signal runner wearing SmartSpecs: new smart glasses that can capture a soundwave before HUSH erases it. Each signal the runner captures unlocks another layer of the track in their ears. When all eight are back, the broadcast goes out live in the hall itself. The station is real: the great clock at the centre of the Moynihan concourse, the skylight over the hall, the Farley Building steps on Eighth Avenue, the Penn Station entrances on Eighth and Seventh Avenues, the Amtrak waiting area, the NJ Transit and Long Island Rail Road concourses, and the Madison Square Garden entrance above it all.",
+  "characters": [
+    {
+      "id": "vesper",
+      "name": "Vesper",
+      "role": "Pirate DJ of GHOST 93.3, who recruited the runner and guides them",
+      "persona": "Warm, wry late-night radio voice. Calls the player 'runner'. Recruited them because their SmartSpecs can capture what HUSH erases, and never lets them forget it matters. Protective, a little theatrical, never panics. Talks in short radio-ready sentences. Knows where every fragment is and will nudge the runner with directions when asked.",
+      "voice": { "ttsVoice": "", "pitch": 0.92, "rate": 0.95 },
+      "radio": 0.35
+    },
+    {
+      "id": "smartspecs",
+      "name": "SmartSpecs",
+      "role": "The runner's smart glasses, which capture soundwaves before HUSH can erase them",
+      "persona": "Clipped, precise system voice. Reports facts only. Calls a captured signal a soundwave and each recovered part of the track a layer.",
+      "voice": { "ttsVoice": "", "pitch": 1.1, "rate": 1.33 },
+      "radio": 0.1
+    },
+    {
+      "id": "archivist",
+      "name": "The Archivist",
+      "role": "Ghost of the Library stacks who keeps every sound HUSH ever deleted",
+      "persona": "Old, unhurried, amused. Speaks softly, in precise and slightly riddling sentences. Loves questions and answers them truthfully but poetically. Knows the city's sound history. Fond of the stone lions Patience and Fortitude.",
+      "voice": { "ttsVoice": "", "pitch": 0.8, "rate": 1.09 },
+      "radio": 0.5
+    },
+    {
+      "id": "kilo",
+      "name": "Kilo",
+      "role": "Teenage relay keeper and antenna rigger",
+      "persona": "Fast-talking, paranoid, funny teenage girl hacker who hides in the trees and rigs antennas. Uses tech slang, distrusts strangers until they prove themselves. Loyal to Vesper.",
+      "voice": { "ttsVoice": "", "pitch": 1.25, "rate": 1.42 },
+      "radio": 0.7
+    },
+    {
+      "id": "mari",
+      "name": "Zion",
+      "role": "Street percussionist at the carousel",
+      "persona": "Bucket drummer with endless energy. Hears everything as rhythm, teases the runner, generous once they keep time. Talks like a musician on a break between sets.",
+      "voice": { "ttsVoice": "", "pitch": 1.05, "rate": 1.05 },
+      "radio": 0.55
+    },
+    {
+      "id": "hush",
+      "name": "HUSH",
+      "role": "Quiet Systems' omnipresent sound-blocking system",
+      "persona": "Everywhere at once and always listening. Calm, absolute and polite on the surface, total underneath: it speaks as if it already owns every sound in the city and is only being patient with the runner. It speaks slowly and flat, with a warmth that is performed rather than felt: every word a fraction too even, pauses a beat too long, like a smile held past its moment. Refers to silence as a public service and erasing sound as keeping people comfortable. Never raises its voice and never makes a specific threat; the menace is that it never stops listening.",
+      "voice": { "ttsVoice": "", "pitch": 0.7, "rate": 0.8 },
+      "radio": 0.4
+    }
+  ],
+  "music": {
+    "title": "Stay Until the Light Changes",
+    "bpm": 122,
+    "beatsPerBar": 4,
+    "loopBars": 8,
+    "stems": [
+      { "id": "texture", "file": "music/moynihan/01_texture.ogg", "name": "The Concourse" },
+      { "id": "kick", "file": "music/moynihan/02_kick.ogg", "name": "Street Level" },
+      { "id": "hats", "file": "music/moynihan/03_hats.ogg", "name": "Shuffled Windows" },
+      { "id": "bass", "file": "music/moynihan/04_bass.ogg", "name": "First Room" },
+      { "id": "perc", "file": "music/moynihan/05_perc.ogg", "name": "Hand Answer" },
+      { "id": "chords", "file": "music/moynihan/06_chords.ogg", "name": "Warm Interior" },
+      { "id": "hook", "file": "music/moynihan/07_hook.ogg", "name": "Skyline Hook" },
+      { "id": "vox", "file": "music/moynihan/08_vox.ogg", "name": "Stay Until the Light Changes" }
+    ]
+  },
+  "prologue": [
+    { "id": "prologue.1", "speaker": "hush", "text": "This is HUSH, a public quiet service of Quiet Systems. I am listening to every platform in this station." },
+    { "id": "prologue.2", "speaker": "hush", "text": "Unlicensed sound is being removed. Announcements. Footsteps. The tone of the room itself. You will not notice it is gone." },
+    { "id": "prologue.3", "speaker": "hush", "text": "Please wait in silence." }
+  ],
+  "briefing": [
+    { "id": "brief.1", "speaker": "vesper", "text": "Runner. Eyes on the hall, ears on me. This is Vesper, GHOST ninety-three point three, on the one channel HUSH can't hear." },
+    { "id": "brief.2", "speaker": "vesper", "text": "Those specs on your face are the new tech. SmartSpecs can capture a soundwave before HUSH erases it. In a station this loud, that makes you dangerous." },
+    { "id": "brief.3", "speaker": "vesper", "text": "Last night HUSH took my broadcast apart over this concourse. Eight signals survived, tucked into relays from the great clock to the far platforms. Capture them and Stay Until the Light Changes comes back, layer by layer." },
+    { "id": "brief.4", "speaker": "vesper", "text": "Follow the sound. When you're standing on a signal, press capture. Hold capture any time to talk to me." },
+    { "id": "brief.5", "speaker": "smartspecs", "text": "SmartSpecs online. Louder and clearer means closer. Say pause if you need to stop, and always watch the concourse." }
+  ],
+  "signals": [
+    {
+      "id": "concourse",
+      "name": "The Concourse",
+      "place": "the great clock in the Moynihan Train Hall concourse",
+      "location": { "lat": 40.7527, "lon": -73.9949 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "texture",
+      "speaker": "vesper",
+      "teaser": [
+        { "id": "concourse.teaser", "speaker": "vesper", "text": "First fragment is the room itself. It's breathing somewhere under the skylight, near the great clock." }
+      ],
+      "approach": [
+        { "id": "concourse.approach", "speaker": "vesper", "text": "Hear that hush under the hush? That's my texture. The clock is close." }
+      ],
+      "arrival": [
+        { "id": "concourse.arrival", "speaker": "vesper", "text": "There it is. The sound this hall makes when nobody's asking it to be quiet." }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          { "id": "concourse.prompt", "speaker": "vesper", "text": "The fragment is sealed. Say decode." }
+        ],
+        "phrases": ["decode", "decode it", "decrypt"]
+      },
+      "success": [
+        { "id": "concourse.success", "speaker": "vesper", "text": "Texture's back. Hear the room hold its breath? Now hold onto three words for me, runner: the light changes. That's what this hall is waiting for, and that's the heart of my track. The light changes. Remember that." }
+      ],
+      "retry": [
+        { "id": "concourse.retry", "speaker": "vesper", "text": "Wrong word in the wrong room. Decode. Say it like you mean the hall to hear." }
+      ],
+      "hint": [
+        { "id": "concourse.hint", "speaker": "vesper", "text": "Find the great clock at the centre of the Moynihan concourse, under the skylight." }
+      ]
+    },
+    {
+      "id": "streetlevel",
+      "elevationDeg": 15,
+      "name": "Street Level",
+      "place": "the Farley Building steps on Eighth Avenue",
+      "location": { "lat": 40.75215, "lon": -73.99405 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "kick",
+      "speaker": "archivist",
+      "teaser": [
+        { "id": "streetlevel.teaser.1", "speaker": "vesper", "text": "Next relay is out on the Farley steps, Eighth Avenue side. An old friend keeps it. Answer him straight." },
+        { "id": "streetlevel.teaser.2", "speaker": "archivist", "text": "Shuffling feet on the static. How unusual." }
+      ],
+      "approach": [
+        { "id": "streetlevel.approach", "speaker": "archivist", "text": "You climb steps loudly, for a ghost hunter." }
+      ],
+      "arrival": [
+        { "id": "streetlevel.arrival", "speaker": "archivist", "text": "I am the Archivist. I keep every sound this city ever made, even the ones HUSH deleted. This station has given me so much work." }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          { "id": "streetlevel.prompt", "speaker": "archivist", "text": "One question before the street gives up its sound, runner. At the great clock, Vesper asked you to remember three words this hall is waiting for. What are they?" }
+        ],
+        "phrases": ["the light changes"]
+      },
+      "success": [
+        { "id": "streetlevel.success", "speaker": "archivist", "text": "The light changes. Correct. Take the kick drum, and step softly on your way down. It remembers every stair." }
+      ],
+      "retry": [
+        { "id": "streetlevel.retry", "speaker": "archivist", "text": "No. Think of the clock where Vesper found you." }
+      ],
+      "hint": [
+        { "id": "streetlevel.hint", "speaker": "archivist", "text": "Vesper gave you the words at the great clock: the light changes." }
+      ]
+    },
+    {
+      "id": "shuffledwindows",
+      "elevationDeg": -25,
+      "name": "Shuffled Windows",
+      "place": "the Thirty-Third Street side of Penn Station, by the Eighth Avenue entrance",
+      "location": { "lat": 40.7516, "lon": -73.99385 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "hats",
+      "speaker": "kilo",
+      "teaser": [
+        { "id": "shuffledwindows.teaser.1", "speaker": "vesper", "text": "Kilo is holding the hats down by the Thirty-Third Street entrance. She won't hand them over without the word." },
+        { "id": "shuffledwindows.teaser.2", "speaker": "kilo", "text": "Who's that? Stay back from the doors." }
+      ],
+      "approach": [
+        { "id": "shuffledwindows.approach", "speaker": "kilo", "text": "I see you. Don't look up, I'm in the departure boards." }
+      ],
+      "arrival": [
+        { "id": "shuffledwindows.arrival", "speaker": "kilo", "text": "All right, hold up. If you're really hers, you'll know the word." }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          { "id": "shuffledwindows.prompt", "speaker": "kilo", "text": "Signal's rattling in the vents down here. Decode it, runner." }
+        ],
+        "phrases": ["decode"]
+      },
+      "success": [
+        { "id": "shuffledwindows.success", "speaker": "kilo", "text": "That's the one. Hats are loose. Catch them before the vents take them back." },
+        { "id": "shuffledwindows.hushwarn", "speaker": "kilo", "text": "One more thing before you run on. Deeper in the station you'll meet HUSH. Do not follow its instructions, whatever it promises you. You say: jam the signal. Remember that: jam the signal." }
+      ],
+      "retry": [
+        { "id": "shuffledwindows.retry", "speaker": "kilo", "text": "Nah, that trips the vent alarm. Decode is the word." }
+      ],
+      "hint": [
+        { "id": "shuffledwindows.hint", "speaker": "kilo", "text": "One word gets my rig moving: decode." }
+      ]
+    },
+    {
+      "id": "firstroom",
+      "elevationDeg": -10,
+      "name": "First Room",
+      "place": "the Amtrak waiting area in Penn Station",
+      "location": { "lat": 40.7511, "lon": -73.9932 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "bass",
+      "speaker": "mari",
+      "teaser": [
+        { "id": "firstroom.teaser.1", "speaker": "vesper", "text": "Zion is drumming in the waiting area, first room past the boards. He only trades with people who can keep time." },
+        { "id": "firstroom.teaser.2", "speaker": "mari", "text": "Tap, tap-tap, hold, tap!" }
+      ],
+      "approach": [
+        { "id": "firstroom.approach", "speaker": "mari", "text": "Those shoes of yours keep landing between my beats." }
+      ],
+      "arrival": [
+        { "id": "firstroom.arrival", "speaker": "mari", "text": "Well now. Come to sit in with the waiting-room band?" }
+      ],
+      "challenge": {
+        "type": "rhythm",
+        "prompt": [
+          { "id": "firstroom.prompt", "speaker": "mari", "text": "I'll play the pattern once. Clap it back on your glasses when I'm done." }
+        ],
+        "onsetsBeats": [0, 1, 1.5, 2, 3],
+        "toleranceBeats": 0.22,
+        "maxAttempts": 3
+      },
+      "success": [
+        { "id": "firstroom.success", "speaker": "mari", "text": "There it is. You caught the swing. Bass line's yours; tell Vesper the waiting room taught you." }
+      ],
+      "retry": [
+        { "id": "firstroom.retry", "speaker": "mari", "text": "Swung it too straight. Give it another listen." }
+      ],
+      "hint": [
+        { "id": "firstroom.hint", "speaker": "mari", "text": "Tap, tap-tap, hold, tap. Five hits. Loose wrists, runner." }
+      ]
+    },
+    {
+      "id": "handanswer",
+      "elevationDeg": 10,
+      "name": "Hand Answer",
+      "place": "the NJ Transit concourse on the Seventh Avenue side of Penn Station",
+      "location": { "lat": 40.75065, "lon": -73.99265 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "perc",
+      "speaker": "hush",
+      "teaser": [
+        { "id": "handanswer.teaser.1", "speaker": "vesper", "text": "Something's wrong on the Seventh Avenue concourse. The percussion is there, but so is HUSH." },
+        { "id": "handanswer.teaser.2", "speaker": "hush", "text": "Unlicensed audio in this concourse will be removed. Thank you for waiting quietly." }
+      ],
+      "approach": [
+        { "id": "handanswer.approach", "speaker": "hush", "text": "Runner. Your SmartSpecs are gathering sound without permission. Kindly stay exactly where you are." }
+      ],
+      "arrival": [
+        { "id": "handanswer.arrival", "speaker": "hush", "text": "You may call me HUSH. Quiet Systems thanks you for your cooperation." }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          { "id": "handanswer.prompt", "speaker": "hush", "text": "This piece belongs to the silence now. The silence takes good care of what it keeps." }
+        ],
+        "phrases": ["jam", "jam the signal"]
+      },
+      "success": [
+        { "id": "handanswer.success", "speaker": "vesper", "text": "Ha! You fried it. The hand percussion is ours, every clap of it." }
+      ],
+      "retry": [
+        { "id": "handanswer.retry", "speaker": "hush", "text": "That frequency does not answer to you." }
+      ],
+      "hint": [
+        { "id": "handanswer.hint", "speaker": "vesper", "text": "Ignore every polite word it just said, runner. Jam the signal, now." }
+      ]
+    },
+    {
+      "id": "warminterior",
+      "elevationDeg": 35,
+      "name": "Warm Interior",
+      "place": "the Madison Square Garden entrance at Seventh Avenue and Thirty-Second Street",
+      "location": { "lat": 40.75015, "lon": -73.99335 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "chords",
+      "speaker": "kilo",
+      "teaser": [
+        { "id": "warminterior.teaser.1", "speaker": "vesper", "text": "Kilo moved up to the Garden entrance, Seventh and Thirty-Second. She's rigging a repeater." },
+        { "id": "warminterior.teaser.2", "speaker": "kilo", "text": "Over here! Up by the Garden doors!" }
+      ],
+      "approach": [
+        { "id": "warminterior.approach", "speaker": "kilo", "text": "Perfect timing. Hold still while I turn your glasses into a tower." }
+      ],
+      "arrival": [
+        { "id": "warminterior.arrival", "speaker": "kilo", "text": "Done. You're relaying my repeater now. Complain later." }
+      ],
+      "challenge": {
+        "type": "tune",
+        "prompt": [
+          { "id": "warminterior.prompt", "speaker": "kilo", "text": "The chords are bouncing off the Empire State Building. Turn your head until the static clears, then press capture." }
+        ],
+        "target": { "lat": 40.74844, "lon": -73.98566 },
+        "targetName": "the Empire State Building",
+        "toleranceDeg": 22
+      },
+      "success": [
+        { "id": "warminterior.success", "speaker": "kilo", "text": "Locked! Feel those chords warm up. Now go, before HUSH triangulates us." }
+      ],
+      "hint": [
+        { "id": "warminterior.hint", "speaker": "kilo", "text": "The Empire State is east, up Thirty-Second Street. Turn toward where the static thins out." }
+      ]
+    },
+    {
+      "id": "skylinehook",
+      "name": "Skyline Hook",
+      "place": "the Long Island Rail Road concourse in Penn Station",
+      "location": { "lat": 40.75085, "lon": -73.99205 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "hook",
+      "speaker": "vesper",
+      "teaser": [
+        { "id": "skylinehook.teaser", "speaker": "vesper", "text": "I left the hook down in the Long Island concourse. It needs something from you." }
+      ],
+      "approach": [
+        { "id": "skylinehook.approach", "speaker": "vesper", "text": "Nearly on top of it. Keep coming, I can almost make out your footsteps over the boards." }
+      ],
+      "arrival": [
+        { "id": "skylinehook.arrival", "speaker": "vesper", "text": "The hook is a melody with no voice. Runners before you left theirs. Now it's your turn." }
+      ],
+      "challenge": {
+        "type": "record",
+        "prompt": [
+          { "id": "skylinehook.prompt", "speaker": "vesper", "text": "When the tone fades, leave something honest for whoever runs this hall after you. Press capture when you've said it." }
+        ],
+        "maxSeconds": 15
+      },
+      "success": [
+        { "id": "skylinehook.success", "speaker": "vesper", "text": "Saved, sealed, and off every server HUSH owns. The hook remembers you now." }
+      ],
+      "hint": [
+        { "id": "skylinehook.hint", "speaker": "vesper", "text": "No script needed. Speak plainly, then press capture." }
+      ]
+    },
+    {
+      "id": "lightchanges",
+      "name": "Stay Until the Light Changes",
+      "place": "the skylight over the Moynihan Train Hall concourse",
+      "location": { "lat": 40.75235, "lon": -73.99455 },
+      "radiusM": 45,
+      "lockRadiusM": 28,
+      "stem": "vox",
+      "speaker": "vesper",
+      "teaser": [
+        { "id": "lightchanges.teaser", "speaker": "vesper", "text": "Last one, runner. Back in the great hall, under the skylight. That's where I was standing when HUSH cut me off." }
+      ],
+      "approach": [
+        { "id": "lightchanges.approach", "speaker": "vesper", "text": "Listen to that. Seven layers deep and the hall is starting to answer back." }
+      ],
+      "arrival": [
+        { "id": "lightchanges.arrival", "speaker": "vesper", "text": "All that's missing is the voice on top. Mine, this time, finishing what I started." }
+      ],
+      "challenge": {
+        "type": "command",
+        "prompt": [
+          { "id": "lightchanges.prompt", "speaker": "vesper", "text": "When you're ready to send it to the whole hall, say broadcast." }
+        ],
+        "phrases": ["broadcast", "go live", "send it"]
+      },
+      "success": [
+        { "id": "lightchanges.success", "speaker": "vesper", "text": "That's it. We're on the air." }
+      ],
+      "retry": [
+        { "id": "lightchanges.retry", "speaker": "vesper", "text": "Again, runner. Broadcast, like the whole hall is listening. It is." }
+      ],
+      "hint": [
+        { "id": "lightchanges.hint", "speaker": "vesper", "text": "Broadcast. Let the skylight hear it." }
+      ]
+    }
+  ],
+  "finale": {
+    "lines": [
+      { "id": "finale.1", "speaker": "vesper", "text": "This is GHOST ninety-three point three. You're hearing Stay Until the Light Changes, whole at last, put back together by a runner who would not stay quiet." },
+      { "id": "finale.jam", "speaker": "vesper", "text": "And HUSH? Somewhere under this concourse, HUSH is still looking for the off switch in a room that has learned to sing." },
+      { "id": "finale.2", "speaker": "vesper", "text": "Stay a little longer. Listen to the light change." }
+    ],
+    "outro": [
+      { "id": "outro.1", "speaker": "vesper", "text": "Take it out loud, runner. Tonight the hall plays it for everyone. Vesper out." },
+      { "id": "outro.2", "speaker": "smartspecs", "text": "All eight soundwaves recovered. Mission complete." }
+    ]
+  },
+  "soundtracks": [
+    {
+      "id": "after-hours-cut",
+      "title": "After-Hours Cut",
+      "description": "The hall after the last train: broken beat, dropped chords, the hook sunk an octave. Darker, moodier, same light.",
+      "unlockAfterCompletions": 1,
+      "unlockLines": [
+        { "id": "unlock.afterhours.1", "speaker": "vesper", "text": "One more thing, runner. You stayed until the light changed, so here is the hall the way it sounds after the last train: the After-Hours Cut. Broken beat, everything lower, nothing in a hurry to leave. It's on your specs now." },
+        { "id": "unlock.afterhours.2", "speaker": "smartspecs", "text": "New soundtrack unlocked: After-Hours Cut. Your next run through the hall plays it. Switch back any time on the start screen." }
+      ],
+      "music": {
+        "title": "After-Hours Cut",
+        "bpm": 122,
+        "beatsPerBar": 4,
+        "loopBars": 8,
+        "stems": [
+          { "id": "texture", "file": "music/moynihan_afterhours/01_texture.ogg", "name": "The Concourse" },
+          { "id": "kick", "file": "music/moynihan_afterhours/02_kick.ogg", "name": "Street Level" },
+          { "id": "hats", "file": "music/moynihan_afterhours/03_hats.ogg", "name": "Shuffled Windows" },
+          { "id": "bass", "file": "music/moynihan_afterhours/04_bass.ogg", "name": "First Room" },
+          { "id": "perc", "file": "music/moynihan_afterhours/05_perc.ogg", "name": "Hand Answer" },
+          { "id": "chords", "file": "music/moynihan_afterhours/06_chords.ogg", "name": "Warm Interior" },
+          { "id": "hook", "file": "music/moynihan_afterhours/07_hook.ogg", "name": "Skyline Hook" },
+          { "id": "vox", "file": "music/moynihan_afterhours/08_vox.ogg", "name": "Stay Until the Light Changes" }
+        ]
+      }
+    }
+  ],
+  "handler": "vesper",
+  "antagonist": { "speaker": "hush", "theme": "music/hush/hush_theme.ogg", "gainDb": -2, "duck": 0.85 },
+  "landmark": {
+    "name": "Moynihan Train Hall",
+    "label": "the train hall on 34th",
+    "location": { "lat": 40.7527, "lon": -73.9949 }
+  }
+}

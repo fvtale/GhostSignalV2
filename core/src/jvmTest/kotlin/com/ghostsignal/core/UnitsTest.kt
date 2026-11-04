@@ -11,6 +11,7 @@ import com.ghostsignal.core.heading.ImuSample
 import com.ghostsignal.core.heading.Quat
 import com.ghostsignal.core.heading.Vec3
 import com.ghostsignal.core.model.LineCatalog
+import com.ghostsignal.core.model.Mission
 import com.ghostsignal.core.model.MissionValidator
 import com.ghostsignal.core.model.Soundtracks
 import java.io.File
@@ -227,6 +228,39 @@ class MissionTest {
     assertTrue(problems.isEmpty(), problems.joinToString("\n"))
     assertEquals(8, mission.signals.size)
     assertEquals(8, mission.music.stems.size)
+  }
+
+  @Test
+  fun everyBundledMissionIsValid() {
+    // The mission selector ships every JSON in the mission folder, so each
+    // one must pass the real validator and reference stems that exist.
+    val missionFile = File(
+        System.getProperty("ghostsignal.missionPath") ?: "../app/src/main/assets/mission/ghostsignal.json",
+    )
+    val assetsDir = missionFile.parentFile.parentFile
+    val files = missionFile.parentFile
+        .listFiles { file -> file.extension == "json" }!!
+        .sortedBy { it.name }
+    assertTrue(files.size >= 2, "expected at least two bundled missions, got ${files.map { it.name }}")
+    for (file in files) {
+      val bundled = Mission.parse(file.readText())
+      val problems = MissionValidator.validate(bundled)
+      assertTrue(problems.isEmpty(), "${file.name}: ${problems.joinToString("\n")}")
+      assertTrue(bundled.landmark != null, "${file.name}: opening needs a landmark")
+      assertTrue(bundled.signals.size == 8, "${file.name}: expected 8 signals")
+      assertTrue(bundled.music.stems.size == 8, "${file.name}: expected 8 stems")
+      for (stem in bundled.music.stems) {
+        assertTrue(File(assetsDir, stem.file).exists(), "${file.name}: missing stem file ${stem.file}")
+      }
+      for (soundtrack in bundled.soundtracks) {
+        for (stem in soundtrack.music.stems) {
+          assertTrue(
+              File(assetsDir, stem.file).exists(),
+              "${file.name}: missing soundtrack stem file ${stem.file}",
+          )
+        }
+      }
+    }
   }
 
   @Test

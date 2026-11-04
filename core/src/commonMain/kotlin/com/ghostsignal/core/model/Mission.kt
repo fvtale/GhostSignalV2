@@ -32,6 +32,8 @@ data class Mission(
     /** Character who fields free talk while hunting. Blank: first briefer. */
     val handler: String = "",
     val antagonist: Antagonist? = null,
+    /** The place this experience is anchored to; the opening uses it to suggest the nearest mission. */
+    val landmark: Landmark? = null,
 ) {
   fun character(id: String): Character? = characters.firstOrNull { it.id == id }
 
@@ -295,6 +297,16 @@ data class Antagonist(
     val gainDb: Double = 0.0,
     /** Music suppression while the theme holds: 0 = none, 1 = silence. */
     val duck: Double = 0.85,
+)
+
+/** The anchor place of a mission, used by the opening to suggest the nearest experience. */
+@Serializable
+data class Landmark(
+    /** Short place name, e.g. "Bryant Park". */
+    val name: String,
+    /** Spoken form, e.g. "Bryant Park on 42nd". */
+    val label: String,
+    val location: LatLon,
 )
 
 @Serializable

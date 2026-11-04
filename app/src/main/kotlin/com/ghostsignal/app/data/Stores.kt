@@ -29,14 +29,82 @@ import kotlinx.coroutines.withContext
  * names from the admin page) and deployed soundtracks whose stems are
  * downloaded once and kept on the phone.
  */
+/** A mission bundled in assets/mission/, as shown in the picker. */
+data class BundledMission(
+    val id: String,
+    val title: String,
+    val asset: String,
+)
+
 class MissionRepository(
     private val context: Context,
     private val backend: BackendClient,
 ) {
 
-  private val bundledMission: Mission by lazy {
-    val missionText = context.assets.open(MISSION_ASSET).bufferedReader().use { it.readText() }
-    Mission.parse(missionText)
+  private val preferences =
+      context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+  /** Every parseable mission in assets/mission/, in filename order. */
+  val availableMissions: List<BundledMission> by lazy {
+    bundledMissions.values.map { BundledMission(it.id, it.title, assetById.getValue(it.id)) }
+  }
+
+  /** Every parsed bundled mission (for the opening's nearest-landmark suggestion). */
+  val bundled: List<Mission>
+    get() = bundledMissions.values.toList()
+
+  private val assetById: Map<String, String> by lazy { discoverBundled().second }
+
+  private val bundledMissions: Map<String, Mission> by lazy { discoverBundled().first }
+
+  private fun discoverBundled(): Pair<Map<String, Mission>, Map<String, String>> {
+    val missions = linkedMapOf<String, Mission>()
+    val assets = linkedMapOf<String, String>()
+    val names = runCatching { context.assets.list(MISSION_DIR)?.toList() }
+        .getOrNull().orEmpty()
+        .filter { it.endsWith(".json") }
+        .sorted()
+    for (name in names) {
+      val asset = "$MISSION_DIR/$name"
+      runCatching {
+        val text = context.assets.open(asset).bufferedReader().use { it.readText() }
+        Mission.parse(text)
+      }.onSuccess { parsed ->
+        missions[parsed.id] = parsed
+        assets[parsed.id] = asset
+      }.onFailure { Log.w(TAG, "skipping unparseable bundled mission $asset", it) }
+    }
+    return missions to assets
+  }
+
+  private val mutableSelectedMissionId = MutableStateFlow(readSelectedMissionId())
+
+  /** Persisted choice of bundled mission; defaults to Bryant Park. */
+  val selectedMissionId: StateFlow<String> = mutableSelectedMissionId
+
+  private fun readSelectedMissionId(): String {
+    val stored = preferences.getString(KEY_SELECTED_MISSION, null)
+    return when {
+      stored != null && stored in bundledMissions -> stored
+      DEFAULT_MISSION_ID in bundledMissions -> DEFAULT_MISSION_ID
+      else -> bundledMissions.keys.firstOrNull() ?: DEFAULT_MISSION_ID
+    }
+  }
+
+  private val bundledMission: Mission
+    get() = bundledMissions[mutableSelectedMissionId.value]
+        ?: bundledMissions[DEFAULT_MISSION_ID]
+        ?: bundledMissions.values.first()
+        ?: error("no bundled missions in assets/$MISSION_DIR")
+
+  /** Switches the active mission, persists the choice, and reloads it. */
+  fun selectMission(missionId: String) {
+    if (missionId !in bundledMissions) return
+    if (missionId == mutableSelectedMissionId.value) return
+    preferences.edit().putString(KEY_SELECTED_MISSION, missionId).apply()
+    mutableSelectedMissionId.value = missionId
+    mutableLocked.value = storedCatalog()?.locked ?: emptyList()
+    mutableMission.value = loadMission()
   }
 
   private val routeFile: File
@@ -221,6 +289,10 @@ class MissionRepository(
   companion object {
     private const val TAG = "GhostSignalMission"
     private const val STALE_MS = 5 * 60 * 1000L
+    private const val PREFS_NAME = "ghostsignal_missions"
+    private const val KEY_SELECTED_MISSION = "selected_mission_id"
+    const val MISSION_DIR = "mission"
+    const val DEFAULT_MISSION_ID = "ghostsignal-bryant-park"
     const val MISSION_ASSET = "mission/ghostsignal.json"
   }
 }
@@ -295,17 +367,39 @@ class RewardsStore(context: Context) {
   }
 }
 
-/** Run progress, so a crash, reboot, or dead battery loses nothing. */
-class ProgressStore(context: Context) {
+/**
+ * Run progress, so a crash, reboot, or dead battery loses nothing.
+ * Kept in one file per mission so switching missions never mixes runs.
+ */
+class ProgressStore(
+    private val context: Context,
+    private val missionId: () -> String = { MissionRepository.DEFAULT_MISSION_ID },
+) {
 
-  private val progressFile = File(context.filesDir, "progress.json")
+  private val progressFile: File
+    get() = File(context.filesDir, "progress_${missionId()}.json")
+
+  private val legacyFile: File
+    get() = File(context.filesDir, "progress.json")
 
   private val mutableProgress = MutableStateFlow<Progress?>(readProgress())
   val progress: StateFlow<Progress?> = mutableProgress
 
-  private fun readProgress(): Progress? = runCatching {
-    Mission.json.decodeFromString(Progress.serializer(), progressFile.readText())
+  private fun decode(file: File): Progress? = runCatching {
+    Mission.json.decodeFromString(Progress.serializer(), file.readText())
   }.getOrNull()
+
+  private fun readProgress(): Progress? {
+    decode(progressFile)?.let { return it }
+    // Pre-selector installs kept a single progress.json; adopt it only
+    // when it belongs to the selected mission.
+    return decode(legacyFile)?.takeIf { it.missionId == missionId() }
+  }
+
+  /** Re-reads progress for the currently selected mission. */
+  fun reload() {
+    mutableProgress.value = readProgress()
+  }
 
   fun save(progress: Progress) {
     progressFile.writeText(Mission.json.encodeToString(Progress.serializer(), progress))
@@ -314,6 +408,7 @@ class ProgressStore(context: Context) {
 
   fun clear() {
     progressFile.delete()
+    if (decode(legacyFile)?.missionId == missionId()) legacyFile.delete()
     mutableProgress.value = null
   }
 }

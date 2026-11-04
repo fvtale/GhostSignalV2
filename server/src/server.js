@@ -7,6 +7,7 @@ import { createAdmin } from "./admin.js";
 import { AUDIO_TYPES, probeAudio } from "./audio.js";
 import { buildTrack, mergeRoute } from "./content.js";
 import { createGlasses } from "./glasses.js";
+import { missionRegistry, missionSummaries } from "./mission.js";
 import { npcErrorStatus } from "./npc.js";
 import { createPlayers } from "./players.js";
 import { createStatic } from "./static.js";
@@ -28,7 +29,8 @@ import { createStt } from "./stt.js";
 //   POST   /v1/admin/login                  admin sign-in
 //   GET    /v1/admin/me, POST /v1/admin/logout, GET /v1/admin/mission (admin)
 //   /v1/account/*, /v1/billing/*, /v1/admin/accounts|settings|glasses (players.js)
-//   GET    /v1/mission                      mission JSON for the web player
+//   GET    /v1/missions                     mission picker list      (public)
+//   GET    /v1/mission[?missionId=]         mission JSON for the web player
 //   GET    /admin, /account, /play          the three browser surfaces
 //
 // "Event" auth is the shared event token, an admin session, or any
@@ -58,7 +60,7 @@ export const DEFAULT_ASSETS_DIR = path.resolve(MODULE_DIR, "../../app/src/main/a
 
 // Reads any visitor may make before (or without) signing in.
 const PUBLIC_READ_PATTERN =
-  /^\/v1\/(mission|broadcasts|routes\/[\w-]+|tracks\/[\w-]+|blobs\/[0-9a-f]{64}\.(ogg|wav|flac))$/;
+  /^\/v1\/(missions?|broadcasts|routes\/[\w-]+|tracks\/[\w-]+|blobs\/[0-9a-f]{64}\.(ogg|wav|flac))$/;
 
 const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
@@ -161,6 +163,8 @@ function bearerToken(req) {
 
 export function createServer({
   mission,
+  missions,
+  defaultMissionId,
   npc,
   tts,
   store,
@@ -175,6 +179,30 @@ export function createServer({
   trustProxy = false,
   log = console,
 }) {
+  const registry = missionRegistry({ mission, missions, defaultMissionId });
+  const missionById = registry.missions;
+  mission = registry.defaultMission ?? mission;
+  const fallbackMissionId = registry.defaultMissionId ?? mission?.id;
+
+  // Mission selection: an explicit id may arrive as ?missionId= / ?mission=
+  // or, on POSTs, as a missionId / mission field in the JSON body. No id
+  // means the default mission; an unknown id resolves to null (-> 404).
+  const requestedMissionId = (url, body) => {
+    const fromBody = body && typeof body === "object"
+      ? (body.missionId ?? body.mission)
+      : undefined;
+    const candidate = (typeof fromBody === "string" && fromBody)
+      || url.searchParams.get("missionId")
+      || url.searchParams.get("mission")
+      || undefined;
+    return candidate || undefined;
+  };
+  const resolveMission = (url, body) => {
+    const id = requestedMissionId(url, body);
+    if (!id) return mission;
+    return missionById.get(id) ?? null;
+  };
+
   const serveStaticFiles = createStatic({ pages: PAGE_DIRS, assetsDir, landingDir: LANDING_DIR, downloadsDir: DOWNLOADS_DIR });
   accounts ??= createAccounts({ dir: store.dir, adminEmails: billing.adminEmails ?? [] });
   stt ??= createStt({ log });
@@ -192,7 +220,7 @@ export function createServer({
     secrets: billing.secrets,
     limits: billing.limits,
     log,
-    premiumTracks: () => store.getCatalog(mission.id).soundtracks
+    premiumTracks: () => [...missionById.keys()].flatMap((id) => store.getCatalog(id).soundtracks)
       .filter((track) => track.published && track.premium)
       .map((track) => ({ id: track.id, title: track.title, description: track.description })),
   });
@@ -251,7 +279,18 @@ export function createServer({
       return respond(res, 401, { error: "bad event token" });
     }
 
-    if (routeKey === "GET /v1/mission") return respond(res, 200, mission);
+    if (routeKey === "GET /v1/missions") {
+      return respond(res, 200, {
+        missions: missionSummaries(missionById, fallbackMissionId),
+        defaultMissionId: fallbackMissionId,
+      });
+    }
+
+    if (routeKey === "GET /v1/mission") {
+      const selected = resolveMission(url);
+      if (!selected) return respond(res, 404, { error: "unknown mission" });
+      return respond(res, 200, selected);
+    }
 
     if (url.pathname.startsWith("/v1/admin/")) {
       if (!isAdmin(req)) return respond(res, 403, { error: "sign in as an admin" });
@@ -269,16 +308,18 @@ export function createServer({
         return respond(res, 204, "");
       }
       if (routeKey === "GET /v1/admin/mission") {
+        const selected = resolveMission(url);
+        if (!selected) return respond(res, 404, { error: "unknown mission" });
         return respond(res, 200, {
-          id: mission.id,
-          title: mission.title,
+          id: selected.id,
+          title: selected.title,
           music: {
-            title: mission.music.title,
-            bpm: mission.music.bpm,
-            beatsPerBar: mission.music.beatsPerBar ?? 4,
-            loopBars: mission.music.loopBars ?? 8,
+            title: selected.music.title,
+            bpm: selected.music.bpm,
+            beatsPerBar: selected.music.beatsPerBar ?? 4,
+            loopBars: selected.music.loopBars ?? 8,
           },
-          signals: mission.signals.map((signal) => ({
+          signals: selected.signals.map((signal) => ({
             id: signal.id,
             name: signal.name,
             place: signal.place ?? "",
@@ -287,7 +328,7 @@ export function createServer({
             radiusM: signal.radiusM ?? 45,
             lockRadiusM: signal.lockRadiusM ?? 28,
           })),
-          bundledSoundtracks: (mission.soundtracks ?? []).map((track) => ({
+          bundledSoundtracks: (selected.soundtracks ?? []).map((track) => ({
             id: track.id,
             title: track.title,
             unlockAfterCompletions: track.unlockAfterCompletions ?? 1,
@@ -305,8 +346,10 @@ export function createServer({
       const valid = typeof body.characterId === "string" &&
         typeof body.utterance === "string" && body.utterance.trim() !== "";
       if (!valid) return respond(res, 400, { error: "characterId and utterance are required" });
+      const selected = resolveMission(url, body);
+      if (!selected) return respond(res, 404, { error: "unknown mission" });
       try {
-        const reply = await npc.reply(mission, body);
+        const reply = await npc.reply(selected, body);
         return respond(res, 200, { reply, characterId: body.characterId });
       } catch (error) {
         log.warn?.(`npc failed: ${error.message}`);
@@ -324,8 +367,10 @@ export function createServer({
       if (typeof body.characterId !== "string" || !text) {
         return respond(res, 400, { error: "characterId and text are required" });
       }
+      const selected = resolveMission(url, body);
+      if (!selected) return respond(res, 404, { error: "unknown mission" });
       try {
-        return respond(res, 200, await tts.render(mission, body.characterId, text), "audio/wav");
+        return respond(res, 200, await tts.render(selected, body.characterId, text), "audio/wav");
       } catch (error) {
         return respond(res, error.status ?? 502, { error: error.message });
       }
@@ -358,8 +403,9 @@ export function createServer({
       }
       if (req.method === "PUT") {
         if (!isAdmin(req)) return respond(res, 403, { error: "operator token required" });
-        if (missionId !== mission.id) return respond(res, 404, { error: "unknown mission" });
-        const merged = mergeRoute(mission, store.getRoute(missionId), await readJsonBody(req));
+        const routeMission = missionById.get(missionId);
+        if (!routeMission) return respond(res, 404, { error: "unknown mission" });
+        const merged = mergeRoute(routeMission, store.getRoute(missionId), await readJsonBody(req));
         store.putRoute(missionId, { ...merged, updatedAtMs: Date.now() });
         return respond(res, 204, "");
       }
@@ -370,6 +416,7 @@ export function createServer({
       const [, missionId, trackId] = tracksMatch;
 
       if (!trackId && req.method === "GET") {
+        if (!missionById.has(missionId)) return respond(res, 404, { error: "unknown mission" });
         const catalog = store.getCatalog(missionId);
         if (url.searchParams.get("all") === "1" && isAdmin(req)) {
           return respond(res, 200, { ...catalog, locked: [] });
@@ -388,13 +435,14 @@ export function createServer({
 
       if (trackId && (req.method === "PUT" || req.method === "DELETE")) {
         if (!isAdmin(req)) return respond(res, 403, { error: "sign in as an admin" });
-        if (missionId !== mission.id) return respond(res, 404, { error: "unknown mission" });
+        const trackMission = missionById.get(missionId);
+        if (!trackMission) return respond(res, 404, { error: "unknown mission" });
         if (req.method === "DELETE") {
           return store.deleteTrack(missionId, trackId)
             ? respond(res, 204, "")
             : respond(res, 404, { error: "no such track" });
         }
-        const built = buildTrack(mission, trackId, await readJsonBody(req), (name) => store.blob(name));
+        const built = buildTrack(trackMission, trackId, await readJsonBody(req), (name) => store.blob(name));
         return respond(res, 200, { track: store.putTrack(missionId, built.track), warnings: built.warnings });
       }
     }
@@ -411,10 +459,13 @@ export function createServer({
     if (blobMatch && req.method === "GET") {
       const blob = store.blob(blobMatch[1]);
       if (!blob) return respond(res, 404, { error: "no such file" });
-      const inFreeTrack = store.getCatalog(mission.id).soundtracks.some(
+      const blobMission = resolveMission(url);
+      if (!blobMission) return respond(res, 404, { error: "unknown mission" });
+      const catalogIds = requestedMissionId(url) ? [blobMission.id] : [...missionById.keys()];
+      const inFreeTrack = catalogIds.some((id) => store.getCatalog(id).soundtracks.some(
         (track) => track.published && !track.premium &&
           track.music.stems.some((stem) => stem.file === `server:${blobMatch[1]}`),
-      );
+      ));
       if (!inFreeTrack && !isAdmin(req) && !players.isPremium(req)) {
         return respond(res, 403, { error: "this stem belongs to a premium soundtrack" });
       }
@@ -436,9 +487,11 @@ export function createServer({
     if (routeKey === "POST /v1/broadcasts") {
       if (!isAdmin(req)) return respond(res, 403, { error: "operator token required" });
       const body = await readJsonBody(req);
+      const selected = resolveMission(url, body);
+      if (!selected) return respond(res, 404, { error: "unknown mission" });
       const text = typeof body.text === "string" ? body.text.trim().slice(0, 400) : "";
       const speaker = typeof body.speaker === "string" ? body.speaker : "";
-      const speakerKnown = mission.characters.some((character) => character.id === speaker);
+      const speakerKnown = selected.characters.some((character) => character.id === speaker);
       if (!text || !speakerKnown) {
         return respond(res, 400, { error: "speaker and text are required" });
       }
