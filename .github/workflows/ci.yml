@@ -47,7 +47,7 @@ jobs:
           shellcheck -S warning *.sh
           # The unit runs /usr/bin/node, where NodeSource puts it on the server.
           [ -x /usr/bin/node ] || sudo ln -s "$(command -v node)" /usr/bin/node
-          systemd-analyze verify --man=no ghostsignalv2.service
+          systemd-analyze verify --man=no ghostsignal.service
 
   agent-router:
     name: Agent router tests
