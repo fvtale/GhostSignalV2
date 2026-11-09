@@ -219,6 +219,46 @@ describe("the GitHub API client", () => {
   });
 });
 
+describe("the seed examples", () => {
+  const seeds = R.loadSeeds(rules);
+
+  it("load, cover every area, and don't repeat", () => {
+    assert.ok(seeds.length >= 200, `${seeds.length} seeds`);
+    for (const area of [...Object.keys(rules.areas), R.OTHER_AREA]) {
+      assert.ok(seeds.filter((x) => x.area === area).length >= 10, `at least 10 seeds for "${area}"`);
+    }
+    assert.equal(new Set(seeds.map((x) => x.text)).size, seeds.length);
+    for (const agent of Object.keys(rules.agents)) {
+      const share = seeds.filter((x) => R.agentForArea(x.area, rules) === agent).length / seeds.length;
+      assert.ok(share > 0.35, `${agent} gets ${Math.round(share * 100)}% of the seeds`);
+    }
+  });
+
+  it("refuse an area rules.json doesn't have", () => {
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "seeds-")), "seeds.jsonl");
+    fs.writeFileSync(file, JSON.stringify({ area: "Telepathy", from: "planned", text: "Read minds" }) + "\n");
+    assert.throws(() => R.loadSeeds(rules, file), /unknown area "Telepathy"/);
+  });
+
+  it("take their agent from rules.json at export, so a policy change relabels them", () => {
+    const sample = [{ area: "Android app", from: "planned", text: "Crash on rotate\n\nCalibration loses state." }];
+    const route = (r) => JSON.parse(exportRows([], r, sample).train[0].messages[2].content);
+    assert.deepEqual(route(rules), { area: "Android app", route: "claude" });
+    const moved = { ...rules, areas: { ...rules.areas, "Android app": "wonder" } };
+    assert.equal(route(moved).route, "wonder");
+    const [row] = exportRows([], rules, sample).train;
+    assert.equal(row.messages[1].content, "Crash on rotate\n\nCalibration loses state.");
+  });
+
+  it("are held out one in ten, the same ones every export", () => {
+    const a = exportRows([], rules, seeds);
+    const b = exportRows([], rules, seeds);
+    assert.equal(a.holdout.length, Math.floor(seeds.length / 10));
+    assert.deepEqual(a.holdout, b.holdout);
+    assert.equal(a.train.length + a.holdout.length, seeds.length);
+  });
+});
+
 describe("training data for Glimmer", () => {
   const issues = [
     { number: 1, title: "Fix the APK", body: formBody({ area: "Android app" }), labels: [{ name: "agent:claude" }] },
@@ -247,12 +287,12 @@ describe("training data for Glimmer", () => {
   it("exports through main() into train.jsonl and holdout.jsonl", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "router-data-"));
     const api = { ...fakeApi(), issues: async () => issues };
-    const code = await main(["export", dir], {}, { api, rules, glimmer: { enabled: false }, log: quiet });
+    const code = await main(["export", dir], {}, { api, rules, glimmer: { enabled: false }, seeds: [], log: quiet });
     assert.equal(code, 0);
     const lines = fs.readFileSync(path.join(dir, "train.jsonl"), "utf8").trim().split("\n");
     assert.equal(lines.length, 2);
     assert.ok(JSON.parse(lines[0]).messages);
-    const evalCode = await main(["eval", path.join(dir, "holdout.jsonl")], {}, { api, rules, glimmer: { enabled: false }, log: quiet });
+    const evalCode = await main(["eval", path.join(dir, "holdout.jsonl")], {}, { api, rules, glimmer: { enabled: false }, seeds: [], log: quiet });
     assert.equal(evalCode, 0);
   });
 
@@ -260,7 +300,7 @@ describe("training data for Glimmer", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "router-data-"));
     let said = "";
     const log = { ...quiet, info: (t) => (said += t) };
-    await main(["export", dir], {}, { api: { ...fakeApi(), issues: async () => issues }, rules, glimmer: { enabled: false }, log });
+    await main(["export", dir], {}, { api: { ...fakeApi(), issues: async () => issues }, rules, glimmer: { enabled: false }, seeds: [], log });
     const rows = fs.readFileSync(path.join(dir, "glimmer.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
     assert.equal(rows.length, 3);
     assert.match(rows[0].messages[1].content, /^Caddy reload fails/, "issue #10, the held-out one, comes first");

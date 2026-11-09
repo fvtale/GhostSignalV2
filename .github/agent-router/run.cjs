@@ -145,10 +145,17 @@ async function onPullRequest(event, { api, rules, log, summary }) {
   return 0;
 }
 
-/** Glimmer training rows from every routed issue: where it went in the end, override or not. */
-function exportRows(issues, rules) {
+/**
+ * Glimmer training rows: every routed issue, labelled with where it went in the end (override or
+ * not), then the seed examples, labelled by their area's agent under rules.json.
+ */
+function exportRows(issues, rules, seeds = []) {
   const train = [];
   const holdout = [];
+  seeds.forEach((seed, i) => {
+    const row = R.trainingRow(R.seedIssue(seed), { agent: R.agentForArea(seed.area, rules), area: seed.area }, rules);
+    (i % 10 === 9 ? holdout : train).push(row); // one in ten held out, the same ones every time
+  });
   for (const issue of issues) {
     const agent = R.agentFromLabels(issue.labels, rules);
     if (!agent) continue;
@@ -161,8 +168,12 @@ function exportRows(issues, rules) {
 }
 
 /** What to run next with the export, in the cookbook's Glimmer starter (docs/AGENT-ROUTER.md). */
-function starterSteps({ dir, train, holdout }) {
-  const lines = [`### Muse Glimmer training data`, "", `${train} training rows and ${holdout} held-out rows, in \`${dir}/\`.`];
+function starterSteps({ dir, train, holdout, routed = 0, seeded = 0 }) {
+  const lines = [
+    `### Muse Glimmer training data`,
+    "",
+    `${train} training rows and ${holdout} held-out rows, in \`${dir}/\`: ${routed} from routed issues and ${seeded} seed examples.`,
+  ];
   if (!holdout || !train) {
     lines.push("", "Not enough routed issues to train yet: the starter needs held-out and training rows (one issue in ten is held out).");
     return lines.join("\n");
@@ -207,7 +218,9 @@ async function main(argv = process.argv.slice(2), env = process.env, deps = {}) 
 
   if (argv[0] === "export") {
     const dir = argv[1] ?? "router-data";
-    const { train, holdout } = exportRows(await api.issues(), rules);
+    const issues = await api.issues();
+    const seeds = deps.seeds ?? R.loadSeeds(rules);
+    const { train, holdout } = exportRows(issues, rules, seeds);
     fs.mkdirSync(dir, { recursive: true });
     const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
     fs.writeFileSync(path.join(dir, "train.jsonl"), jsonl(train));
@@ -215,7 +228,8 @@ async function main(argv = process.argv.slice(2), env = process.env, deps = {}) 
     // The cookbook's Glimmer starter holds out the first --n-eval rows of one file: put ours
     // first, so its base-vs-tuned eval runs on the same held-out issues as `eval` below.
     fs.writeFileSync(path.join(dir, "glimmer.jsonl"), jsonl([...holdout, ...train]));
-    summary(starterSteps({ dir, train: train.length, holdout: holdout.length }));
+    const routed = issues.filter((i) => R.agentFromLabels(i.labels, rules)).length;
+    summary(starterSteps({ dir, train: train.length, holdout: holdout.length, routed, seeded: seeds.length }));
     return 0;
   }
 
