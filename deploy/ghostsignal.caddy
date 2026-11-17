@@ -1,10 +1,10 @@
-# /etc/caddy/sites.d/ghostsignalv2.caddy on the VPS. The main Caddyfile (DataRail Storage's)
+# /etc/caddy/sites.d/ghostsignal.caddy on the VPS. The main Caddyfile (DataRail Storage's)
 # imports every file in that folder; deploy/caddy-site.sh copies this one in when it changes.
 #
-# ghostsignalv2.datarail.org -> the GhostSignal V2 server on this host. Caddy obtains and renews the
+# ghostsignal.datarail.org -> the GhostSignal server on this host. Caddy obtains and renews the
 # certificate on its own, redirects plain http to https, and sets X-Forwarded-For to the
 # player's address (it drops whatever the client sent, as no proxies in front of it are trusted).
-ghostsignalv2.datarail.org {
+ghostsignal.datarail.org {
 	header Strict-Transport-Security "max-age=31536000"
-	reverse_proxy 127.0.0.1:8091
+	reverse_proxy 127.0.0.1:8090
 }
