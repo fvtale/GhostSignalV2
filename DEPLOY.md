@@ -13,6 +13,7 @@ runs there.
 - [First time](#first-time)
 - [Updating](#updating)
 - [Keys, payments and event phones](#keys-payments-and-event-phones)
+- [The signing key](#the-signing-key)
 - [Sharing Caddy with DataRail Storage](#sharing-caddy-with-datarail-storage)
 - [Backups](#backups)
 - [Somewhere else](#somewhere-else)
@@ -120,6 +121,36 @@ Phones built for an event can skip accounts by carrying the event token. Copy it
 (`grep EVENT_TOKEN /etc/ghostsignal.env`) into `local.properties` as `ghostsignal.eventToken`
 before building. App builds talk to `https://ghostsignal.datarail.org` unless
 `ghostsignal.backendUrl` says otherwise. The phone's operator screen can change both.
+
+## The signing key
+
+Android only installs an update over an app when both are signed with the same key. Builds
+people install must be signed with a **private** key. The key in
+`app/sideload-debug.keystore` is public (it's in this repository), so anyone could sign a fake
+"update" with it; it's for development builds only, and CI doesn't publish builds signed with it.
+
+One-time setup, on your own computer (needs a JDK, for `keytool`):
+
+```bash
+keytool -genkeypair -v -keystore ghostsignal-release.keystore -alias ghostsignal \
+    -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 ghostsignal-release.keystore > keystore.b64      # macOS: base64 -i ... -o keystore.b64
+# Windows PowerShell:
+#   [Convert]::ToBase64String([IO.File]::ReadAllBytes("ghostsignal-release.keystore")) > keystore.b64
+```
+
+It asks for a password; use the same one for the keystore and the key. Then, in this
+repository's Settings → Secrets and variables → Actions, add two **secrets**:
+
+- `SIGNING_KEYSTORE_BASE64`: the contents of `keystore.b64`;
+- `SIGNING_KEYSTORE_PASSWORD`: the password.
+
+Keep `ghostsignal-release.keystore` and its password somewhere safe and backed up, never in the
+repository: if they're lost, no future build can update installed apps. Delete `keystore.b64`.
+
+From the next green build of `main`, the published APK is signed with the private key. Phones
+with a build signed by the old public key must **uninstall it once** before installing the new
+one (run progress on the phone is lost; signed-in accounts keep theirs on the server).
 
 ## Sharing Caddy with DataRail Storage
 

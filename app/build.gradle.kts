@@ -65,15 +65,25 @@ android {
     sourceSets["main"].jniLibs.srcDirs(fmodDir.resolve("api/core/lib"), fmodDir.resolve("plugins"))
   }
 
-  // Every build, on CI or on any machine, signs with this one key, so a newer APK installs over an
-  // older one on the phone instead of failing with "App not installed". It's a debug key and not a
-  // secret; a Play Store release would get its own key, kept out of the repository.
+  // Signing. Builds people install are signed with a private key that never enters the
+  // repository: CI decodes it from its secrets (DEPLOY.md, "The signing key"), and a local build
+  // can point at one through local.properties (ghostsignal.keystore, .keystorePassword,
+  // .keyAlias, .keyPassword). Without one, the build falls back to the public debug key in
+  // app/sideload-debug.keystore, which is for development only: anyone can sign with it.
+  val privateKeystore = setting("ghostsignal.keystore")
   signingConfigs {
     getByName("debug") {
-      storeFile = file("sideload-debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
+      if (privateKeystore.isNotBlank()) {
+        storeFile = file(privateKeystore)
+        storePassword = setting("ghostsignal.keystorePassword")
+        keyAlias = setting("ghostsignal.keyAlias", "ghostsignal")
+        keyPassword = setting("ghostsignal.keyPassword", setting("ghostsignal.keystorePassword"))
+      } else {
+        storeFile = file("sideload-debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
     }
   }
 
