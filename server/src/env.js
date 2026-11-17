@@ -2,36 +2,48 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/**
- * Loads `server/.env` (see .env.example) into process.env, so a key dropped in that file —
- * MODEL_API_KEY, say — works with a plain `node src/index.js`, not only under systemd's
- * EnvironmentFile or a host dashboard. Real environment variables always win: a value already
- * set is never overwritten. Deliberately tiny (KEY=value lines, # comments, optional quotes);
- * no dependency, and values are never logged.
- */
-const DEFAULT_FILE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.env");
+// Minimal .env support: KEY=value lines, '#' comments, an optional `export`
+// prefix and optional matching quotes. It exists so a key dropped into
+// server/.env works with a plain `node src/index.js`, not only under a
+// service manager. Values already present in the real environment always
+// win, and nothing loaded here is ever logged.
 
-export function loadEnvFile(file = DEFAULT_FILE, env = process.env) {
+const DEFAULT_ENV_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../.env",
+);
+
+const SETTING_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
+
+/**
+ * Loads settings from [file] into [env]. Returns the names of the keys that
+ * were set (never their values). A missing file is not an error.
+ */
+export function loadEnvFile(file = DEFAULT_ENV_PATH, env = process.env) {
   let text;
   try {
     text = fs.readFileSync(file, "utf8");
   } catch {
-    return []; // No .env file: configuration comes from the environment alone.
+    return [];
   }
-  const loaded = [];
+
+  const loadedKeys = [];
   for (const rawLine of text.replace(/^﻿/, "").split(/\r?\n/)) {
     const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const match = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+    if (line === "" || line.startsWith("#")) continue;
+
+    const match = SETTING_LINE.exec(line);
     if (!match) continue;
     const [, key, rawValue] = match;
-    if (env[key] !== undefined) continue; // The real environment wins.
+    if (env[key] !== undefined) continue; // Real environment wins.
+
     let value = rawValue.trim();
-    if (value.length >= 2 && (value[0] === '"' || value[0] === "'") && value.at(-1) === value[0]) {
+    const first = value[0];
+    if (value.length >= 2 && (first === '"' || first === "'") && value.at(-1) === first) {
       value = value.slice(1, -1);
     }
     env[key] = value;
-    loaded.push(key);
+    loadedKeys.push(key);
   }
-  return loaded;
+  return loadedKeys;
 }

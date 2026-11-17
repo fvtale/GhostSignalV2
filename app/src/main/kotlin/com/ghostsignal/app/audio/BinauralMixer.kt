@@ -21,505 +21,580 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * The built-in renderer: one AudioTrack, a real-time mixing thread, and a spherical-head binaural
- * panner per source.
+ * The built-in renderer: one AudioTrack, a real-time mixing thread, and a
+ * spherical-head binaural panner per source.
  *
- * Signal flow:
  * ```
  *  stems (looping, sample-locked) ─┬─ in-head (stereo) ───────────┐
- *                                  └─ beacon: radio mush ─ binaural ┤
+ *                                  └─ beacon: radio crush ─ binaural ┤
  *  static + sonar ping (binaural) ─────────────────────────────────┤
  *  antagonist theme (in-head, at the scene's level) ───────────────┤─ music bus ─ duck/lo-fi ─┐
  *  voices (radio band, binaural or centred) ──────────────────────────────────────────────────┤─ master ─ soft clip
  *  sfx, rhythm clicks ────────────────────────────────────────────────────────────────────────┘
  * ```
- * Bearings arrive in world coordinates; the live head heading is subtracted per block so head
- * turns update within ~10 ms of the IMU sample (plus Bluetooth latency).
+ *
+ * Bearings arrive in world coordinates; the live head heading is subtracted
+ * per block, so head turns land within ~10 ms of the IMU sample (plus
+ * Bluetooth latency).
  */
 class BinauralMixer : AudioEngine {
+
   override val name = "Built-in binaural"
-  private val _stats = MutableStateFlow(AudioStats(name, false, 0, 0))
-  override val stats: StateFlow<AudioStats> = _stats
 
-  private val sr = Pcm.SAMPLE_RATE
-  private val block = 480
-  private var track: AudioTrack? = null
-  private var thread: Thread? = null
-  @Volatile private var running = false
-  private val callbacks = Executors.newSingleThreadExecutor { r -> Thread(r, "gs-audio-callbacks") }
-  private val commands = ConcurrentLinkedQueue<(Long) -> Unit>()
+  private val mutableStats = MutableStateFlow(AudioStats(name, false, 0, 0))
+  override val stats: StateFlow<AudioStats> = mutableStats
 
-  @Volatile private var scene: AudioScene = AudioScene.SILENT
-  @Volatile private var heading: Double? = null
-  @Volatile private var pitch: Double? = null
-  @Volatile private var comms = CommsMode.NONE
-  @Volatile private var masterVolume = 0.9f
+  private val sampleRate = Pcm.SAMPLE_RATE
+  private val blockFrames = 480
 
-  // Audio-thread state ------------------------------------------------------------------------
-  private var frame = 0L
-  private var bpm = 120.0
-  private var beatsPerBar = 4
-  private var stems: List<StemChannel> = emptyList()
-  private var theme: ShortArray? = null
-  private var themeBase = 1f
-  private var themePos = 0
-  private val themeGain = Ramp()
-  private val mix = FloatArray(block * 2)
-  private val musicBus = FloatArray(block * 2)
-  private val noise = Noise()
-  private val staticLp = OnePoleLp(2_500f)
-  private val staticPan = Binaural()
-  private val staticGain = Ramp()
-  private var crackle = 0f
-  private val ping = PingVoice()
-  private var nextPingFrame = 0L
-  private var voice: VoiceSlot? = null
-  private val sfx = mutableListOf<SynthVoice>()
-  private val scheduled = mutableListOf<Pair<Long, () -> Unit>>()
-  private val duck = Ramp(1f)
-  private val lofi = Ramp(0f)
-  private val bandL = RadioBand()
-  private val bandR = RadioBand()
-  private var underruns = 0
+  private var audioTrack: AudioTrack? = null
+  private var renderThread: Thread? = null
+
+  @Volatile
+  private var isRunning = false
+
+  private val callbackExecutor =
+      Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "gs-audio-callbacks") }
+  private val pendingCommands = ConcurrentLinkedQueue<(Long) -> Unit>()
+
+  @Volatile
+  private var currentScene: AudioScene = AudioScene.SILENT
+
+  @Volatile
+  private var listenerYawDeg: Double? = null
+
+  @Volatile
+  private var listenerPitchDeg: Double? = null
+
+  @Volatile
+  private var commsMode = CommsMode.NONE
+
+  @Volatile
+  private var masterVolume = 0.9f
+
+  // -- audio-thread state (touched only by the render thread) -------------------
+
+  private var frameCounter = 0L
+  private var beatsPerMinute = 120.0
+  private var beatsPerBarCount = 4
+  private var stemChannels: List<StemChannel> = emptyList()
+  private var themeSamples: ShortArray? = null
+  private var themeBaseGain = 1f
+  private var themePosition = 0
+  private val themeGainRamp = Ramp()
+  private val mixBuffer = FloatArray(blockFrames * 2)
+  private val musicBuffer = FloatArray(blockFrames * 2)
+  private val noiseSource = Noise()
+  private val staticFilter = OnePoleLp(2_500f)
+  private val staticPanner = Binaural()
+  private val staticGainRamp = Ramp()
+  private var crackleLevel = 0f
+  private val pingSynth = PingSynth()
+  private var nextPingAtFrame = 0L
+  private var activeVoice: VoicePlayback? = null
+  private val activeSfx = mutableListOf<SynthVoice>()
+  private val scheduledActions = mutableListOf<Pair<Long, () -> Unit>>()
+  private val duckRamp = Ramp(1f)
+  private val lofiRamp = Ramp(0f)
+  private val radioBandLeft = RadioBand()
+  private val radioBandRight = RadioBand()
+  private var underrunTotal = 0
+
+  // -- lifecycle ------------------------------------------------------------------
 
   override fun start() {
-    if (running) return
-    val minBuf =
-        AudioTrack.getMinBufferSize(sr, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT)
-    val attrs =
-        AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .apply {
-              // We do our own spatialisation; keep the platform spatializer out of it.
-              if (Build.VERSION.SDK_INT >= 32) setSpatializationBehavior(AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER)
-            }
-            .build()
-    val t =
-        AudioTrack.Builder()
-            .setAudioAttributes(attrs)
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
-                    .setSampleRate(sr)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                    .build())
-            .setBufferSizeInBytes(max(minBuf, block * 2 * 4 * 6))
-            .setTransferMode(AudioTrack.MODE_STREAM)
-            .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
-            .build()
-    track = t
-    running = true
-    t.play()
-    thread =
-        Thread({ renderLoop(t) }, "gs-audio").apply {
-          priority = Thread.MAX_PRIORITY
-          start()
+    if (isRunning) return
+    val minimumBuffer = AudioTrack.getMinBufferSize(
+        sampleRate,
+        AudioFormat.CHANNEL_OUT_STEREO,
+        AudioFormat.ENCODING_PCM_FLOAT,
+    )
+    val attributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_MEDIA)
+        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+        .apply {
+          // We spatialise ourselves; keep the platform spatializer out.
+          if (Build.VERSION.SDK_INT >= 32) {
+            setSpatializationBehavior(AudioAttributes.SPATIALIZATION_BEHAVIOR_NEVER)
+          }
         }
+        .build()
+    val format = AudioFormat.Builder()
+        .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+        .setSampleRate(sampleRate)
+        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+        .build()
+
+    val track = AudioTrack.Builder()
+        .setAudioAttributes(attributes)
+        .setAudioFormat(format)
+        .setBufferSizeInBytes(max(minimumBuffer, blockFrames * 2 * 4 * 6))
+        .setTransferMode(AudioTrack.MODE_STREAM)
+        .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+        .build()
+
+    audioTrack = track
+    isRunning = true
+    track.play()
+    renderThread = Thread({ renderLoop(track) }, "gs-audio").apply {
+      priority = Thread.MAX_PRIORITY
+      start()
+    }
     publishStats()
   }
 
   override fun stop() {
-    running = false
-    thread?.join(500)
-    thread = null
-    track?.let {
-      runCatching { it.stop() }
-      it.release()
+    isRunning = false
+    renderThread?.join(500)
+    renderThread = null
+    audioTrack?.let { track ->
+      runCatching { track.stop() }
+      track.release()
     }
-    track = null
-    voice?.let { v -> callbacks.execute { v.onDone() } }
-    voice = null
+    audioTrack = null
+    activeVoice?.let { voice -> callbackExecutor.execute { voice.onDone() } }
+    activeVoice = null
     publishStats()
   }
 
   override fun release() {
     stop()
-    callbacks.shutdown()
+    callbackExecutor.shutdown()
   }
 
-  private fun renderLoop(t: AudioTrack) {
+  private fun renderLoop(track: AudioTrack) {
     Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-    var lastUnderrun = 0
-    while (running) {
+    var lastUnderrunCount = 0
+    while (isRunning) {
       try {
-        render()
-        val written = t.write(mix, 0, mix.size, AudioTrack.WRITE_BLOCKING)
+        renderBlock()
+        val written = track.write(mixBuffer, 0, mixBuffer.size, AudioTrack.WRITE_BLOCKING)
         if (written < 0) {
           Log.w(TAG, "AudioTrack write failed: $written")
           break
         }
-        val u = t.underrunCount
-        if (u != lastUnderrun) {
-          underruns += u - lastUnderrun
-          lastUnderrun = u
+        val underrunsNow = track.underrunCount
+        if (underrunsNow != lastUnderrunCount) {
+          underrunTotal += underrunsNow - lastUnderrunCount
+          lastUnderrunCount = underrunsNow
           publishStats()
         }
-      } catch (e: Exception) {
-        Log.e(TAG, "render failed", e)
+      } catch (error: Exception) {
+        Log.e(TAG, "render failed", error)
       }
     }
   }
 
   private fun publishStats() {
-    _stats.value = AudioStats(name, running, underruns, stems.size)
+    mutableStats.value = AudioStats(name, isRunning, underrunTotal, stemChannels.size)
   }
 
-  // ----------------------------------------------------------------------- public controls
+  // -- public controls ---------------------------------------------------------------
 
   override fun loadStems(music: MusicManifest, stems: Map<String, Pcm>) {
-    val channels =
-        music.stems.map { spec ->
-          val pcm = (stems[spec.id] ?: Pcm.silence((music.barMs * 4).toLong())).toStereo().withFrames(music.loopFrames(sr))
-          StemChannel(spec.id, pcm.data, 10.0.pow(spec.gainDb / 20.0).toFloat())
-        }
-    commands.add {
-      this.stems = channels
-      bpm = music.bpm
-      beatsPerBar = music.beatsPerBar
-      frame = 0
+    val channels = music.stems.map { spec ->
+      val loopPcm = (stems[spec.id] ?: Pcm.silence((music.barMs * 4).toLong()))
+          .toStereo()
+          .withFrames(music.loopFrames(sampleRate))
+      StemChannel(spec.id, loopPcm.data, dbToLinear(spec.gainDb).toFloat())
+    }
+    pendingCommands.add {
+      stemChannels = channels
+      beatsPerMinute = music.bpm
+      beatsPerBarCount = music.beatsPerBar
+      frameCounter = 0
       publishStats()
     }
   }
 
   override fun loadTheme(theme: Pcm?, gainDb: Double) {
-    val data = theme?.toStereo()?.data
-    val base = 10.0.pow(gainDb / 20.0).toFloat()
-    commands.add {
-      this.theme = data
-      themeBase = base
-      themePos = 0
+    val stereoData = theme?.toStereo()?.data
+    val baseGain = dbToLinear(gainDb).toFloat()
+    pendingCommands.add {
+      themeSamples = stereoData
+      themeBaseGain = baseGain
+      themePosition = 0
     }
   }
 
   override fun setScene(scene: AudioScene) {
-    this.scene = scene
+    currentScene = scene
   }
 
   override fun setListenerOrientation(yawDeg: Double?, pitchDeg: Double?) {
-    heading = yawDeg
-    pitch = pitchDeg
+    listenerYawDeg = yawDeg
+    listenerPitchDeg = pitchDeg
   }
 
   override fun playVoice(pcm: Pcm, params: VoiceParams, onDone: () -> Unit) {
-    val mono = pcm.toMono()
-    commands.add {
-      voice?.let { old -> callbacks.execute { old.onDone() } }
-      voice = VoiceSlot(mono.data, params, onDone)
+    val monoPcm = pcm.toMono()
+    pendingCommands.add {
+      activeVoice?.let { previous -> callbackExecutor.execute { previous.onDone() } }
+      activeVoice = VoicePlayback(monoPcm.data, params, onDone)
     }
   }
 
   override fun stopVoice() {
-    commands.add {
-      voice?.let { v -> callbacks.execute { v.onDone() } }
-      voice = null
+    pendingCommands.add {
+      activeVoice?.let { voice -> callbackExecutor.execute { voice.onDone() } }
+      activeVoice = null
     }
   }
 
   override fun playSfx(sfx: Sfx, worldBearingDeg: Double?) {
-    commands.add { this.sfx.add(SynthVoice.forSfx(sfx, worldBearingDeg)) }
+    pendingCommands.add { activeSfx.add(SynthVoice.forSfx(sfx, worldBearingDeg)) }
   }
 
   override fun playUiSfx(sfx: UiSfx) {
-    commands.add { this.sfx.add(SynthVoice.forUi(sfx)) }
+    pendingCommands.add { activeSfx.add(SynthVoice.forUi(sfx)) }
   }
 
   override fun playRhythm(onsetsBeats: List<Double>, onDone: () -> Unit) {
-    commands.add { now ->
-      val beatFrames = 60.0 / bpm * sr
-      // Start on the next beat (at least half a beat away) so the pattern sits on the groove.
-      var start = (kotlin.math.ceil(now / beatFrames) * beatFrames).toLong()
-      if (start - now < beatFrames / 2) start += beatFrames.toLong()
-      onsetsBeats.forEach { b ->
-        scheduled.add((start + (b * beatFrames).toLong()) to { sfx.add(SynthVoice.forUi(UiSfx.CLICK)) })
+    pendingCommands.add { nowFrame ->
+      val framesPerBeat = 60.0 / beatsPerMinute * sampleRate
+      // Start on the next beat (at least half a beat out) so it sits on the groove.
+      var startFrame = (kotlin.math.ceil(nowFrame / framesPerBeat) * framesPerBeat).toLong()
+      if (startFrame - nowFrame < framesPerBeat / 2) startFrame += framesPerBeat.toLong()
+      for (onset in onsetsBeats) {
+        val clickFrame = startFrame + (onset * framesPerBeat).toLong()
+        scheduledActions.add(clickFrame to { activeSfx.add(SynthVoice.forUi(UiSfx.CLICK)) })
       }
-      val end = start + ((onsetsBeats.maxOrNull() ?: 0.0) * beatFrames).toLong() + (beatFrames / 2).toLong()
-      scheduled.add(end to { callbacks.execute { onDone() } })
+      val lastOnset = onsetsBeats.maxOrNull() ?: 0.0
+      val endFrame = startFrame + (lastOnset * framesPerBeat).toLong() + (framesPerBeat / 2).toLong()
+      scheduledActions.add(endFrame to { callbackExecutor.execute { onDone() } })
     }
   }
 
   override fun setComms(mode: CommsMode) {
-    comms = mode
+    commsMode = mode
   }
 
   override fun setMasterVolume(volume: Float) {
     masterVolume = volume.coerceIn(0f, 1f)
   }
 
-  // ----------------------------------------------------------------------- rendering
+  // -- rendering -----------------------------------------------------------------------
 
-  private fun render() {
-    while (true) commands.poll()?.invoke(frame) ?: break
-    mix.fill(0f)
-    musicBus.fill(0f)
-    val sc = scene
-    val head = heading
-
-    val pausedFactor = if (sc.paused) 0.15f else 1f
-    renderStems(sc, head, pausedFactor)
-    renderTheme(sc, pausedFactor)
-    renderStatic(sc, head, pausedFactor)
-    renderPing(sc, head)
-
-    // Duck and lo-fi the music bus when someone talks or the mic is open.
-    val (duckTarget, lofiTarget) =
-        when (comms) {
-          CommsMode.NONE -> 1f to 0f
-          CommsMode.VOICE -> 0.42f to 0f
-          CommsMode.MIC -> 0.28f to 1f
-        }
-    duck.begin(approach(duck.value, duckTarget, 0.25f), block)
-    lofi.begin(approach(lofi.value, lofiTarget, 0.2f), block)
-    for (i in 0 until block) {
-      val d = duck.next()
-      val lf = lofi.next()
-      var l = musicBus[2 * i]
-      var r = musicBus[2 * i + 1]
-      if (lf > 0.001f) {
-        l += (bandL.process(l) * 1.6f - l) * lf
-        r += (bandR.process(r) * 1.6f - r) * lf
-      }
-      mix[2 * i] += l * d
-      mix[2 * i + 1] += r * d
+  private fun renderBlock() {
+    while (true) {
+      val command = pendingCommands.poll() ?: break
+      command(frameCounter)
     }
-    duck.end()
-    lofi.end()
+    mixBuffer.fill(0f)
+    musicBuffer.fill(0f)
 
-    renderVoice(head)
-    renderSfx(head)
-    runScheduled()
+    val scene = currentScene
+    val headingDeg = listenerYawDeg
+    val pauseFactor = if (scene.paused) 0.15f else 1f
 
-    val mv = masterVolume
-    for (i in mix.indices) mix[i] = softClip(mix[i] * mv)
-    frame += block
+    renderStems(scene, headingDeg, pauseFactor)
+    renderTheme(scene, pauseFactor)
+    renderStatic(scene, headingDeg, pauseFactor)
+    renderPing(scene, headingDeg)
+    mixMusicBus()
+    renderVoice(headingDeg)
+    renderEffects(headingDeg)
+    runScheduledActions()
+
+    val volume = masterVolume
+    for (index in mixBuffer.indices) {
+      mixBuffer[index] = softClip(mixBuffer[index] * volume)
+    }
+    frameCounter += blockFrames
   }
 
-  private fun approach(current: Float, target: Float, rate: Float) = current + (target - current) * rate
-
-  private fun relative(worldBearing: Double?, head: Double?): Double? =
-      if (worldBearing == null) null else Geo.deltaDeg(head ?: 0.0, worldBearing)
-
-  /** Source elevation relative to where the head is pitched; 0 when pitch is unknown. */
-  private fun relativeElevation(sourceElevationDeg: Double): Double = sourceElevationDeg - (pitch ?: 0.0)
-
-  private fun renderStems(sc: AudioScene, head: Double?, pausedFactor: Float) {
-    if (stems.isEmpty()) return
-    val barFrames = (60.0 / bpm * beatsPerBar * sr).toLong()
-    for (ch in stems) {
-      val st = sc.stems[ch.id]
-      val targetGain = ((st?.gain ?: 0.0).toFloat() * ch.baseGain * pausedFactor)
-      val wantsHead = st == null || st.worldBearingDeg == null
-      // Collected stems glide into the head on the next bar line.
-      if (wantsHead && ch.spatialTarget > 0f) {
-        if (ch.gain.value < 0.02f || st == null) ch.spatialTarget = 0f
-        else if (ch.headLockAt < 0) ch.headLockAt = (frame / barFrames + 1) * barFrames
-      } else if (!wantsHead) {
-        ch.spatialTarget = 1f
-        ch.headLockAt = -1
+  /** Applies comms ducking (and mic-mode lo-fi) as music joins the mix. */
+  private fun mixMusicBus() {
+    val (duckTarget, lofiTarget) = when (commsMode) {
+      CommsMode.NONE -> 1f to 0f
+      CommsMode.VOICE -> 0.42f to 0f
+      CommsMode.MIC -> 0.28f to 1f
+    }
+    duckRamp.begin(easeToward(duckRamp.value, duckTarget, 0.25f), blockFrames)
+    lofiRamp.begin(easeToward(lofiRamp.value, lofiTarget, 0.2f), blockFrames)
+    for (frame in 0 until blockFrames) {
+      val duck = duckRamp.next()
+      val lofiAmount = lofiRamp.next()
+      var left = musicBuffer[2 * frame]
+      var right = musicBuffer[2 * frame + 1]
+      if (lofiAmount > 0.001f) {
+        left += (radioBandLeft.process(left) * 1.6f - left) * lofiAmount
+        right += (radioBandRight.process(right) * 1.6f - right) * lofiAmount
       }
-      if (ch.headLockAt in 0..frame) {
-        ch.spatialTarget = 0f
-        ch.headLockAt = -1
+      mixBuffer[2 * frame] += left * duck
+      mixBuffer[2 * frame + 1] += right * duck
+    }
+    duckRamp.end()
+    lofiRamp.end()
+  }
+
+  private fun easeToward(current: Float, target: Float, rate: Float): Float =
+      current + (target - current) * rate
+
+  private fun relativeBearing(worldBearingDeg: Double?, headingDeg: Double?): Double? =
+      if (worldBearingDeg == null) null else Geo.deltaDeg(headingDeg ?: 0.0, worldBearingDeg)
+
+  /** Source elevation relative to the head's pitch (0 when pitch is unknown). */
+  private fun relativeElevation(sourceElevationDeg: Double): Double =
+      sourceElevationDeg - (listenerPitchDeg ?: 0.0)
+
+  private fun renderStems(scene: AudioScene, headingDeg: Double?, pauseFactor: Float) {
+    if (stemChannels.isEmpty()) return
+    val framesPerBar = (60.0 / beatsPerMinute * beatsPerBarCount * sampleRate).toLong()
+
+    for (channel in stemChannels) {
+      val stemState = scene.stems[channel.id]
+      val targetGain = (stemState?.gain ?: 0.0).toFloat() * channel.baseGain * pauseFactor
+      val wantsInHead = stemState == null || stemState.worldBearingDeg == null
+
+      // Collected stems glide into the head exactly on the next bar line.
+      if (wantsInHead && channel.spatialTarget > 0f) {
+        if (channel.gainRamp.value < 0.02f || stemState == null) {
+          channel.spatialTarget = 0f
+        } else if (channel.headLockAtFrame < 0) {
+          channel.headLockAtFrame = (frameCounter / framesPerBar + 1) * framesPerBar
+        }
+      } else if (!wantsInHead) {
+        channel.spatialTarget = 1f
+        channel.headLockAtFrame = -1
       }
-      ch.gain.begin(approach(ch.gain.value, targetGain, 0.08f), block)
-      ch.spatial.begin(approach(ch.spatial.value, ch.spatialTarget, 0.03f), block)
-      if (ch.gain.value < 1e-4f && targetGain < 1e-4f) {
-        ch.gain.end()
-        ch.spatial.end()
+      if (channel.headLockAtFrame in 0..frameCounter) {
+        channel.spatialTarget = 0f
+        channel.headLockAtFrame = -1
+      }
+
+      channel.gainRamp.begin(easeToward(channel.gainRamp.value, targetGain, 0.08f), blockFrames)
+      channel.spatialRamp.begin(easeToward(channel.spatialRamp.value, channel.spatialTarget, 0.03f), blockFrames)
+      if (channel.gainRamp.value < 1e-4f && targetGain < 1e-4f) {
+        channel.gainRamp.end()
+        channel.spatialRamp.end()
         continue
       }
-      val clarity = (st?.clarity ?: 1.0).toFloat()
-      ch.clarityLp.setCutoff(500f + 15_500f * clarity * clarity)
-      ch.crushHold = (1 + ((1f - clarity) * 7).toInt())
-      val az = relative(st?.worldBearingDeg, head)
-      ch.binaural.prepare(az ?: 0.0, block, relativeElevation(st?.elevationDeg ?: 0.0))
-      val frames = ch.data.size / 2
-      var pos = (frame % frames).toInt()
-      for (i in 0 until block) {
-        val l = ch.data[2 * pos] / 32768f
-        val r = ch.data[2 * pos + 1] / 32768f
-        val g = ch.gain.next()
-        val s = ch.spatial.next()
-        val inHead = g * (1f - s)
-        musicBus[2 * i] += l * inHead
-        musicBus[2 * i + 1] += r * inHead
-        if (s > 0.001f) {
-          // Distant signals are band-limited and sample-and-hold "bit-rotted".
-          if (++ch.crushCount >= ch.crushHold) {
-            ch.crushCount = 0
-            ch.crushed = ch.clarityLp.process((l + r) * 0.5f)
+
+      val clarity = (stemState?.clarity ?: 1.0).toFloat()
+      channel.clarityFilter.setCutoff(500f + 15_500f * clarity * clarity)
+      channel.crushHoldFrames = 1 + ((1f - clarity) * 7).toInt()
+
+      val azimuth = relativeBearing(stemState?.worldBearingDeg, headingDeg)
+      channel.panner.prepare(
+          azimuth ?: 0.0, blockFrames, relativeElevation(stemState?.elevationDeg ?: 0.0),
+      )
+
+      val loopFrameCount = channel.samples.size / 2
+      var position = (frameCounter % loopFrameCount).toInt()
+      for (frame in 0 until blockFrames) {
+        val leftSample = channel.samples[2 * position] / 32768f
+        val rightSample = channel.samples[2 * position + 1] / 32768f
+        val gain = channel.gainRamp.next()
+        val spatialMix = channel.spatialRamp.next()
+
+        val inHeadGain = gain * (1f - spatialMix)
+        musicBuffer[2 * frame] += leftSample * inHeadGain
+        musicBuffer[2 * frame + 1] += rightSample * inHeadGain
+
+        if (spatialMix > 0.001f) {
+          // Distant signals are band-limited and sample-held ("bit-rotted").
+          if (++channel.crushCounter >= channel.crushHoldFrames) {
+            channel.crushCounter = 0
+            channel.crushedSample = channel.clarityFilter.process((leftSample + rightSample) * 0.5f)
           }
-          ch.binaural.process(ch.crushed * g * s * 1.25f, musicBus, i)
+          channel.panner.process(channel.crushedSample * gain * spatialMix * 1.25f, musicBuffer, frame)
         }
-        pos++
-        if (pos >= frames) pos = 0
+
+        position++
+        if (position >= loopFrameCount) position = 0
       }
-      ch.gain.end()
-      ch.spatial.end()
-      ch.binaural.finishBlock()
+      channel.gainRamp.end()
+      channel.spatialRamp.end()
+      channel.panner.finishBlock()
     }
   }
 
-  /** The antagonist's theme: everywhere at once, so it plays inside the head rather than from a place. */
-  private fun renderTheme(sc: AudioScene, pausedFactor: Float) {
-    val data = theme ?: return
-    val target = sc.antagonistLevel.toFloat().coerceIn(0f, 1f) * themeBase * pausedFactor
-    themeGain.begin(approach(themeGain.value, target, 0.06f), block)
-    if (themeGain.value < 1e-4f && target < 1e-4f) {
-      themeGain.end()
+  /** The antagonist theme: everywhere at once, so it plays inside the head. */
+  private fun renderTheme(scene: AudioScene, pauseFactor: Float) {
+    val samples = themeSamples ?: return
+    val targetGain = scene.antagonistLevel.toFloat().coerceIn(0f, 1f) * themeBaseGain * pauseFactor
+    themeGainRamp.begin(easeToward(themeGainRamp.value, targetGain, 0.06f), blockFrames)
+    if (themeGainRamp.value < 1e-4f && targetGain < 1e-4f) {
+      themeGainRamp.end()
       return
     }
-    val frames = data.size / 2
-    for (i in 0 until block) {
-      val g = themeGain.next()
-      musicBus[2 * i] += data[2 * themePos] / 32768f * g
-      musicBus[2 * i + 1] += data[2 * themePos + 1] / 32768f * g
-      if (++themePos >= frames) themePos = 0
+    val loopFrameCount = samples.size / 2
+    for (frame in 0 until blockFrames) {
+      val gain = themeGainRamp.next()
+      musicBuffer[2 * frame] += samples[2 * themePosition] / 32768f * gain
+      musicBuffer[2 * frame + 1] += samples[2 * themePosition + 1] / 32768f * gain
+      if (++themePosition >= loopFrameCount) themePosition = 0
     }
-    themeGain.end()
+    themeGainRamp.end()
   }
 
-  private fun renderStatic(sc: AudioScene, head: Double?, pausedFactor: Float) {
-    val level = (sc.staticLevel.toFloat() * (if (sc.paused) 0f else pausedFactor))
-    staticGain.begin(approach(staticGain.value, level, 0.1f), block)
-    if (staticGain.value < 1e-4f && level < 1e-4f) {
-      staticGain.end()
+  private fun renderStatic(scene: AudioScene, headingDeg: Double?, pauseFactor: Float) {
+    val targetLevel = scene.staticLevel.toFloat() * (if (scene.paused) 0f else pauseFactor)
+    staticGainRamp.begin(easeToward(staticGainRamp.value, targetLevel, 0.1f), blockFrames)
+    if (staticGainRamp.value < 1e-4f && targetLevel < 1e-4f) {
+      staticGainRamp.end()
       return
     }
-    staticPan.prepare(relative(sc.staticBearingDeg, head) ?: 0.0, block, relativeElevation(sc.staticElevationDeg))
-    for (i in 0 until block) {
-      var n = staticLp.process(noise.next()) * 0.8f
+    staticPanner.prepare(
+        relativeBearing(scene.staticBearingDeg, headingDeg) ?: 0.0,
+        blockFrames,
+        relativeElevation(scene.staticElevationDeg),
+    )
+    for (frame in 0 until blockFrames) {
+      var noise = staticFilter.process(noiseSource.next()) * 0.8f
       // Occasional crackles, like a radio between stations.
-      if (noise.next() > 0.9985f) crackle = 1f
-      if (crackle > 0.01f) {
-        n += noise.next() * crackle
-        crackle *= 0.93f
+      if (noiseSource.next() > 0.9985f) crackleLevel = 1f
+      if (crackleLevel > 0.01f) {
+        noise += noiseSource.next() * crackleLevel
+        crackleLevel *= 0.93f
       }
-      val g = staticGain.next() * 0.5f
-      if (sc.staticBearingDeg == null) {
-        musicBus[2 * i] += n * g
-        musicBus[2 * i + 1] += n * g
+      val gain = staticGainRamp.next() * 0.5f
+      if (scene.staticBearingDeg == null) {
+        musicBuffer[2 * frame] += noise * gain
+        musicBuffer[2 * frame + 1] += noise * gain
       } else {
-        staticPan.process(n * g * 1.3f, musicBus, i)
+        staticPanner.process(noise * gain * 1.3f, musicBuffer, frame)
       }
     }
-    staticGain.end()
-    staticPan.finishBlock()
+    staticGainRamp.end()
+    staticPanner.finishBlock()
   }
 
-  private fun renderPing(sc: AudioScene, head: Double?) {
-    val interval = sc.pingIntervalMs
-    if (interval != null && !sc.paused && frame >= nextPingFrame) {
-      ping.trigger()
-      nextPingFrame = frame + interval * sr / 1000
-    } else if (interval == null) {
-      nextPingFrame = frame
+  private fun renderPing(scene: AudioScene, headingDeg: Double?) {
+    val intervalMs = scene.pingIntervalMs
+    if (intervalMs != null && !scene.paused && frameCounter >= nextPingAtFrame) {
+      pingSynth.trigger()
+      nextPingAtFrame = frameCounter + intervalMs * sampleRate / 1000
+    } else if (intervalMs == null) {
+      nextPingAtFrame = frameCounter
     }
-    if (!ping.active) return
-    ping.binaural.prepare(relative(sc.pingBearingDeg, head) ?: 0.0, block, relativeElevation(sc.pingElevationDeg))
-    for (i in 0 until block) ping.binaural.process(ping.next() * 0.35f, musicBus, i)
-    ping.binaural.finishBlock()
+    if (!pingSynth.isActive) return
+    pingSynth.panner.prepare(
+        relativeBearing(scene.pingBearingDeg, headingDeg) ?: 0.0,
+        blockFrames,
+        relativeElevation(scene.pingElevationDeg),
+    )
+    for (frame in 0 until blockFrames) {
+      pingSynth.panner.process(pingSynth.nextSample() * 0.35f, musicBuffer, frame)
+    }
+    pingSynth.panner.finishBlock()
   }
 
-  private fun renderVoice(head: Double?) {
-    val v = voice ?: return
-    val az = relative(v.params.worldBearingDeg, head)
-    if (az != null) v.binaural.prepare(az, block, relativeElevation(v.params.elevationDeg))
-    val radio = v.params.radio.toFloat()
-    val g = v.params.gain.toFloat() * 1.05f
-    for (i in 0 until block) {
-      if (v.pos >= v.data.size) break
-      var x = v.data[v.pos++] / 32768f
-      if (radio > 0.01f) {
-        val band = v.band.process(x) * (1f + 2f * radio)
-        x = x + (softClip(band * (1f + 3f * radio)) - x) * radio
-        x += noise.next() * 0.012f * radio
+  private fun renderVoice(headingDeg: Double?) {
+    val voice = activeVoice ?: return
+    val azimuth = relativeBearing(voice.params.worldBearingDeg, headingDeg)
+    if (azimuth != null) {
+      voice.panner.prepare(azimuth, blockFrames, relativeElevation(voice.params.elevationDeg))
+    }
+    val radioAmount = voice.params.radio.toFloat()
+    val voiceGain = voice.params.gain.toFloat() * 1.05f
+
+    for (frame in 0 until blockFrames) {
+      if (voice.position >= voice.samples.size) break
+      var sample = voice.samples[voice.position++] / 32768f
+      if (radioAmount > 0.01f) {
+        val bandSample = voice.radioBand.process(sample) * (1f + 2f * radioAmount)
+        val crushed = softClip(bandSample * (1f + 3f * radioAmount))
+        sample += (crushed - sample) * radioAmount
+        sample += noiseSource.next() * 0.012f * radioAmount
       }
-      if (az != null) {
-        v.binaural.process(x * g * 1.2f, mix, i)
+      if (azimuth != null) {
+        voice.panner.process(sample * voiceGain * 1.2f, mixBuffer, frame)
       } else {
-        mix[2 * i] += x * g * 0.85f
-        mix[2 * i + 1] += x * g * 0.85f
+        mixBuffer[2 * frame] += sample * voiceGain * 0.85f
+        mixBuffer[2 * frame + 1] += sample * voiceGain * 0.85f
       }
     }
-    if (az != null) v.binaural.finishBlock()
-    if (v.pos >= v.data.size) {
-      voice = null
-      callbacks.execute { v.onDone() }
+
+    if (azimuth != null) voice.panner.finishBlock()
+    if (voice.position >= voice.samples.size) {
+      activeVoice = null
+      callbackExecutor.execute { voice.onDone() }
     }
   }
 
-  private fun renderSfx(head: Double?) {
-    if (sfx.isEmpty()) return
-    val it = sfx.iterator()
-    while (it.hasNext()) {
-      val s = it.next()
-      val az = relative(s.worldBearingDeg, head)
-      if (az != null) s.binaural.prepare(az, block)
-      for (i in 0 until block) {
-        val x = s.next()
-        if (az != null) s.binaural.process(x * 1.2f, mix, i)
-        else {
-          mix[2 * i] += x
-          mix[2 * i + 1] += x
+  private fun renderEffects(headingDeg: Double?) {
+    if (activeSfx.isEmpty()) return
+    val iterator = activeSfx.iterator()
+    while (iterator.hasNext()) {
+      val effect = iterator.next()
+      val azimuth = relativeBearing(effect.worldBearingDeg, headingDeg)
+      if (azimuth != null) effect.binaural.prepare(azimuth, blockFrames)
+      for (frame in 0 until blockFrames) {
+        val sample = effect.next()
+        if (azimuth != null) {
+          effect.binaural.process(sample * 1.2f, mixBuffer, frame)
+        } else {
+          mixBuffer[2 * frame] += sample
+          mixBuffer[2 * frame + 1] += sample
         }
       }
-      if (az != null) s.binaural.finishBlock()
-      if (s.done) it.remove()
+      if (azimuth != null) effect.binaural.finishBlock()
+      if (effect.done) iterator.remove()
     }
   }
 
-  private fun runScheduled() {
-    if (scheduled.isEmpty()) return
-    val due = scheduled.filter { it.first <= frame + block }
-    if (due.isEmpty()) return
-    scheduled.removeAll(due.toSet())
-    due.forEach { it.second() }
+  private fun runScheduledActions() {
+    if (scheduledActions.isEmpty()) return
+    val dueActions = scheduledActions.filter { it.first <= frameCounter + blockFrames }
+    if (dueActions.isEmpty()) return
+    scheduledActions.removeAll(dueActions.toSet())
+    dueActions.forEach { it.second() }
   }
 
-  // ----------------------------------------------------------------------- voices
+  private fun dbToLinear(db: Double): Double = 10.0.pow(db / 20.0)
 
-  private class StemChannel(val id: String, val data: ShortArray, val baseGain: Float) {
-    val gain = Ramp(0f)
-    val spatial = Ramp(1f)
+  // -- per-source state -----------------------------------------------------------------
+
+  private class StemChannel(val id: String, val samples: ShortArray, val baseGain: Float) {
+    val gainRamp = Ramp(0f)
+    val spatialRamp = Ramp(1f)
     var spatialTarget = 1f
-    var headLockAt = -1L
-    val binaural = Binaural()
-    val clarityLp = OnePoleLp(16_000f)
-    var crushHold = 1
-    var crushCount = 0
-    var crushed = 0f
+    var headLockAtFrame = -1L
+    val panner = Binaural()
+    val clarityFilter = OnePoleLp(16_000f)
+    var crushHoldFrames = 1
+    var crushCounter = 0
+    var crushedSample = 0f
   }
 
-  private class VoiceSlot(val data: ShortArray, val params: VoiceParams, val onDone: () -> Unit) {
-    var pos = 0
-    val binaural = Binaural()
-    val band = RadioBand()
+  private class VoicePlayback(
+      val samples: ShortArray,
+      val params: VoiceParams,
+      val onDone: () -> Unit,
+  ) {
+    var position = 0
+    val panner = Binaural()
+    val radioBand = RadioBand()
   }
 
-  private class PingVoice {
-    val binaural = Binaural()
-    private var t = 0
-    private val length = (0.18 * Pcm.SAMPLE_RATE).toInt()
-    var active = false
+  /** Sonar ping: a bright two-tone blip with a fast decay. */
+  private class PingSynth {
+    val panner = Binaural()
+    private var sampleIndex = 0
+    private val lengthFrames = (0.18 * Pcm.SAMPLE_RATE).toInt()
+
+    var isActive: Boolean = false
       private set
 
     fun trigger() {
-      t = 0
-      active = true
+      sampleIndex = 0
+      isActive = true
     }
 
-    fun next(): Float {
-      if (!active) return 0f
-      val time = t.toDouble() / Pcm.SAMPLE_RATE
-      val env = exp(-time * 28).toFloat()
-      val x = (sin(2 * PI * 1_650 * time) + 0.3 * sin(2 * PI * 3_300 * time)).toFloat() * env
-      if (++t >= length) active = false
-      return x
+    fun nextSample(): Float {
+      if (!isActive) return 0f
+      val timeS = sampleIndex.toDouble() / Pcm.SAMPLE_RATE
+      val envelope = exp(-timeS * 28).toFloat()
+      val fundamental = sin(2 * PI * 1_650 * timeS)
+      val harmonic = 0.3 * sin(2 * PI * 3_300 * timeS)
+      if (++sampleIndex >= lengthFrames) isActive = false
+      return ((fundamental + harmonic) * envelope).toFloat()
     }
   }
 
-  companion object {
-    private const val TAG = "GhostSignalAudio"
+  private companion object {
+    const val TAG = "GhostSignalAudio"
   }
 }

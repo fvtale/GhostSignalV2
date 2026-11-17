@@ -18,55 +18,71 @@ data class RouteInfo(
 /**
  * Where sound goes and where the mic comes from.
  *
- * Music and voices play as normal media, which Android sends to the glasses over A2DP. The
- * glasses' microphones are only reachable through the Bluetooth call profile (SCO/HFP); switching
- * to it usually drops the link to mono, call-quality audio for as long as it's open. The game hides
- * that behind the walkie-talkie "comms" effect and only opens the glasses mic for short windows.
+ * Music and voices travel as normal media, which Android sends to the
+ * glasses over A2DP. The glasses' microphones are only reachable through
+ * the Bluetooth call profile (SCO/HFP); opening it usually drops the link
+ * to mono, call-quality audio for as long as it is open. The game hides
+ * that behind the walkie-talkie comms effect and opens the glasses mic
+ * only for short windows.
  */
 class AudioRouting(context: Context) {
-  private val audio = context.getSystemService(AudioManager::class.java)
-  private val _route = MutableStateFlow(read(false))
-  val route: StateFlow<RouteInfo> = _route
+
+  private val audioManager = context.getSystemService(AudioManager::class.java)
+
+  private val mutableRoute = MutableStateFlow(currentRoute(sco = false))
+  val route: StateFlow<RouteInfo> = mutableRoute
+
   private var scoActive = false
 
-  private val callback =
-      object : AudioDeviceCallback() {
-        override fun onAudioDevicesAdded(added: Array<out AudioDeviceInfo>) = refresh()
-
-        override fun onAudioDevicesRemoved(removed: Array<out AudioDeviceInfo>) = refresh()
-      }
+  private val deviceCallback = object : AudioDeviceCallback() {
+    override fun onAudioDevicesAdded(added: Array<out AudioDeviceInfo>) = refresh()
+    override fun onAudioDevicesRemoved(removed: Array<out AudioDeviceInfo>) = refresh()
+  }
 
   init {
-    audio.registerAudioDeviceCallback(callback, null)
+    audioManager.registerAudioDeviceCallback(deviceCallback, null)
   }
 
   fun refresh() {
-    _route.value = read(scoActive)
+    mutableRoute.value = currentRoute(scoActive)
   }
 
-  private fun read(sco: Boolean): RouteInfo {
-    val outputs = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-    val bt = outputs.firstOrNull { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || it.type == AudioDeviceInfo.TYPE_BLE_HEADSET }
-    val name = bt?.productName?.toString() ?: if (outputs.any { it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES }) "Wired headphones" else "Phone speaker"
-    return RouteInfo(name, bt != null, scoDevice() != null, sco)
+  private fun currentRoute(sco: Boolean): RouteInfo {
+    val outputs = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+    val bluetoothOutput = outputs.firstOrNull { device -> device.isBluetoothOutput() }
+    val outputName = when {
+      bluetoothOutput != null -> bluetoothOutput.productName.toString()
+      outputs.any { it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES } -> "Wired headphones"
+      else -> "Phone speaker"
+    }
+    return RouteInfo(
+        outputName = outputName,
+        bluetoothOutput = bluetoothOutput != null,
+        glassesMicAvailable = glassesMicCandidate() != null,
+        glassesMicActive = sco,
+    )
   }
 
-  private fun scoDevice(): AudioDeviceInfo? =
-      audio.availableCommunicationDevices.firstOrNull {
-        it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
-      }
+  private fun AudioDeviceInfo.isBluetoothOutput(): Boolean =
+      type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || type == AudioDeviceInfo.TYPE_BLE_HEADSET
 
-  /** Routes capture to the glasses mic. Returns false if no Bluetooth mic is available. */
+  private fun AudioDeviceInfo.isGlassesMicCandidate(): Boolean =
+      type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || type == AudioDeviceInfo.TYPE_BLE_HEADSET
+
+  private fun glassesMicCandidate(): AudioDeviceInfo? =
+      audioManager.availableCommunicationDevices.firstOrNull { it.isGlassesMicCandidate() }
+
+  /** Routes capture to the glasses mic. False when no Bluetooth mic exists. */
   @Synchronized
   fun useGlassesMic(): Boolean {
-    val device = scoDevice() ?: return false
+    val device = glassesMicCandidate() ?: return false
     return try {
-      audio.mode = AudioManager.MODE_IN_COMMUNICATION
-      scoActive = audio.setCommunicationDevice(device)
+      audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+      scoActive = audioManager.setCommunicationDevice(device)
       refresh()
       scoActive
-    } catch (e: Exception) {
-      Log.w(TAG, "could not route to glasses mic", e)
+    } catch (error: Exception) {
+      Log.w(TAG, "could not route to glasses mic", error)
       false
     }
   }
@@ -74,18 +90,18 @@ class AudioRouting(context: Context) {
   @Synchronized
   fun releaseMic() {
     if (!scoActive) return
-    runCatching { audio.clearCommunicationDevice() }
-    audio.mode = AudioManager.MODE_NORMAL
+    runCatching { audioManager.clearCommunicationDevice() }
+    audioManager.mode = AudioManager.MODE_NORMAL
     scoActive = false
     refresh()
   }
 
+  /** The glasses mic as an input device, for recorder preference. */
   fun glassesMicDevice(): AudioDeviceInfo? =
-      audio.getDevices(AudioManager.GET_DEVICES_INPUTS).firstOrNull {
-        it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
-      }
+      audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+          .firstOrNull { it.isGlassesMicCandidate() }
 
-  companion object {
-    private const val TAG = "GhostSignalRouting"
+  private companion object {
+    const val TAG = "GhostSignalRouting"
   }
 }

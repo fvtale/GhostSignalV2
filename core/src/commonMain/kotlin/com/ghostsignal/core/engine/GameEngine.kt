@@ -14,30 +14,35 @@ import com.ghostsignal.core.voice.PhraseMatcher
 import kotlin.math.abs
 
 /**
- * The GhostSignal rules, with no Android in sight.
+ * The GhostSignal game rules as a pure state machine.
  *
- * Feed it [GameEvent]s; it updates its state and returns the [Effect]s the app must perform
- * (speak, listen, unlock a stem...). Long effects report completion as events carrying the effect's
- * unique token, so the flow is deterministic and unit-testable.
+ * Hosts feed in [GameEvent]s (taps, GPS fixes, transcripts, completions) and
+ * perform the [Effect]s that come back (speak this, listen now, unlock that
+ * stem). Nothing here touches Android, audio, or the network, which keeps a
+ * full run reproducible in a unit test.
  *
- * Rules for a live event: a runner can never get stuck. Every challenge degrades to a hint and
- * eventually lets them through, pause/resume replays whatever was interrupted, and the operator
- * can force any step.
+ * Live-event rule above all: a runner can never get stuck. Missed phrases
+ * degrade to hints and then to a pass, pause replays whatever it cut off,
+ * broadcasts wait for a quiet moment, and the operator can force any step.
  *
- * [rewardLines] are spoken after the outro, before the run counts as complete: the app passes the
- * announcement for anything this finish unlocks (a soundtrack, say), and nothing otherwise.
+ * [rewardLines] are voiced after the outro and before the run completes;
+ * hosts use them to announce whatever this finish unlocked.
  */
-class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emptyList()) {
+class GameEngine(
+    val mission: Mission,
+    private val rewardLines: List<Line> = emptyList(),
+) {
+
   var phase: Phase = Phase.IDLE
     private set
 
-  var signalIndex = 0
+  var signalIndex: Int = 0
     private set
 
-  var paused = false
+  var paused: Boolean = false
     private set
 
-  var lockAvailable = false
+  var lockAvailable: Boolean = false
     private set
 
   var lastFix: GeoFix? = null
@@ -49,62 +54,69 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
   var heading: HeadingEstimate = HeadingEstimate(null, HeadingSource.NONE, false)
     private set
 
-  val collected = mutableListOf<String>()
-  val flags = mutableMapOf<String, String>()
-  val transcript = ArrayDeque<TranscriptEntry>()
+  val collected: MutableList<String> = mutableListOf()
+  val flags: MutableMap<String, String> = mutableMapOf()
+  val transcript: ArrayDeque<TranscriptEntry> = ArrayDeque()
 
-  /** The speech currently playing, if any. */
+  /** Speech currently playing, if any. */
   var activeSpeech: Effect.Speak? = null
     private set
 
   var listening: ListenState? = null
     private set
 
-  var recording = false
+  var recording: Boolean = false
     private set
 
-  /** Taps so far while the rhythm tap window is open; null when closed. */
+  /** Taps gathered while the rhythm answer window is open; null when shut. */
   var rhythmTaps: MutableList<Long>? = null
     private set
 
-  var rhythmPlaying = false
+  var rhythmPlaying: Boolean = false
     private set
 
+  // -- transient run state -------------------------------------------------
   private var interruptedSpeech: Effect.Speak? = null
-  private var rhythmWindowEndsMs = 0L
-  private var rhythmAttempts = 0
-  private var challengeAttempts = 0
-  private var questionsAsked = 0
-  private var listenMisses = 0
-  private var approachPlayed = false
-  private var lockAnnouncedAtMs = 0L
-  private var tuneNoHeadingWarned = false
-  private var requestSeq = 0
+  private var rhythmWindowEndsMs: Long = 0L
+  private var rhythmAttempts: Int = 0
+  private var challengeAttempts: Int = 0
+  private var questionsAsked: Int = 0
+  private var listenMisses: Int = 0
+  private var approachPlayed: Boolean = false
+  private var lockAnnouncedAtMs: Long = 0L
+  private var tuneNoHeadingWarned: Boolean = false
+  private var requestSeq: Int = 0
   private var pendingRequest: PendingRequest? = null
   private var lastAuthored: List<Utterance> = emptyList()
   private val histories = mutableMapOf<String, MutableList<Turn>>()
   private val pendingBroadcasts = ArrayDeque<GameEvent.Broadcast>()
-  private var tokenSeq = 0
-  private var nowMs = 0L
+  private var tokenSeq: Int = 0
+  private var nowMs: Long = 0L
 
   data class ListenState(val token: String, val purpose: ListenPurpose, val mode: ListenMode)
 
-  enum class ListenPurpose {
-    CHALLENGE,
-    ACCEPT,
-    FREE_TALK,
-  }
+  enum class ListenPurpose { CHALLENGE, ACCEPT, FREE_TALK }
 
-  private data class PendingRequest(val id: Int, val speaker: String, val phase: Phase, val signalIndex: Int)
+  private data class PendingRequest(
+      val id: Int,
+      val speaker: String,
+      val phase: Phase,
+      val signalIndex: Int,
+  )
 
   val currentSignal: Signal?
     get() = mission.signals.getOrNull(signalIndex)
 
-  /** The character who runs the mission over the radio: the mission's handler, else the first briefing speaker. */
+  /**
+   * The voice running the mission over the radio: the authored handler, else
+   * whoever speaks first in the briefing, else the first character.
+   */
   val handler: String
-    get() = mission.handler.ifBlank { null } ?: mission.briefing.firstOrNull()?.speaker ?: mission.characters.first().id
+    get() = mission.handler.ifBlank { null }
+        ?: mission.briefing.firstOrNull()?.speaker
+        ?: mission.characters.first().id
 
-  /** What kind of line is playing right now (one of the KIND_ constants), or null. */
+  /** Speech category of the line now playing (a KIND_ constant), or null. */
   val speakingKind: String?
     get() = activeSpeech?.token?.let { kindOf(it) }
 
@@ -114,37 +126,45 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
   val speaking: Boolean
     get() = activeSpeech != null
 
-  fun progress() =
-      Progress(mission.id, signalIndex, collected.toList(), flags.toMap(), complete = phase == Phase.COMPLETE)
+  fun progress(): Progress = Progress(
+      missionId = mission.id,
+      signalIndex = signalIndex,
+      collected = collected.toList(),
+      flags = flags.toMap(),
+      complete = phase == Phase.COMPLETE,
+  )
 
+  /** Applies one event and returns the effects the host must perform. */
   fun handle(event: GameEvent): List<Effect> {
-    val out = mutableListOf<Effect>()
+    val effects = mutableListOf<Effect>()
     when (event) {
-      is GameEvent.Start -> start(event, out)
-      is GameEvent.Position -> onPosition(event.fix, out)
+      is GameEvent.Start -> startRun(event, effects)
+      is GameEvent.Position -> onPosition(event.fix, effects)
       is GameEvent.Heading -> heading = event.estimate
-      is GameEvent.Input -> onInput(event, out)
-      is GameEvent.Heard -> onHeard(event, out)
-      is GameEvent.ListenEnded -> onListenEnded(event, out)
-      is GameEvent.SpeechFinished -> onSpeechFinished(event.token, out)
-      is GameEvent.RhythmPlayed -> onRhythmPlayed(event, out)
-      is GameEvent.CharacterReplied -> onCharacterReplied(event, out)
-      is GameEvent.RecordingFinished -> onRecordingFinished(event, out)
-      is GameEvent.Tick -> onTick(event.nowMs, out)
+      is GameEvent.Input -> onInput(event, effects)
+      is GameEvent.Heard -> onHeard(event, effects)
+      is GameEvent.ListenEnded -> onListenEnded(event, effects)
+      is GameEvent.SpeechFinished -> onSpeechFinished(event.token, effects)
+      is GameEvent.RhythmPlayed -> onRhythmPlayed(event, effects)
+      is GameEvent.CharacterReplied -> onCharacterReplied(event, effects)
+      is GameEvent.RecordingFinished -> onRecordingFinished(event, effects)
+      is GameEvent.Tick -> onTick(event.nowMs, effects)
       is GameEvent.Broadcast -> {
         pendingBroadcasts += event
-        deliverBroadcast(out)
+        deliverBroadcast(effects)
       }
-      GameEvent.ForceLock -> if (phase == Phase.HUNTING && !paused) beginEncounter(out)
-      GameEvent.ForceSolve -> if ((phase == Phase.HUNTING || phase == Phase.ENCOUNTER) && !paused) succeed(out)
-      is GameEvent.JumpTo -> jumpTo(event.signalIndex, out)
+      GameEvent.ForceLock ->
+          if (phase == Phase.HUNTING && !paused) beginEncounter(effects)
+      GameEvent.ForceSolve ->
+          if ((phase == Phase.HUNTING || phase == Phase.ENCOUNTER) && !paused) succeed(effects)
+      is GameEvent.JumpTo -> jumpTo(event.signalIndex, effects)
     }
-    return out
+    return effects
   }
 
-  // ---------------------------------------------------------------- flow
+  // -- run flow --------------------------------------------------------------
 
-  private fun start(event: GameEvent.Start, out: MutableList<Effect>) {
+  private fun startRun(event: GameEvent.Start, out: MutableList<Effect>) {
     nowMs = event.nowMs
     collected.clear()
     flags.clear()
@@ -154,17 +174,25 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     activeSpeech = null
     interruptedSpeech = null
     listening = null
-    val resume = event.resume?.takeIf { it.missionId == mission.id && !it.complete }
+
+    val resume = event.resume?.takeIf { saved ->
+      saved.missionId == mission.id && !saved.complete
+    }
     if (resume != null && resume.collected.isNotEmpty()) {
       collected += resume.collected.filter { id -> mission.signal(id) != null }
       flags += resume.flags
-      collected.mapNotNull { mission.signal(it)?.stem }.forEach { out += Effect.UnlockStem(it) }
+      collected.mapNotNull { id -> mission.signal(id)?.stem }
+          .forEach { stem -> out += Effect.UnlockStem(stem) }
       advance(out)
       return
     }
+
     phase = Phase.BRIEFING
-    if (mission.prologue.isNotEmpty()) speak(mission.prologue, KIND_PROLOGUE, out, interruptible = false)
-    else speak(mission.briefing, KIND_BRIEFING, out, interruptible = false)
+    if (mission.prologue.isNotEmpty()) {
+      speak(mission.prologue, KIND_PROLOGUE, out, interruptible = false)
+    } else {
+      speak(mission.briefing, KIND_BRIEFING, out, interruptible = false)
+    }
   }
 
   private fun activate(index: Int, out: MutableList<Effect>) {
@@ -172,10 +200,10 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     signalIndex = index
     lockAvailable = false
     approachPlayed = false
-    lockAnnouncedAtMs = 0
+    lockAnnouncedAtMs = 0L
     resetChallengeState()
     val signal = currentSignal ?: return
-    lastFix?.let { reading = SignalField.evaluate(signal, it) }
+    lastFix?.let { fix -> reading = SignalField.evaluate(signal, fix) }
     out += Effect.PlaySfx(Sfx.SIGNAL_ACQUIRED)
     speak(signal.teaser, KIND_TEASER, out, fromSignal = signal.id)
   }
@@ -188,7 +216,10 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     lockAvailable = false
     resetChallengeState()
     out += Effect.PlaySfx(Sfx.LOCK)
-    speak(signal.arrival + signal.challenge.prompt, KIND_PROMPT, out, interruptible = false, fromSignal = signal.id)
+    speak(
+        signal.arrival + signal.challenge.prompt,
+        KIND_PROMPT, out, interruptible = false, fromSignal = signal.id,
+    )
   }
 
   private fun resetChallengeState() {
@@ -202,27 +233,33 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     tuneNoHeadingWarned = false
   }
 
-  /** Starts (or restarts) the interactive part of the current challenge. */
+  /** Opens (or reopens) the interactive half of the current challenge. */
   private fun openChallenge(out: MutableList<Effect>) {
     val signal = currentSignal ?: return
-    when (val c = signal.challenge) {
-      is Challenge.Command -> listen(ListenPurpose.CHALLENGE, ListenMode.COMMAND, c.phrases, out)
-      is Challenge.Passphrase -> listen(ListenPurpose.CHALLENGE, ListenMode.COMMAND, c.phrases, out)
-      is Challenge.Choice -> listen(ListenPurpose.CHALLENGE, ListenMode.COMMAND, c.options.flatMap { it.phrases }, out)
+    when (val challenge = signal.challenge) {
+      is Challenge.Command ->
+          listen(ListenPurpose.CHALLENGE, ListenMode.COMMAND, challenge.phrases, out)
+      is Challenge.Passphrase ->
+          listen(ListenPurpose.CHALLENGE, ListenMode.COMMAND, challenge.phrases, out)
+      is Challenge.Choice ->
+          listen(ListenPurpose.CHALLENGE, ListenMode.COMMAND, challenge.options.flatMap { it.phrases }, out)
       is Challenge.Ask ->
-          if (questionsAsked >= c.maxQuestions) listen(ListenPurpose.ACCEPT, ListenMode.COMMAND, c.acceptPhrases, out)
-          else listen(ListenPurpose.CHALLENGE, ListenMode.FREEFORM, emptyList(), out)
+          if (questionsAsked >= challenge.maxQuestions) {
+            listen(ListenPurpose.ACCEPT, ListenMode.COMMAND, challenge.acceptPhrases, out)
+          } else {
+            listen(ListenPurpose.CHALLENGE, ListenMode.FREEFORM, emptyList(), out)
+          }
       is Challenge.Rhythm -> {
         rhythmPlaying = true
         rhythmTaps = null
-        out += Effect.PlayRhythm(c.onsetsBeats, newToken(KIND_RHYTHM))
+        out += Effect.PlayRhythm(challenge.onsetsBeats, newToken(KIND_RHYTHM))
       }
       is Challenge.Record -> {
         recording = true
         out += Effect.PlaySfx(Sfx.RECORD_START)
-        out += Effect.StartRecording(signal.id, c.maxSeconds)
+        out += Effect.StartRecording(signal.id, challenge.maxSeconds)
       }
-      is Challenge.Tune -> Unit // Waits for a capture press while the runner turns.
+      is Challenge.Tune -> Unit // Resolved by turning, then a capture press.
     }
   }
 
@@ -247,8 +284,8 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
   }
 
   private fun advance(out: MutableList<Effect>) {
-    val next = mission.signals.indexOfFirst { it.id !in collected }
-    if (next < 0) finale(out) else activate(next, out)
+    val nextIndex = mission.signals.indexOfFirst { it.id !in collected }
+    if (nextIndex < 0) finale(out) else activate(nextIndex, out)
   }
 
   private fun finale(out: MutableList<Effect>) {
@@ -259,7 +296,8 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
 
   private fun afterOutro(out: MutableList<Effect>) {
     val reward = select(rewardLines)
-    if (reward.isEmpty()) complete(out) else speak(reward, KIND_REWARD, out, interruptible = false)
+    if (reward.isEmpty()) complete(out)
+    else speak(reward, KIND_REWARD, out, interruptible = false)
   }
 
   private fun complete(out: MutableList<Effect>) {
@@ -275,26 +313,26 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     paused = false
     interruptedSpeech = null
     collected.clear()
-    mission.signals.take(index).forEach {
-      collected += it.id
-      out += Effect.UnlockStem(it.stem)
+    mission.signals.take(index).forEach { earlier ->
+      collected += earlier.id
+      out += Effect.UnlockStem(earlier.stem)
     }
     activate(index, out)
   }
 
-  // ---------------------------------------------------------------- inputs
+  // -- runner input ------------------------------------------------------------
 
   private fun onInput(event: GameEvent.Input, out: MutableList<Effect>) {
     nowMs = event.nowMs
     if (event.action == PlayerAction.PAUSE_TOGGLE) return togglePause(out)
     if (paused || phase == Phase.IDLE || phase == Phase.COMPLETE) return
 
-    // While the rhythm tap window is open, taps and presses are rhythm input.
+    // With the rhythm answer window open, every tap is rhythm input.
     val taps = rhythmTaps
     if (taps != null && (event.action == PlayerAction.TAP || event.action == PlayerAction.SCAN)) {
       taps += event.deviceTimeMs ?: event.nowMs
-      val c = currentSignal?.challenge as? Challenge.Rhythm
-      if (c != null && taps.size >= c.onsetsBeats.size) evaluateRhythm(c, out)
+      val rhythm = currentSignal?.challenge as? Challenge.Rhythm
+      if (rhythm != null && taps.size >= rhythm.onsetsBeats.size) evaluateRhythm(rhythm, out)
       return
     }
 
@@ -304,24 +342,26 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
       PlayerAction.REPEAT -> if (interruptSpeech(out)) repeatLast(out)
       PlayerAction.HINT -> if (interruptSpeech(out)) giveHint(out)
       PlayerAction.STATUS -> if (interruptSpeech(out)) sayStatus(out)
-      PlayerAction.PAUSE_TOGGLE -> Unit
+      PlayerAction.PAUSE_TOGGLE -> Unit // Handled above.
     }
   }
 
   private fun onScan(out: MutableList<Effect>) {
     when (phase) {
-      Phase.HUNTING ->
-          if (lockAvailable) beginEncounter(out)
-          else {
-            out += Effect.PlaySfx(Sfx.DENIED)
-            if (interruptSpeech(out)) speakSystem("no-lock", fill(mission.system.noLock), out)
-          }
+      Phase.HUNTING -> {
+        if (lockAvailable) {
+          beginEncounter(out)
+        } else {
+          out += Effect.PlaySfx(Sfx.DENIED)
+          if (interruptSpeech(out)) speakSystem("no-lock", fill(mission.system.noLock), out)
+        }
+      }
       Phase.ENCOUNTER -> {
-        val c = currentSignal?.challenge ?: return
+        val challenge = currentSignal?.challenge ?: return
         when {
           recording -> out += Effect.StopRecording
-          c is Challenge.Tune -> if (interruptSpeech(out)) checkTune(c, out)
-          c is Challenge.Rhythm -> if (!speaking && !rhythmPlaying) openChallenge(out)
+          challenge is Challenge.Tune -> if (interruptSpeech(out)) checkTune(challenge, out)
+          challenge is Challenge.Rhythm -> if (!speaking && !rhythmPlaying) openChallenge(out)
           else -> onTalk(out)
         }
       }
@@ -336,13 +376,13 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
       return
     }
     when (phase) {
-      Phase.ENCOUNTER ->
-          when (currentSignal?.challenge) {
-            is Challenge.Rhythm, is Challenge.Record, is Challenge.Tune ->
-                listen(ListenPurpose.FREE_TALK, ListenMode.FREEFORM, emptyList(), out)
-            else -> openChallenge(out)
-          }
-      Phase.HUNTING, Phase.COLLECTING, Phase.FINALE -> listen(ListenPurpose.FREE_TALK, ListenMode.FREEFORM, emptyList(), out)
+      Phase.ENCOUNTER -> when (currentSignal?.challenge) {
+        is Challenge.Rhythm, is Challenge.Record, is Challenge.Tune ->
+            listen(ListenPurpose.FREE_TALK, ListenMode.FREEFORM, emptyList(), out)
+        else -> openChallenge(out)
+      }
+      Phase.HUNTING, Phase.COLLECTING, Phase.FINALE ->
+          listen(ListenPurpose.FREE_TALK, ListenMode.FREEFORM, emptyList(), out)
       else -> Unit
     }
   }
@@ -351,7 +391,7 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     if (phase == Phase.IDLE || phase == Phase.COMPLETE) return
     if (!paused) {
       paused = true
-      // Story lines must not be lost: remember them and replay on resume.
+      // Uninterruptible story speech is replayed on resume, never dropped.
       activeSpeech?.takeIf { !it.interruptible }?.let { interruptedSpeech = it }
       stopSpeaking(out)
       stopListening(out)
@@ -367,20 +407,21 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
       paused = false
       stopSpeaking(out)
       out += Effect.PlaySfx(Sfx.RESUME)
-      val resumed = systemLine("resumed", mission.system.resumed)
+      val resumedLine = systemLine("resumed", mission.system.resumed)
       val replay = interruptedSpeech
       interruptedSpeech = null
-      if (replay != null) {
-        emitSpeak(listOf(resumed) + replay.utterances, kindOf(replay.token), out, interruptible = false)
-      } else if (phase == Phase.ENCOUNTER && currentSignal?.challenge !is Challenge.Tune) {
-        emitSpeak(listOf(resumed), KIND_RETRY, out, interruptible = false)
-      } else {
-        emitSpeak(listOf(resumed), KIND_SYSTEM, out, interruptible = true)
+      when {
+        replay != null ->
+            emitSpeak(listOf(resumedLine) + replay.utterances, kindOf(replay.token), out, interruptible = false)
+        phase == Phase.ENCOUNTER && currentSignal?.challenge !is Challenge.Tune ->
+            emitSpeak(listOf(resumedLine), KIND_RETRY, out, interruptible = false)
+        else ->
+            emitSpeak(listOf(resumedLine), KIND_SYSTEM, out, interruptible = true)
       }
     }
   }
 
-  /** Stops interruptible speech; returns false if a story line is playing. */
+  /** Stops speech if the runner may talk over it; false while story plays. */
   private fun interruptSpeech(out: MutableList<Effect>): Boolean {
     val speech = activeSpeech ?: return true
     if (!speech.interruptible) return false
@@ -395,31 +436,31 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     }
   }
 
-  // ---------------------------------------------------------------- position
+  // -- position ------------------------------------------------------------------
 
   private fun onPosition(fix: GeoFix, out: MutableList<Effect>) {
     lastFix = fix
     nowMs = fix.timeMs
     val signal = currentSignal ?: return
-    val r = SignalField.evaluate(signal, fix)
-    reading = r
+    val newReading = SignalField.evaluate(signal, fix)
+    reading = newReading
     if (phase != Phase.HUNTING || paused) return
 
-    if (!approachPlayed && r.zone != Zone.FAR && !speaking) {
+    if (!approachPlayed && newReading.zone != Zone.FAR && !speaking) {
       approachPlayed = true
       speak(signal.approach, KIND_SYSTEM, out, fromSignal = signal.id)
     }
-    if (!lockAvailable && r.zone == Zone.LOCK) {
+    if (!lockAvailable && newReading.zone == Zone.LOCK) {
       lockAvailable = true
       out += Effect.PlaySfx(Sfx.LOCK_AVAILABLE)
       lockAnnouncedAtMs = nowMs
       if (!speaking) speakSystem("lock", mission.system.lockAvailable, out)
-    } else if (lockAvailable && !SignalField.stillLockable(signal, r)) {
+    } else if (lockAvailable && !SignalField.stillLockable(signal, newReading)) {
       lockAvailable = false
     }
   }
 
-  // ---------------------------------------------------------------- speech + listening
+  // -- speech, listening, challenges --------------------------------------------
 
   private fun onSpeechFinished(token: String, out: MutableList<Effect>) {
     if (token != activeSpeech?.token) return
@@ -433,13 +474,16 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
       KIND_MISSED -> if (phase == Phase.ENCOUNTER && listenMisses < 2) reopenIfIdle(out)
       KIND_CHOICE -> succeed(out)
       KIND_SUCCESS -> advance(out)
-      KIND_NPC -> if (phase == Phase.ENCOUNTER && currentSignal?.challenge is Challenge.Ask) afterAskReply(out)
+      KIND_NPC ->
+          if (phase == Phase.ENCOUNTER && currentSignal?.challenge is Challenge.Ask) afterAskReply(out)
       KIND_FINALE -> {
         val outro = select(mission.finale.outro)
-        if (outro.isEmpty()) afterOutro(out) else speak(outro, KIND_OUTRO, out, interruptible = false)
+        if (outro.isEmpty()) afterOutro(out)
+        else speak(outro, KIND_OUTRO, out, interruptible = false)
       }
       KIND_OUTRO -> afterOutro(out)
       KIND_REWARD -> complete(out)
+      else -> Unit
     }
   }
 
@@ -454,8 +498,8 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
   private fun listen(purpose: ListenPurpose, mode: ListenMode, hints: List<String>, out: MutableList<Effect>) {
     val token = newToken("listen")
     listening = ListenState(token, purpose, mode)
-    val timeout = if (mode == ListenMode.FREEFORM) 9_000L else 7_000L
-    out += Effect.Listen(mode, timeout, token, hints)
+    val timeoutMs = if (mode == ListenMode.FREEFORM) 9_000L else 7_000L
+    out += Effect.Listen(mode, timeoutMs, token, hints)
   }
 
   private fun stopListening(out: MutableList<Effect>) {
@@ -469,7 +513,8 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     val state = listening ?: return
     if (event.token != state.token || event.text.isBlank()) return
     if (!event.isFinal) {
-      // Accept confident command matches early, before the recognizer closes its window.
+      // A confident command read ends the window early; no waiting on the
+      // recognizer to decide the runner has finished talking.
       if (state.mode == ListenMode.COMMAND && earlyMatch(state, event.text)) {
         stopListening(out)
         heard(state, event.text, out)
@@ -481,19 +526,17 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
   }
 
   private fun earlyMatch(state: ListenState, text: String): Boolean {
-    val phrases =
-        when (state.purpose) {
-          ListenPurpose.ACCEPT -> (currentSignal?.challenge as? Challenge.Ask)?.acceptPhrases
-          ListenPurpose.CHALLENGE ->
-              when (val c = currentSignal?.challenge) {
-                is Challenge.Command -> c.phrases
-                is Challenge.Passphrase -> c.phrases
-                is Challenge.Choice -> c.options.flatMap { it.phrases }
-                else -> null
-              }
-          ListenPurpose.FREE_TALK -> null
-        } ?: return false
-    return phrases.any { PhraseMatcher.score(text, it) >= 0.93 }
+    val phrases: List<String>? = when (state.purpose) {
+      ListenPurpose.ACCEPT -> (currentSignal?.challenge as? Challenge.Ask)?.acceptPhrases
+      ListenPurpose.CHALLENGE -> when (val challenge = currentSignal?.challenge) {
+        is Challenge.Command -> challenge.phrases
+        is Challenge.Passphrase -> challenge.phrases
+        is Challenge.Choice -> challenge.options.flatMap { it.phrases }
+        else -> null
+      }
+      ListenPurpose.FREE_TALK -> null
+    }
+    return phrases?.any { phrase -> PhraseMatcher.score(text, phrase) >= 0.93 } ?: false
   }
 
   private fun onListenEnded(event: GameEvent.ListenEnded, out: MutableList<Effect>) {
@@ -502,20 +545,23 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     listening = null
     if (state.purpose == ListenPurpose.FREE_TALK || paused) return
     listenMisses++
-    val text =
-        if (listenMisses >= 2) "${mission.system.heardNothing} ${mission.system.talkHint}"
-        else mission.system.heardNothing
-    emitSpeak(listOf(systemLine("heard-nothing", text)), KIND_MISSED, out, interruptible = true)
+    val message = if (listenMisses >= 2) {
+      "${mission.system.heardNothing} ${mission.system.talkHint}"
+    } else {
+      mission.system.heardNothing
+    }
+    emitSpeak(listOf(systemLine("heard-nothing", message)), KIND_MISSED, out, interruptible = true)
   }
 
   private fun heard(state: ListenState, text: String, out: MutableList<Effect>) {
     record(TranscriptEntry("runner", text, fromPlayer = true))
     listenMisses = 0
     val signal = currentSignal
-    val words = PhraseMatcher.normalize(text).split(' ').size
+    val wordCount = PhraseMatcher.normalize(text).split(' ').size
 
-    // Global commands, unless they're more likely part of a question for a character.
-    if (state.purpose != ListenPurpose.FREE_TALK || words <= 3) {
+    // Global commands win, except inside a longer question clearly aimed at
+    // a character ("Vesper, tell me the status of the old station").
+    if (state.purpose != ListenPurpose.FREE_TALK || wordCount <= 3) {
       when (GlobalCommand.match(text)) {
         GlobalCommand.REPEAT -> return repeatLast(out)
         GlobalCommand.HINT -> return giveHint(out)
@@ -532,37 +578,41 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
         askCharacter(speaker, text, out)
       }
       ListenPurpose.ACCEPT -> {
-        val c = signal?.challenge as? Challenge.Ask ?: return
-        if (PhraseMatcher.matchesAny(text, c.acceptPhrases)) succeed(out) else askCharacter(signal.speaker, text, out)
+        val ask = signal?.challenge as? Challenge.Ask ?: return
+        if (PhraseMatcher.matchesAny(text, ask.acceptPhrases)) succeed(out)
+        else askCharacter(signal.speaker, text, out)
       }
       ListenPurpose.CHALLENGE -> answerChallenge(signal ?: return, text, out)
     }
   }
 
   private fun answerChallenge(signal: Signal, text: String, out: MutableList<Effect>) {
-    when (val c = signal.challenge) {
-      is Challenge.Command -> if (PhraseMatcher.matchesAny(text, c.phrases)) succeed(out) else retry(signal, out)
+    when (val challenge = signal.challenge) {
+      is Challenge.Command ->
+          if (PhraseMatcher.matchesAny(text, challenge.phrases)) succeed(out) else retry(signal, out)
       is Challenge.Passphrase -> {
-        if (PhraseMatcher.matchesAny(text, c.phrases)) return succeed(out)
+        if (PhraseMatcher.matchesAny(text, challenge.phrases)) return succeed(out)
         challengeAttempts++
         when {
-          // Never strand a runner on a passphrase.
-          challengeAttempts > c.hintAfterAttempts + 2 -> succeed(out)
-          challengeAttempts >= c.hintAfterAttempts && signal.hint.isNotEmpty() ->
+          // A forgotten passphrase must never end someone's run.
+          challengeAttempts > challenge.hintAfterAttempts + 2 -> succeed(out)
+          challengeAttempts >= challenge.hintAfterAttempts && signal.hint.isNotEmpty() ->
               speak(signal.hint, KIND_RETRY, out, interruptible = false, fromSignal = signal.id)
           else -> retry(signal, out)
         }
       }
       is Challenge.Choice -> {
-        val match = PhraseMatcher.bestAbove(text, c.options.associate { it.id to it.phrases })
-        if (match == null) return retry(signal, out)
+        val byOption = challenge.options.associate { option -> option.id to option.phrases }
+        val match = PhraseMatcher.bestAbove(text, byOption) ?: return retry(signal, out)
         flags[signal.id] = match.key
-        val option = c.options.first { it.id == match.key }
-        if (option.reply.isEmpty()) succeed(out)
-        else speak(option.reply, KIND_CHOICE, out, interruptible = false, fromSignal = signal.id)
+        val chosen = challenge.options.first { it.id == match.key }
+        if (chosen.reply.isEmpty()) succeed(out)
+        else speak(chosen.reply, KIND_CHOICE, out, interruptible = false, fromSignal = signal.id)
       }
       is Challenge.Ask -> {
-        if (questionsAsked > 0 && PhraseMatcher.matchesAny(text, c.acceptPhrases)) return succeed(out)
+        if (questionsAsked > 0 && PhraseMatcher.matchesAny(text, challenge.acceptPhrases)) {
+          return succeed(out)
+        }
         questionsAsked++
         askCharacter(signal.speaker, text, out)
       }
@@ -574,157 +624,170 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     challengeAttempts++
     val lines = select(signal.retry)
     if (lines.isEmpty()) {
-      emitSpeak(listOf(systemLine("not-understood", mission.system.notUnderstood)), KIND_RETRY, out, false)
+      emitSpeak(listOf(systemLine("not-understood", mission.system.notUnderstood)), KIND_RETRY, out, interruptible = false)
     } else {
       speak(lines, KIND_RETRY, out, interruptible = false, fromSignal = signal.id)
     }
   }
 
   private fun afterAskReply(out: MutableList<Effect>) {
-    val c = currentSignal?.challenge as? Challenge.Ask ?: return
-    if (questionsAsked >= c.maxQuestions && c.acceptPrompt.isNotEmpty()) {
-      speak(c.acceptPrompt, KIND_RETRY, out, interruptible = false, fromSignal = currentSignal?.id)
+    val ask = currentSignal?.challenge as? Challenge.Ask ?: return
+    if (questionsAsked >= ask.maxQuestions && ask.acceptPrompt.isNotEmpty()) {
+      speak(ask.acceptPrompt, KIND_RETRY, out, interruptible = false, fromSignal = currentSignal?.id)
     } else {
       openChallenge(out)
     }
   }
 
-  // ---------------------------------------------------------------- characters
+  // -- character agent -------------------------------------------------------------
 
   private fun askCharacter(characterId: String, text: String, out: MutableList<Effect>) {
     val history = histories.getOrPut(characterId) { mutableListOf() }
-    val prior = history.takeLast(8)
-    history += Turn(true, text)
+    val priorTurns = history.takeLast(8)
+    history += Turn(fromPlayer = true, text = text)
     requestSeq++
     pendingRequest = PendingRequest(requestSeq, characterId, phase, signalIndex)
-    out +=
-        Effect.AskCharacter(
-            CharacterRequest(
-                requestId = requestSeq,
-                characterId = characterId,
-                signalId = currentSignal?.id,
-                utterance = text,
-                context = characterContext(),
-                history = prior,
-            ))
+    out += Effect.AskCharacter(
+        CharacterRequest(
+            requestId = requestSeq,
+            characterId = characterId,
+            signalId = currentSignal?.id,
+            utterance = text,
+            context = characterContext(),
+            history = priorTurns,
+        ),
+    )
   }
 
   private fun onCharacterReplied(event: GameEvent.CharacterReplied, out: MutableList<Effect>) {
     val pending = pendingRequest ?: return
     if (event.requestId != pending.id) return
     pendingRequest = null
-    // Stale: the story moved on while the agent was thinking.
+    // The story moved on while the agent thought; drop the stale reply.
     if (pending.phase != phase || pending.signalIndex != signalIndex || paused) return
     if (!interruptSpeech(out)) return
-    val c = currentSignal?.challenge as? Challenge.Ask
-    val fallback = c?.fallbackReplies?.takeIf { it.isNotEmpty() }?.let { it[(questionsAsked - 1).coerceAtLeast(0) % it.size] }
-    val text = event.text?.takeIf { it.isNotBlank() } ?: fallback ?: mission.system.npcOffline
-    histories.getOrPut(pending.speaker) { mutableListOf() } += Turn(false, text)
-    val fromSignal = currentSignal?.id?.takeIf { phase == Phase.ENCOUNTER && pending.speaker == currentSignal?.speaker }
-    val reply = Utterance(null, pending.speaker, text, fromSignal)
-    // Ask-challenge replies are part of the story flow; free talk can be talked over.
-    val partOfChallenge = phase == Phase.ENCOUNTER && c != null
-    emitSpeak(listOf(reply), KIND_NPC, out, interruptible = !partOfChallenge)
+
+    val ask = currentSignal?.challenge as? Challenge.Ask
+    val fallback = ask?.fallbackReplies
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { replies -> replies[(questionsAsked - 1).coerceAtLeast(0) % replies.size] }
+    val replyText = event.text?.takeIf { it.isNotBlank() } ?: fallback ?: mission.system.npcOffline
+
+    histories.getOrPut(pending.speaker) { mutableListOf() } += Turn(fromPlayer = false, text = replyText)
+    val anchor = currentSignal?.id?.takeIf {
+      phase == Phase.ENCOUNTER && pending.speaker == currentSignal?.speaker
+    }
+    val reply = Utterance(null, pending.speaker, replyText, anchor)
+    // Challenge replies are story beats; free talk may be talked over.
+    val isChallengeBeat = phase == Phase.ENCOUNTER && ask != null
+    emitSpeak(listOf(reply), KIND_NPC, out, interruptible = !isChallengeBeat)
     lastAuthored = listOf(reply)
   }
 
   fun characterContext(): CharacterContext {
     val signal = currentSignal
-    val r = reading
+    val currentReading = reading
     return CharacterContext(
         phase = phase,
         objective = objective(),
         signalName = signal?.name,
         place = signal?.place,
-        distance = r?.let { Geo.spokenDistance(it.distanceM) },
-        direction = r?.let { direction(it.bearingDeg) },
+        distance = currentReading?.let { Geo.spokenDistance(it.distanceM) },
+        direction = currentReading?.let { direction(it.bearingDeg) },
         collected = collected.size,
         total = total,
         flags = flags.toMap(),
-        challenge = signal?.challenge?.let { challengeName(it) },
+        challenge = signal?.challenge?.let { challenge -> challengeName(challenge) },
     )
   }
 
-  // ---------------------------------------------------------------- challenge mechanics
+  // -- rhythm, tune, record ----------------------------------------------------------
 
   private fun onRhythmPlayed(event: GameEvent.RhythmPlayed, out: MutableList<Effect>) {
     if (!rhythmPlaying || kindOf(event.token) != KIND_RHYTHM) return
     rhythmPlaying = false
     if (phase != Phase.ENCOUNTER || paused) return
-    val c = currentSignal?.challenge as? Challenge.Rhythm ?: return
+    val rhythm = currentSignal?.challenge as? Challenge.Rhythm ?: return
     nowMs = event.nowMs
     rhythmTaps = mutableListOf()
-    val span = (c.onsetsBeats.last() - c.onsetsBeats.first()) * mission.music.beatMs
-    rhythmWindowEndsMs = event.nowMs + span.toLong() + 5_000L
+    val patternSpanMs = (rhythm.onsetsBeats.last() - rhythm.onsetsBeats.first()) * mission.music.beatMs
+    rhythmWindowEndsMs = event.nowMs + patternSpanMs.toLong() + 5_000L
   }
 
-  private fun evaluateRhythm(c: Challenge.Rhythm, out: MutableList<Effect>) {
+  private fun evaluateRhythm(challenge: Challenge.Rhythm, out: MutableList<Effect>) {
     val taps = rhythmTaps ?: return
     rhythmTaps = null
     rhythmAttempts++
-    val passed =
-        taps.size >= c.onsetsBeats.size &&
-            RhythmMatcher.match(c.onsetsBeats, taps, mission.music.beatMs, c.toleranceBeats).passed
-    if (passed || rhythmAttempts >= c.maxAttempts) return succeed(out)
+    val passed = taps.size >= challenge.onsetsBeats.size &&
+        RhythmMatcher.match(challenge.onsetsBeats, taps, mission.music.beatMs, challenge.toleranceBeats).passed
+    if (passed || rhythmAttempts >= challenge.maxAttempts) return succeed(out)
     val signal = currentSignal ?: return
     val lines = select(signal.retry)
-    if (lines.isEmpty()) emitSpeak(listOf(systemLine("rhythm-miss", mission.system.rhythmMiss)), KIND_RETRY, out, false)
-    else speak(lines, KIND_RETRY, out, interruptible = false, fromSignal = signal.id)
+    if (lines.isEmpty()) {
+      emitSpeak(listOf(systemLine("rhythm-miss", mission.system.rhythmMiss)), KIND_RETRY, out, interruptible = false)
+    } else {
+      speak(lines, KIND_RETRY, out, interruptible = false, fromSignal = signal.id)
+    }
   }
 
-  private fun checkTune(c: Challenge.Tune, out: MutableList<Effect>) {
-    val delta = tuneDelta(c)
+  private fun checkTune(challenge: Challenge.Tune, out: MutableList<Effect>) {
+    val delta = tuneDelta(challenge)
     if (delta == null) {
+      // No heading: warn once, then trust the runner's capture press.
       if (tuneNoHeadingWarned) return succeed(out)
       tuneNoHeadingWarned = true
-      speakSystem("tune-no-heading", mission.system.tuneNoHeading.replace("{target}", c.targetName), out)
+      speakSystem("tune-no-heading", mission.system.tuneNoHeading.replace("{target}", challenge.targetName), out)
       return
     }
-    if (abs(delta) <= c.toleranceDeg) return succeed(out)
+    if (abs(delta) <= challenge.toleranceDeg) return succeed(out)
     challengeAttempts++
     if (challengeAttempts >= 6) return succeed(out)
     out += Effect.PlaySfx(Sfx.DENIED)
     speakSystem("tune-dir", if (delta > 0) mission.system.tuneRight else mission.system.tuneLeft, out)
   }
 
-  /** Degrees the runner must turn (positive = right) to face the tune target; null without heading. */
-  fun tuneDelta(c: Challenge.Tune): Double? {
-    val h = heading.deg ?: return null
-    val from = lastFix?.position ?: currentSignal?.location ?: return null
-    return Geo.deltaDeg(h, Geo.bearingDeg(from, c.target))
+  /** Degrees to turn (positive = right) to face the tune target; null with no heading. */
+  fun tuneDelta(challenge: Challenge.Tune): Double? {
+    val headDeg = heading.deg ?: return null
+    val origin = lastFix?.position ?: currentSignal?.location ?: return null
+    return Geo.deltaDeg(headDeg, Geo.bearingDeg(origin, challenge.target))
   }
 
   private fun onRecordingFinished(event: GameEvent.RecordingFinished, out: MutableList<Effect>) {
     if (!recording) return
     recording = false
-    if (event.path != null) record(TranscriptEntry(mission.system.speaker, mission.system.recordingSaved, false))
+    if (event.path != null) {
+      record(TranscriptEntry(mission.system.speaker, mission.system.recordingSaved, fromPlayer = false))
+    }
     succeed(out)
   }
 
-  /** Live operator messages wait until the runner isn't in the middle of something. */
+  /** Operator traffic is held until the runner is between activities. */
   private fun deliverBroadcast(out: MutableList<Effect>) {
     if (pendingBroadcasts.isEmpty() || paused || speaking || listening != null || recording) return
     if (rhythmPlaying || rhythmTaps != null || pendingRequest != null) return
     if (phase == Phase.IDLE || phase == Phase.COMPLETE) return
-    val b = pendingBroadcasts.removeFirst()
-    val speaker = if (mission.character(b.speaker) != null) b.speaker else handler
+    val broadcast = pendingBroadcasts.removeFirst()
+    val speaker = if (mission.character(broadcast.speaker) != null) broadcast.speaker else handler
     out += Effect.PlaySfx(Sfx.TRANSMISSION)
-    emitSpeak(listOf(Utterance("live", speaker, b.text)), KIND_SYSTEM, out, interruptible = true)
+    emitSpeak(listOf(Utterance("live", speaker, broadcast.text)), KIND_SYSTEM, out, interruptible = true)
   }
 
   private fun onTick(now: Long, out: MutableList<Effect>) {
     nowMs = now
     deliverBroadcast(out)
-    val c = currentSignal?.challenge as? Challenge.Rhythm
-    if (c != null && rhythmTaps != null && now > rhythmWindowEndsMs) evaluateRhythm(c, out)
-    // Remind a runner standing on a signal that they can lock it.
-    if (phase == Phase.HUNTING && lockAvailable && !paused && !speaking && now - lockAnnouncedAtMs > 25_000) {
+    val rhythm = currentSignal?.challenge as? Challenge.Rhythm
+    if (rhythm != null && rhythmTaps != null && now > rhythmWindowEndsMs) {
+      evaluateRhythm(rhythm, out)
+    }
+    // Gentle reminder while standing on a lockable signal.
+    if (phase == Phase.HUNTING && lockAvailable && !paused && !speaking && now - lockAnnouncedAtMs > 25_000L) {
       lockAnnouncedAtMs = now
       speakSystem("lock", mission.system.lockAvailable, out)
     }
   }
 
-  // ---------------------------------------------------------------- talking helpers
+  // -- speaking helpers ----------------------------------------------------------------
 
   private fun repeatLast(out: MutableList<Effect>) {
     if (lastAuthored.isEmpty()) return
@@ -735,33 +798,35 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     val signal = currentSignal ?: return
     when (phase) {
       Phase.HUNTING -> {
-        val status = systemLine("status", fill(mission.system.status))
-        val hints = select(signal.hint).map { it.toUtterance(signal.id) }
-        emitSpeak(listOf(status) + hints, KIND_HINT, out, interruptible = true)
+        val statusLine = systemLine("status", fill(mission.system.status))
+        val hintLines = select(signal.hint).map { line -> line.toUtterance(signal.id) }
+        emitSpeak(listOf(statusLine) + hintLines, KIND_HINT, out, interruptible = true)
       }
       Phase.ENCOUNTER -> {
         val lines = select(signal.hint).ifEmpty { select(signal.challenge.prompt) }
-        emitSpeak(lines.map { it.toUtterance(signal.id) }, KIND_HINT, out, interruptible = true)
+        emitSpeak(lines.map { line -> line.toUtterance(signal.id) }, KIND_HINT, out, interruptible = true)
       }
       else -> sayStatus(out)
     }
   }
 
-  private fun sayStatus(out: MutableList<Effect>) = speakSystem("status", fill(mission.system.status), out)
+  private fun sayStatus(out: MutableList<Effect>) {
+    speakSystem("status", fill(mission.system.status), out)
+  }
 
-  /** Spoken direction to a bearing: clock-face when we know the head heading, compass otherwise. */
+  /** Spoken direction: clock-face with a head heading, compass points without. */
   fun direction(bearingDeg: Double): String {
-    val h = heading.deg ?: return "to the ${Geo.cardinal(bearingDeg)}"
-    val clock = Geo.clockPosition(Geo.deltaDeg(h, bearingDeg))
+    val headDeg = heading.deg ?: return "to the ${Geo.cardinal(bearingDeg)}"
+    val clock = Geo.clockPosition(Geo.deltaDeg(headDeg, bearingDeg))
     return if (clock == 12) "straight ahead" else "at $clock o'clock"
   }
 
   private fun fill(template: String): String {
-    val r = reading
+    val currentReading = reading
     return template
         .replace("{signal}", currentSignal?.name ?: "the signal")
-        .replace("{distance}", r?.let { Geo.spokenDistance(it.distanceM) } ?: "somewhere close")
-        .replace("{direction}", r?.let { direction(it.bearingDeg) } ?: "but I have no fix on you yet")
+        .replace("{distance}", currentReading?.let { Geo.spokenDistance(it.distanceM) } ?: "somewhere close")
+        .replace("{direction}", currentReading?.let { direction(it.bearingDeg) } ?: "but I have no fix on you yet")
         .replace("{count}", collected.size.toString())
         .replace("{total}", total.toString())
   }
@@ -771,45 +836,55 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
     return when (phase) {
       Phase.IDLE -> "Stand by"
       Phase.BRIEFING -> "Listen to the briefing"
-      Phase.HUNTING -> "Find ${signal?.name}" + (signal?.place?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: "")
-      Phase.ENCOUNTER ->
-          when (val c = signal?.challenge) {
-            is Challenge.Command -> "Say \"${c.phrases.first()}\""
-            is Challenge.Passphrase -> "Speak the passphrase"
-            is Challenge.Choice -> "Choose: " + c.options.joinToString(" or ") { "\"${it.phrases.first()}\"" }
-            is Challenge.Ask ->
-                "Ask ${mission.character(signal.speaker)?.name ?: "them"} a question, then say \"${c.acceptPhrases.first()}\""
-            is Challenge.Rhythm -> "Tap the rhythm back on the touchpad"
-            is Challenge.Record -> "Record a message · press capture to finish"
-            is Challenge.Tune -> "Face ${c.targetName} · press capture"
-            null -> ""
-          }
+      Phase.HUNTING ->
+          "Find ${signal?.name}" + (signal?.place?.takeIf { it.isNotBlank() }?.let { place -> " · $place" } ?: "")
+      Phase.ENCOUNTER -> when (val challenge = signal?.challenge) {
+        is Challenge.Command -> "Say \"${challenge.phrases.first()}\""
+        is Challenge.Passphrase -> "Speak the passphrase"
+        is Challenge.Choice ->
+            "Choose: " + challenge.options.joinToString(" or ") { option -> "\"${option.phrases.first()}\"" }
+        is Challenge.Ask ->
+            "Ask ${mission.character(signal.speaker)?.name ?: "them"} a question, then say \"${challenge.acceptPhrases.first()}\""
+        is Challenge.Rhythm -> "Tap the rhythm back on the touchpad"
+        is Challenge.Record -> "Record a message · press capture to finish"
+        is Challenge.Tune -> "Face ${challenge.targetName} · press capture"
+        null -> ""
+      }
       Phase.COLLECTING -> "Fragment ${collected.size} of $total collected"
       Phase.FINALE -> "The final broadcast"
       Phase.COMPLETE -> "Broadcast restored"
     }
   }
 
-  private fun challengeName(c: Challenge) =
-      when (c) {
-        is Challenge.Command -> "command"
-        is Challenge.Passphrase -> "passphrase"
-        is Challenge.Choice -> "choice"
-        is Challenge.Ask -> "ask"
-        is Challenge.Rhythm -> "rhythm"
-        is Challenge.Record -> "record"
-        is Challenge.Tune -> "tune"
-      }
+  private fun challengeName(challenge: Challenge): String = when (challenge) {
+    is Challenge.Command -> "command"
+    is Challenge.Passphrase -> "passphrase"
+    is Challenge.Choice -> "choice"
+    is Challenge.Ask -> "ask"
+    is Challenge.Rhythm -> "rhythm"
+    is Challenge.Record -> "record"
+    is Challenge.Tune -> "tune"
+  }
 
-  private fun systemLine(id: String, text: String) = Utterance("system.$id", mission.system.speaker, text)
+  private fun systemLine(id: String, text: String): Utterance =
+      Utterance("system.$id", mission.system.speaker, text)
 
-  private fun speakSystem(id: String, text: String, out: MutableList<Effect>) =
-      emitSpeak(listOf(systemLine(id, text)), KIND_SYSTEM, out, interruptible = true)
+  private fun speakSystem(id: String, text: String, out: MutableList<Effect>) {
+    emitSpeak(listOf(systemLine(id, text)), KIND_SYSTEM, out, interruptible = true)
+  }
 
-  private fun Line.toUtterance(fromSignal: String?) =
-      Utterance(id, speaker, text, fromSignal.takeIf { speaker != handler && speaker != mission.system.speaker })
+  private fun Line.toUtterance(anchorSignalId: String?): Utterance = Utterance(
+      lineId = id,
+      speaker = speaker,
+      text = text,
+      fromSignal = anchorSignalId.takeIf {
+        speaker != handler && speaker != mission.system.speaker
+      },
+  )
 
-  private fun select(lines: List<Line>) = lines.filter { l -> l.requires.all { (k, v) -> flags[k] == v } }
+  /** Lines whose flag requirements the run currently satisfies. */
+  private fun select(lines: List<Line>): List<Line> =
+      lines.filter { line -> line.requires.all { (key, value) -> flags[key] == value } }
 
   private fun speak(
       lines: List<Line>,
@@ -819,28 +894,35 @@ class GameEngine(val mission: Mission, private val rewardLines: List<Line> = emp
       fromSignal: String? = null,
       extra: List<Utterance> = emptyList(),
   ) {
-    val utterances = select(lines).map { it.toUtterance(fromSignal) }
+    val utterances = select(lines).map { line -> line.toUtterance(fromSignal) }
     if (utterances.isNotEmpty() && kind != KIND_SYSTEM) lastAuthored = utterances
     emitSpeak(utterances + extra, kind, out, interruptible)
   }
 
-  private fun emitSpeak(utterances: List<Utterance>, kind: String, out: MutableList<Effect>, interruptible: Boolean) {
+  private fun emitSpeak(
+      utterances: List<Utterance>,
+      kind: String,
+      out: MutableList<Effect>,
+      interruptible: Boolean,
+  ) {
     val token = newToken(kind)
     if (utterances.isEmpty()) {
-      // Nothing to say: continue the flow as if it had been said.
+      // Nothing selected to say: flow on as if it had been spoken.
       activeSpeech = Effect.Speak(emptyList(), token, interruptible)
       onSpeechFinished(token, out)
       return
     }
-    utterances.forEach { record(TranscriptEntry(it.speaker, it.text, fromPlayer = false)) }
-    val speak = Effect.Speak(utterances, token, interruptible)
-    activeSpeech = speak
-    out += speak
+    utterances.forEach { utterance ->
+      record(TranscriptEntry(utterance.speaker, utterance.text, fromPlayer = false))
+    }
+    val speech = Effect.Speak(utterances, token, interruptible)
+    activeSpeech = speech
+    out += speech
   }
 
-  private fun newToken(kind: String) = "$kind#${++tokenSeq}"
+  private fun newToken(kind: String): String = "$kind#${++tokenSeq}"
 
-  private fun kindOf(token: String) = token.substringBefore('#')
+  private fun kindOf(token: String): String = token.substringBefore('#')
 
   private fun record(entry: TranscriptEntry) {
     transcript.addLast(entry)

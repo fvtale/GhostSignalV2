@@ -11,6 +11,7 @@ import com.ghostsignal.core.heading.ImuSample
 import com.ghostsignal.core.heading.Quat
 import com.ghostsignal.core.heading.Vec3
 import com.ghostsignal.core.model.LineCatalog
+import com.ghostsignal.core.model.Mission
 import com.ghostsignal.core.model.MissionValidator
 import com.ghostsignal.core.model.Soundtracks
 import java.io.File
@@ -230,6 +231,39 @@ class MissionTest {
   }
 
   @Test
+  fun everyBundledMissionIsValid() {
+    // The mission selector ships every JSON in the mission folder, so each
+    // one must pass the real validator and reference stems that exist.
+    val missionFile = File(
+        System.getProperty("ghostsignal.missionPath") ?: "../app/src/main/assets/mission/ghostsignal.json",
+    )
+    val assetsDir = missionFile.parentFile.parentFile
+    val files = missionFile.parentFile
+        .listFiles { file -> file.extension == "json" }!!
+        .sortedBy { it.name }
+    assertTrue(files.size >= 2, "expected at least two bundled missions, got ${files.map { it.name }}")
+    for (file in files) {
+      val bundled = Mission.parse(file.readText())
+      val problems = MissionValidator.validate(bundled)
+      assertTrue(problems.isEmpty(), "${file.name}: ${problems.joinToString("\n")}")
+      assertTrue(bundled.landmark != null, "${file.name}: opening needs a landmark")
+      assertTrue(bundled.signals.size == 8, "${file.name}: expected 8 signals")
+      assertTrue(bundled.music.stems.size == 8, "${file.name}: expected 8 stems")
+      for (stem in bundled.music.stems) {
+        assertTrue(File(assetsDir, stem.file).exists(), "${file.name}: missing stem file ${stem.file}")
+      }
+      for (soundtrack in bundled.soundtracks) {
+        for (stem in soundtrack.music.stems) {
+          assertTrue(
+              File(assetsDir, stem.file).exists(),
+              "${file.name}: missing soundtrack stem file ${stem.file}",
+          )
+        }
+      }
+    }
+  }
+
+  @Test
   fun signalElevationsAreAuthoredAndChecked() {
     assertEquals(35.0, mission.signal("spire")!!.elevationDeg, 1e-9)
     assertEquals(-25.0, mission.signal("undertow")!!.elevationDeg, 1e-9)
@@ -257,19 +291,19 @@ class MissionTest {
   @Test
   fun lineCatalogCoversEveryChallengeBranch() {
     val ids = LineCatalog.all(mission).map { it.id }.toSet()
-    assertTrue("fog.jam" in ids && "fog.comply" in ids && "stacks.accept" in ids)
+    assertTrue("undertow.hushwarn" in ids)
     assertNotNull(mission.character("vesper"))
-    assertTrue("unlock.deadchannel.1" in ids, "unlock announcements are pre-rendered like any other line")
+    assertTrue("unlock.lastbars.1" in ids, "unlock announcements are pre-rendered like any other line")
   }
 
   @Test
-  fun deadChannelUnlocksAfterTheFirstFinish() {
-    assertEquals(Soundtracks.ORIGINAL, Soundtracks.resolve(mission, "dead-channel", completions = 0))
-    assertEquals("dead-channel", Soundtracks.resolve(mission, "dead-channel", completions = 1))
-    assertEquals("dead-channel", Soundtracks.resolve(mission, "dead-channel", completions = 7))
+  fun lastEightBarsUnlocksAfterTheFirstFinish() {
+    assertEquals(Soundtracks.ORIGINAL, Soundtracks.resolve(mission, "last-eight-bars", completions = 0))
+    assertEquals("last-eight-bars", Soundtracks.resolve(mission, "last-eight-bars", completions = 1))
+    assertEquals("last-eight-bars", Soundtracks.resolve(mission, "last-eight-bars", completions = 7))
     assertEquals(Soundtracks.ORIGINAL, Soundtracks.resolve(mission, "no-such-mix", completions = 7))
     assertEquals(Soundtracks.ORIGINAL, Soundtracks.resolve(mission, null, completions = 7))
-    assertEquals(listOf("dead-channel"), Soundtracks.unlockedByNextCompletion(mission, completions = 0).map { it.id })
+    assertEquals(listOf("last-eight-bars"), Soundtracks.unlockedByNextCompletion(mission, completions = 0).map { it.id })
     assertTrue(Soundtracks.unlockedByNextCompletion(mission, completions = 1).isEmpty(), "it unlocks once")
     assertEquals(listOf(true, false), Soundtracks.choices(mission, completions = 0).map { it.unlocked })
     assertEquals(listOf(true, true), Soundtracks.choices(mission, completions = 1).map { it.unlocked })
@@ -277,11 +311,11 @@ class MissionTest {
 
   @Test
   fun aSoundtrackSwapsTheMusicAndKeepsTheStory() {
-    val night = mission.withSoundtrack("dead-channel")
-    assertEquals(88.0, night.music.bpm)
-    assertEquals(mission.signals, night.signals)
-    assertEquals(mission.music.stems.map { it.id }, night.music.stems.map { it.id })
-    assertTrue(night.music.stems.all { it.file.startsWith("music/dead_channel/") })
+    val original = mission.withSoundtrack("last-eight-bars")
+    assertEquals(118.0, original.music.bpm)
+    assertEquals(mission.signals, original.signals)
+    assertEquals(mission.music.stems.map { it.id }, original.music.stems.map { it.id })
+    assertTrue(original.music.stems.none { it.file.startsWith("music/dead_channel/") })
     assertEquals(mission, mission.withSoundtrack(Soundtracks.ORIGINAL))
     assertEquals(mission, mission.withSoundtrack("no-such-mix"))
   }
@@ -294,6 +328,74 @@ class MissionTest {
     files.forEach { assertTrue(File(assets, it).isFile, "missing asset $it") }
   }
 
+  @Test
+  fun deadChannelIsTheMainSoundtrack() {
+    assertEquals("Dead Channel", mission.music.title)
+    assertEquals(88.0, mission.music.bpm)
+    assertTrue(mission.music.stems.all { it.file.startsWith("music/dead_channel/") })
+  }
+
+  @Test
+  fun theArchivistAsksTheLionQuestion() {
+    val stacks = mission.signal("stacks")!!
+    val challenge = stacks.challenge
+    assertTrue(challenge is com.ghostsignal.core.model.Challenge.Command, "stacks challenge: $challenge")
+    val phrases = (challenge as com.ghostsignal.core.model.Challenge.Command).phrases
+    assertEquals(listOf("patience"), phrases)
+    assertTrue("lion on the left" in challenge.prompt.single().text)
+  }
+
+  @Test
+  fun layerThreeJustDecodes() {
+    val undertow = mission.signal("undertow")!!
+    val challenge = undertow.challenge
+    assertTrue(challenge is com.ghostsignal.core.model.Challenge.Command, "undertow challenge: $challenge")
+    val phrases = (challenge as com.ghostsignal.core.model.Challenge.Command).phrases
+    assertEquals(listOf("decode"), phrases)
+  }
+
+  @Test
+  fun vesperAndZionKeepTheirPreviousSpeed() {
+    assertEquals(0.95, mission.character("vesper")!!.voice.rate)
+    assertEquals(1.05, mission.character("mari")!!.voice.rate)
+  }
+
+  @Test
+  fun hushSoundsColdAndUncanny() {
+    val hush = mission.character("hush")!!
+    assertTrue(hush.voice.pitch <= 0.75, "HUSH pitch ${hush.voice.pitch} should be low")
+    assertTrue(hush.voice.rate <= 0.85, "HUSH rate ${hush.voice.rate} should be slow")
+    assertTrue(hush.radio >= 0.3, "HUSH radio ${hush.radio} should be heavily processed")
+  }
+
+  @Test
+  fun theLionsAreNamedOutright() {
+    val heartbeat = mission.signal("heartbeat")!!
+    val successText = heartbeat.success.joinToString(" ") { it.text }
+    assertTrue("their names are Patience and Fortitude" in successText, successText)
+    assertTrue("remember that" in successText, successText)
+  }
+
+  @Test
+  fun layerThreeWarnsAboutHush() {
+    val undertow = mission.signal("undertow")!!
+    val allText = (undertow.success + undertow.hint).joinToString(" ") { it.text }
+    assertTrue("HUSH" in allText, allText)
+    assertTrue("jam the signal" in allText, allText)
+    assertTrue("Do not follow" in allText, allText)
+  }
+
+  @Test
+  fun layerFiveOnlyJamContinues() {
+    val fog = mission.signal("fog")!!
+    val challenge = fog.challenge
+    assertTrue(challenge is com.ghostsignal.core.model.Challenge.Command, "fog challenge: $challenge")
+    val phrases = (challenge as com.ghostsignal.core.model.Challenge.Command).phrases
+    assertTrue("jam" in phrases && "jam the signal" in phrases, phrases.toString())
+    val fogText = (fog.teaser + fog.arrival + fog.challenge.prompt + fog.success + fog.retry + fog.hint)
+        .joinToString(" ") { it.text }
+    assertTrue("comply" !in fogText.lowercase(), fogText)
+  }
   @Test
   fun validatorCatchesASoundtrackThatLeavesASlotEmpty() {
     val t = mission.soundtracks.first()

@@ -36,8 +36,10 @@ gh issue list --label agent:wonder --label status:ready   # tasks routed to you
 1. Run the checks you can, and say which ones you couldn't:
    - `cd server && npm test`
    - `./gradlew -p core jvmTest`
-   - `tools/check_web_engine.sh`, after any change under `core/`. It rebuilds
-     `server/play/engine`; commit the rebuilt engine with your change, or CI fails.
+   - After any change under `core/`, rebuild the web player's copy of the engine and commit it
+     with your change: `./gradlew -p core buildWebEngine` (Windows:
+     `gradlew.bat -p core buildWebEngine`). Never copy it out of `core/build` or edit
+     `server/play/engine/ghostsignal-core.mjs` by hand, or CI's engine check fails.
    - `node --test .github/agent-router/route.test.cjs`, after any change to the router.
 2. Add a dated entry at the top of `docs/HANDOFF.md`: what changed, what you verified, what you
    didn't, what's next.

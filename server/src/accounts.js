@@ -3,14 +3,26 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 
-const scrypt = promisify(crypto.scrypt);
-const DAY = 24 * 60 * 60 * 1000;
-/** Browsers sign in for a month, phones for half a year; both renew while in use. */
-const TTL = { web: 30 * DAY, app: 180 * DAY };
-const KEY_LEN = 64;
-const COST = { N: 1 << 15, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+// Player and admin accounts, persisted as two JSON documents in the data
+// folder (accounts.json, sessions.json). Passwords are stored as scrypt
+// hashes; session tokens are random and only their SHA-256 is stored, so
+// a leaked copy of the data folder cannot be replayed as a sign-in.
+//
+// Sign-up makes a player. Accounts whose email is in ADMIN_EMAILS are
+// admins, and admins can promote others from the admin page. Premium has a
+// source: "payment" (webhook-driven) or "grant" (an admin's gift), plus an
+// optional external source plugged in by the server (linked glasses).
 
-function fail(status, message) {
+const scryptAsync = promisify(crypto.scrypt);
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const SESSION_TTL_MS = { web: 30 * DAY_MS, app: 180 * DAY_MS }; // Browsers: a month. Phones: half a year.
+const DERIVED_KEY_BYTES = 64;
+const SCRYPT_PARAMS = { N: 1 << 15, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MISSION_ID_PATTERN = /^[\w-]{1,80}$/;
+
+function accountError(status, message) {
   return Object.assign(new Error(message), { status });
 }
 
@@ -18,272 +30,331 @@ export function normalEmail(email) {
   return typeof email === "string" ? email.trim().toLowerCase() : "";
 }
 
-const validEmail = (e) => e.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
+function isValidEmail(email) {
+  return email.length <= 254 && EMAIL_PATTERN.test(email);
+}
+
+function sha256Hex(text) {
+  return crypto.createHash("sha256").update(text).digest("hex");
+}
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16);
-  const key = await scrypt(password, salt, KEY_LEN, COST);
-  return `scrypt$${COST.N}$${COST.r}$${COST.p}$${salt.toString("base64")}$${key.toString("base64")}`;
+  const derived = await scryptAsync(password, salt, DERIVED_KEY_BYTES, SCRYPT_PARAMS);
+  const { N, r, p } = SCRYPT_PARAMS;
+  return ["scrypt", N, r, p, salt.toString("base64"), derived.toString("base64")].join("$");
 }
 
-async function checkPassword(password, stored) {
-  const [scheme, N, r, p, salt, key] = String(stored).split("$");
+async function passwordMatches(password, storedHash) {
+  const [scheme, n, r, p, saltB64, keyB64] = String(storedHash).split("$");
   if (scheme !== "scrypt") return false;
-  const want = Buffer.from(key, "base64");
-  const got = await scrypt(password, Buffer.from(salt, "base64"), want.length, { N: Number(N), r: Number(r), p: Number(p), maxmem: COST.maxmem });
-  return crypto.timingSafeEqual(got, want);
+  const expected = Buffer.from(keyB64, "base64");
+  const derived = await scryptAsync(password, Buffer.from(saltB64, "base64"), expected.length, {
+    N: Number(n),
+    r: Number(r),
+    p: Number(p),
+    maxmem: SCRYPT_PARAMS.maxmem,
+  });
+  return crypto.timingSafeEqual(derived, expected);
 }
 
-/**
- * Player and admin accounts, kept in two JSON files under DATA_DIR: accounts.json and
- * sessions.json. Passwords are scrypt hashes; session tokens are random and only their SHA-256
- * is stored, so a copy of the data folder can't be used to sign in.
- *
- * Everyone who signs up is a player. Emails listed in ADMIN_EMAILS are admins, and admins can make
- * other accounts admins from the admin page. Premium is a flag with a source: a payment (set by a
- * payment provider's webhook) or a grant (set by an admin).
- */
-export function createAccounts({ dir = process.env.DATA_DIR || "data", adminEmails = [], now = Date.now } = {}) {
+export function createAccounts({
+  dir = process.env.DATA_DIR || "data",
+  adminEmails = [],
+  now = Date.now,
+} = {}) {
   fs.mkdirSync(dir, { recursive: true });
-  const accountsFile = path.join(dir, "accounts.json");
-  const sessionsFile = path.join(dir, "sessions.json");
-  const admins = new Set(adminEmails.map(normalEmail).filter(Boolean));
-  const read = (file, fallback) => {
+  const accountsPath = path.join(dir, "accounts.json");
+  const sessionsPath = path.join(dir, "sessions.json");
+  const configAdmins = new Set(adminEmails.map(normalEmail).filter(Boolean));
+
+  function readJson(file, fallback) {
     try {
       return JSON.parse(fs.readFileSync(file, "utf8"));
     } catch {
       return fallback;
     }
-  };
-  const write = (file, value) => {
-    const tmp = `${file}.${process.pid}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(value, null, 2), { mode: 0o600 });
-    fs.renameSync(tmp, file);
-  };
-  let accounts = read(accountsFile, { accounts: [] }).accounts;
-  let sessions = read(sessionsFile, { sessions: {} }).sessions;
-  const saveAccounts = () => write(accountsFile, { accounts });
-  const saveSessions = () => write(sessionsFile, { sessions });
-  // A real hash to compare against when the email is unknown, so a wrong email takes as long as a
-  // wrong password and the form can't be used to find out who has an account.
-  const decoy = hashPassword(crypto.randomBytes(12).toString("hex"));
-
-  const byId = (id) => accounts.find((a) => a.id === id) ?? null;
-  const byEmail = (email) => accounts.find((a) => a.email === normalEmail(email)) ?? null;
-
-  function isAdmin(a) {
-    return a.role === "admin" || admins.has(a.email);
   }
 
-  /** Premium from a payment or an admin's grant. */
-  function paidOrGranted(a) {
-    const p = a.premium;
-    return Boolean(p?.active && (!p.until || p.until > now()));
+  function writeJson(file, value) {
+    const temp = `${file}.${process.pid}.tmp`;
+    fs.writeFileSync(temp, JSON.stringify(value, null, 2), { mode: 0o600 });
+    fs.renameSync(temp, file);
   }
 
-  /** Other ways to premium (linked glasses), plugged in by the server. */
-  let extraPremium = () => false;
+  let accountRows = readJson(accountsPath, { accounts: [] }).accounts;
+  let sessionRows = readJson(sessionsPath, { sessions: {} }).sessions;
+  const persistAccounts = () => writeJson(accountsPath, { accounts: accountRows });
+  const persistSessions = () => writeJson(sessionsPath, { sessions: sessionRows });
 
-  function premiumActive(a) {
-    return paidOrGranted(a) || extraPremium(a.id);
+  // A genuine hash to check against for unknown emails, so "no such
+  // account" takes as long as "wrong password" and sign-in cannot be used
+  // to enumerate registered addresses.
+  const decoyHashPromise = hashPassword(crypto.randomBytes(12).toString("hex"));
+
+  const findById = (id) => accountRows.find((row) => row.id === id) ?? null;
+  const findByEmail = (email) => accountRows.find((row) => row.email === normalEmail(email)) ?? null;
+
+  function isAdmin(account) {
+    return account.role === "admin" || configAdmins.has(account.email);
   }
 
-  function view(a) {
+  function paidOrGranted(account) {
+    const premium = account.premium;
+    return Boolean(premium?.active && (!premium.until || premium.until > now()));
+  }
+
+  // Extra premium sources (approved glasses), supplied by the server.
+  let extraPremiumCheck = () => false;
+
+  function premiumActive(account) {
+    return paidOrGranted(account) || extraPremiumCheck(account.id);
+  }
+
+  function view(account) {
+    const paid = paidOrGranted(account);
     return {
-      id: a.id,
-      email: a.email,
-      role: isAdmin(a) ? "admin" : "player",
-      adminFromConfig: admins.has(a.email),
-      disabled: Boolean(a.disabled),
-      createdAtMs: a.createdAtMs,
-      lastSeenMs: a.lastSeenMs ?? null,
+      id: account.id,
+      email: account.email,
+      role: isAdmin(account) ? "admin" : "player",
+      adminFromConfig: configAdmins.has(account.email),
+      disabled: Boolean(account.disabled),
+      createdAtMs: account.createdAtMs,
+      lastSeenMs: account.lastSeenMs ?? null,
       premium: {
-        active: premiumActive(a),
-        // "payment" or "grant" when that's active; otherwise "glasses" for an approved pair.
-        source: paidOrGranted(a) ? a.premium.source : extraPremium(a.id) ? "glasses" : a.premium?.source ?? null,
-        provider: a.premium?.provider ?? null,
-        sinceMs: a.premium?.sinceMs ?? null,
-        untilMs: a.premium?.until ?? null,
-        manageUrl: a.premium?.manageUrl ?? null,
+        active: premiumActive(account),
+        source: paid ? account.premium.source
+          : extraPremiumCheck(account.id) ? "glasses"
+          : account.premium?.source ?? null,
+        provider: account.premium?.provider ?? null,
+        sinceMs: account.premium?.sinceMs ?? null,
+        untilMs: account.premium?.until ?? null,
+        manageUrl: account.premium?.manageUrl ?? null,
       },
-      completions: a.completions ?? {},
+      completions: account.completions ?? {},
     };
   }
 
-  function openSession(a, client) {
+  function startSession(account, client) {
     const kind = client === "app" ? "app" : "web";
     const token = `gsu_${crypto.randomBytes(32).toString("base64url")}`;
-    const t = now();
-    for (const [h, s] of Object.entries(sessions)) if (s.expiresAtMs <= t) delete sessions[h];
-    sessions[sha256(token)] = { accountId: a.id, kind, createdAtMs: t, expiresAtMs: t + TTL[kind] };
-    a.lastSeenMs = t;
-    saveSessions();
-    saveAccounts();
-    return { token, expiresAtMs: t + TTL[kind], account: view(a) };
+    const startedAt = now();
+    // Opportunistically drop expired sessions while we are writing anyway.
+    for (const [hash, session] of Object.entries(sessionRows)) {
+      if (session.expiresAtMs <= startedAt) delete sessionRows[hash];
+    }
+    sessionRows[sha256Hex(token)] = {
+      accountId: account.id,
+      kind,
+      createdAtMs: startedAt,
+      expiresAtMs: startedAt + SESSION_TTL_MS[kind],
+    };
+    account.lastSeenMs = startedAt;
+    persistSessions();
+    persistAccounts();
+    return { token, expiresAtMs: startedAt + SESSION_TTL_MS[kind], account: view(account) };
   }
 
-  function dropSessions(accountId, keepHash = null) {
-    for (const [h, s] of Object.entries(sessions)) if (s.accountId === accountId && h !== keepHash) delete sessions[h];
-    saveSessions();
+  function endSessions(accountId, keepHash = null) {
+    for (const [hash, session] of Object.entries(sessionRows)) {
+      if (session.accountId === accountId && hash !== keepHash) delete sessionRows[hash];
+    }
+    persistSessions();
   }
 
-  return {
+  const api = {
     view,
     isAdmin,
     premiumActive,
+
     setExtraPremium(fn) {
-      extraPremium = fn;
+      extraPremiumCheck = fn;
     },
-    get: byId,
-    findByEmail: byEmail,
-    findByCustomer: (provider, customerId) =>
-      customerId ? accounts.find((a) => a.premium?.provider === provider && a.premium?.customerId === customerId) ?? null : null,
+
+    get: findById,
+    findByEmail,
+
+    findByCustomer(provider, customerId) {
+      if (!customerId) return null;
+      return accountRows.find(
+        (row) => row.premium?.provider === provider && row.premium?.customerId === customerId,
+      ) ?? null;
+    },
 
     async signUp({ email, password, client }) {
-      const e = normalEmail(email);
-      if (!validEmail(e)) throw fail(400, "enter a valid email address");
+      const normalized = normalEmail(email);
+      if (!isValidEmail(normalized)) throw accountError(400, "enter a valid email address");
       if (typeof password !== "string" || password.length < 10 || password.length > 200) {
-        throw fail(400, "use a password of at least 10 characters");
+        throw accountError(400, "use a password of at least 10 characters");
       }
-      // Hash first (the slow, async step), then check-and-insert with no await in between, so
-      // two sign-ups for the same email racing each other can't both slip past the check.
+      // Hash first (slow, awaited), then check-and-insert with no await in
+      // between: two racing sign-ups for one email cannot both succeed.
       const passwordHash = await hashPassword(password);
-      if (byEmail(e)) throw fail(409, "there's already an account with that email; sign in instead");
-      const a = {
+      if (findByEmail(normalized)) {
+        throw accountError(409, "there's already an account with that email; sign in instead");
+      }
+      const account = {
         id: `u_${crypto.randomBytes(9).toString("hex")}`,
-        email: e,
+        email: normalized,
         passwordHash,
         role: "player",
         createdAtMs: now(),
         premium: null,
         completions: {},
       };
-      accounts.push(a);
-      saveAccounts();
-      return openSession(a, client);
+      accountRows.push(account);
+      persistAccounts();
+      return startSession(account, client);
     },
 
-    /** The account for an email and password, without signing in. Throws 401 or 403. */
+    /** Checks credentials without opening a session. Throws 401/403. */
     async verify({ email, password }) {
-      const a = byEmail(email);
-      const ok = typeof password === "string" && password.length <= 200 && (await checkPassword(password, a?.passwordHash ?? (await decoy)));
-      if (!a || !ok) throw fail(401, "that email and password don't match");
-      if (a.disabled) throw fail(403, "this account is disabled");
-      return a;
+      const account = findByEmail(email);
+      const usable = typeof password === "string" && password.length <= 200;
+      const stored = account?.passwordHash ?? (await decoyHashPromise);
+      const matches = usable && (await passwordMatches(password, stored));
+      if (!account || !matches) throw accountError(401, "that email and password don't match");
+      if (account.disabled) throw accountError(403, "this account is disabled");
+      return account;
     },
 
-    async logIn({ email, password, client }) {
-      return openSession(await this.verify({ email, password }), client);
+    async logIn(credentials) {
+      const account = await api.verify(credentials);
+      return startSession(account, credentials.client);
     },
 
-    /** The signed-in account for a session token, or null. Renews a session that's in use. */
+    /** The account behind a session token, or null. Active sessions renew. */
     session(token) {
       if (typeof token !== "string" || !token.startsWith("gsu_")) return null;
-      const h = sha256(token);
-      const s = sessions[h];
-      const t = now();
-      if (!s || s.expiresAtMs <= t) return null;
-      const a = byId(s.accountId);
-      if (!a || a.disabled) return null;
-      const ttl = TTL[s.kind] ?? TTL.web;
-      if (s.expiresAtMs - t < ttl / 2) {
-        s.expiresAtMs = t + ttl;
-        a.lastSeenMs = t;
-        saveSessions();
-        saveAccounts();
+      const hash = sha256Hex(token);
+      const found = sessionRows[hash];
+      const at = now();
+      if (!found || found.expiresAtMs <= at) return null;
+      const account = findById(found.accountId);
+      if (!account || account.disabled) return null;
+      const ttl = SESSION_TTL_MS[found.kind] ?? SESSION_TTL_MS.web;
+      if (found.expiresAtMs - at < ttl / 2) {
+        found.expiresAtMs = at + ttl;
+        account.lastSeenMs = at;
+        persistSessions();
+        persistAccounts();
       }
-      return { account: a, hash: h };
+      return { account, hash };
     },
 
     logOut(token) {
       if (typeof token !== "string") return;
-      delete sessions[sha256(token)];
-      saveSessions();
+      delete sessionRows[sha256Hex(token)];
+      persistSessions();
     },
 
     async changePassword(token, current, next) {
-      const s = this.session(token);
-      if (!s) throw fail(401, "sign in again");
-      if (!(typeof current === "string" && (await checkPassword(current, s.account.passwordHash)))) throw fail(403, "your current password is wrong");
-      if (typeof next !== "string" || next.length < 10 || next.length > 200) throw fail(400, "use a password of at least 10 characters");
-      s.account.passwordHash = await hashPassword(next);
-      saveAccounts();
-      dropSessions(s.account.id, s.hash); // sign out everywhere else
+      const session = api.session(token);
+      if (!session) throw accountError(401, "sign in again");
+      const currentOk = typeof current === "string" &&
+        (await passwordMatches(current, session.account.passwordHash));
+      if (!currentOk) throw accountError(403, "your current password is wrong");
+      if (typeof next !== "string" || next.length < 10 || next.length > 200) {
+        throw accountError(400, "use a password of at least 10 characters");
+      }
+      session.account.passwordHash = await hashPassword(next);
+      persistAccounts();
+      endSessions(session.account.id, session.hash); // Sign out everywhere else.
     },
 
     async remove(token, password) {
-      const s = this.session(token);
-      if (!s) throw fail(401, "sign in again");
-      if (!(typeof password === "string" && (await checkPassword(password, s.account.passwordHash)))) throw fail(403, "that password is wrong");
-      accounts = accounts.filter((a) => a.id !== s.account.id);
-      saveAccounts();
-      dropSessions(s.account.id);
+      const session = api.session(token);
+      if (!session) throw accountError(401, "sign in again");
+      const passwordOk = typeof password === "string" &&
+        (await passwordMatches(password, session.account.passwordHash));
+      if (!passwordOk) throw accountError(403, "that password is wrong");
+      accountRows = accountRows.filter((row) => row.id !== session.account.id);
+      persistAccounts();
+      endSessions(session.account.id);
     },
 
-    /** Finished runs only ever go up, so two phones on one account can't undo each other. */
+    /** Completions only ever increase, so two phones cannot undo each other. */
     recordProgress(account, missionId, completions) {
-      if (typeof missionId !== "string" || !/^[\w-]{1,80}$/.test(missionId)) throw fail(400, "invalid mission");
-      if (!Number.isInteger(completions) || completions < 0 || completions > 100000) throw fail(400, "invalid completions");
+      if (typeof missionId !== "string" || !MISSION_ID_PATTERN.test(missionId)) {
+        throw accountError(400, "invalid mission");
+      }
+      if (!Number.isInteger(completions) || completions < 0 || completions > 100000) {
+        throw accountError(400, "invalid completions");
+      }
       account.completions = account.completions ?? {};
       account.completions[missionId] = Math.max(account.completions[missionId] ?? 0, completions);
-      saveAccounts();
+      persistAccounts();
       return account.completions[missionId];
     },
 
-    // ---------------------------------------------------------------- admin
+    // -- admin ---------------------------------------------------------------
 
     list(query = "") {
-      const q = normalEmail(query);
-      return accounts.filter((a) => !q || a.email.includes(q)).map(view);
+      const needle = normalEmail(query);
+      return accountRows
+        .filter((row) => !needle || row.email.includes(needle))
+        .map(view);
     },
 
     counts() {
       return {
-        total: accounts.length,
-        premium: accounts.filter(premiumActive).length,
-        admins: accounts.filter(isAdmin).length,
+        total: accountRows.length,
+        premium: accountRows.filter(premiumActive).length,
+        admins: accountRows.filter(isAdmin).length,
       };
     },
 
-    /** Admin changes: role, disabled, or a premium grant. */
+    /** Applies an admin's change: role, disabled flag, or a premium grant. */
     update(id, change) {
-      const a = byId(id);
-      if (!a) throw fail(404, "no such account");
+      const account = findById(id);
+      if (!account) throw accountError(404, "no such account");
       if (change.role !== undefined) {
-        if (!["admin", "player"].includes(change.role)) throw fail(400, "role is admin or player");
-        if (change.role === "player" && admins.has(a.email)) throw fail(409, "this email is an admin through ADMIN_EMAILS");
-        a.role = change.role;
+        if (!["admin", "player"].includes(change.role)) {
+          throw accountError(400, "role is admin or player");
+        }
+        if (change.role === "player" && configAdmins.has(account.email)) {
+          throw accountError(409, "this email is an admin through ADMIN_EMAILS");
+        }
+        account.role = change.role;
       }
       if (change.disabled !== undefined) {
-        a.disabled = change.disabled === true;
-        if (a.disabled) dropSessions(a.id);
+        account.disabled = change.disabled === true;
+        if (account.disabled) endSessions(account.id);
       }
       if (change.premium !== undefined) {
-        if (change.premium === true) a.premium = { ...(a.premium ?? {}), active: true, source: "grant", provider: null, sinceMs: now(), until: null };
-        else if (change.premium === false) a.premium = a.premium ? { ...a.premium, active: false } : null;
-        else throw fail(400, "premium is true or false");
+        if (change.premium === true) {
+          account.premium = {
+            ...(account.premium ?? {}),
+            active: true, source: "grant", provider: null, sinceMs: now(), until: null,
+          };
+        } else if (change.premium === false) {
+          account.premium = account.premium ? { ...account.premium, active: false } : null;
+        } else {
+          throw accountError(400, "premium is true or false");
+        }
       }
-      saveAccounts();
-      return view(a);
+      persistAccounts();
+      return view(account);
     },
 
-    /** What a payment provider says about an account's premium. */
-    setPayment(a, payment) {
-      const was = a.premium ?? {};
-      a.premium = {
-        ...was,
+    /** Records what a payment provider reports about an account's premium. */
+    setPayment(account, payment) {
+      const previous = account.premium ?? {};
+      account.premium = {
+        ...previous,
         active: payment.active,
         source: "payment",
         provider: payment.provider,
-        customerId: payment.customerId ?? was.customerId ?? null,
-        subscriptionId: payment.subscriptionId ?? was.subscriptionId ?? null,
-        manageUrl: payment.manageUrl ?? was.manageUrl ?? null,
-        sinceMs: payment.active && !was.active ? now() : was.sinceMs ?? now(),
+        customerId: payment.customerId ?? previous.customerId ?? null,
+        subscriptionId: payment.subscriptionId ?? previous.subscriptionId ?? null,
+        manageUrl: payment.manageUrl ?? previous.manageUrl ?? null,
+        sinceMs: payment.active && !previous.active ? now() : previous.sinceMs ?? now(),
         until: payment.until ?? null,
       };
-      saveAccounts();
-      return view(a);
+      persistAccounts();
+      return view(account);
     },
   };
+
+  return api;
 }

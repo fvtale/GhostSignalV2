@@ -1,20 +1,34 @@
 package com.ghostsignal.core
 
 import kotlin.math.abs
-import kotlin.math.floor
-import kotlin.math.pow
+
+// Deterministic decimal rendering for values that cross the Kotlin/JS boundary.
+// The browser and the JVM disagree on how a Double prints, so anything the engine
+// puts into speech text or a saved flag goes through here instead of toString().
 
 /**
- * [x] rounded half-up to [decimals] places, like `"%.2f".format(x)` on the JVM, but the same on
- * every platform the engine runs on (a browser prints a Double differently from Java).
+ * Renders [value] with exactly [places] digits after the point, rounding half
+ * away from zero. Negative zero renders as plain zero.
  */
-fun fixed(x: Double, decimals: Int): String {
-  if (x.isNaN()) return "NaN"
-  if (x.isInfinite()) return if (x > 0) "Infinity" else "-Infinity"
-  val scale = 10.0.pow(decimals)
-  val n = floor(abs(x) * scale + 0.5).toLong()
-  val unit = scale.toLong()
-  val sign = if (x < 0 && n != 0L) "-" else ""
-  if (decimals <= 0) return "$sign$n"
-  return "$sign${n / unit}.${(n % unit).toString().padStart(decimals, '0')}"
+fun fixed(value: Double, places: Int): String {
+  if (value.isNaN()) return "NaN"
+  if (value.isInfinite()) return if (value > 0) "Infinity" else "-Infinity"
+
+  var factor = 1L
+  repeat(places.coerceAtLeast(0)) { factor *= 10L }
+
+  val scaled = kotlin.math.floor(abs(value) * factor + 0.5).toLong()
+  val negative = value < 0 && scaled != 0L
+
+  val whole = scaled / factor
+  val fraction = (scaled % factor).toString().padStart(places, '0')
+
+  return buildString {
+    if (negative) append('-')
+    append(whole)
+    if (places > 0) {
+      append('.')
+      append(fraction)
+    }
+  }
 }

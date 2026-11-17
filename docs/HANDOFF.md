@@ -1,7 +1,135 @@
 # Handoffs
 
+# Handoff — 2026-11-03, Meta Wonder (rewrite deployed)
+
+## What this round does
+
+- Owner play-tested two complete runs successfully, then approved deploy. VPS `/opt/ghostsignal` fast-forwarded `3e77dd3` → `37aab5e` (the full rewrite), server tests run on the VPS, `ghostsignal` service restarted.
+- Note: the live lane on this host is `/opt/ghostsignal` + service `ghostsignal` (port 8090 behind Caddy); `deploy/update.sh` in the repo targets a `ghostsignalv2` layout that does not exist on this VPS — deploy manually (fetch, ff-only, `npm test`, restart, health) until that script is corrected.
+
+## Verified
+
+- VPS `npm test` green; service active (new PID); internal and external `/health` 200 with `npc:true, stt:true`; `/play/`, `/account/`, `/admin/` all 200; the rail-circuitry `play.css` is the version served (old neon palette gone).
+
+## Next
+
+- Owner's creative tweaks backlog, whenever ready. Nothing else outstanding for the submission.
+
+# Handoff — 2026-11-03, Meta Wonder (Phase 5: rewrite shipped)
+
+## What this round does
+
+- **Post-hackathon rewrite complete.** All five phases landed on `main` over the disclosed V1 base (`09128e8`): core `881ac2c`, server `91c79d6`, web surfaces `c81326a`, Android `81a0095`. Final verification sweep (below) on the shipped tree. The V1 skeleton stays in history; everything judges run is original post-start code.
+
+## Verified
+
+- Core `./gradlew -p core jvmTest` — 47/47. Server `npm test` — 58/58. Web engine check: bundle matches Kotlin source. Android `:app:assembleDebug` — BUILD SUCCESSFUL.
+- Live backend `https://ghostsignal.datarail.org/health` — V2 shape (`stt` present), `npc:true`, `stt:true`, model `muse-spark-1.3`.
+
+## Not verified
+
+- Production still runs the pre-rewrite build; the rewrite is NOT deployed (needs the owner's go + reliable server access). Web player not yet played in a real browser; Android not yet played on a phone. Both are owner passes before the demo.
+
+## Next
+
+- Owner: play once in a browser and once on the phone, then approve the VPS deploy (`deploy/update.sh`) to ship the rewrite live.
+
+# Handoff — 2026-11-03, Meta Wonder (Phase 4: Android rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 4 of 5.** New `Rail` theme in the DataRail house tokens (track-bed/signal/brass, station-sign section headers, node-dot status) replacing the old neon palette across every screen (setup, run, operator, settings, archive, account); radar/fragment strip reworked on the same tokens; `colors.xml`/`themes.xml` aligned. Every app module re-implemented from scratch with the same behaviour: root wiring, settings, data stores, backend client, audio (DSP, PCM, mixer, synth, FMOD bridge), glasses, location, voice, game controller/service.
+- Fixed the shipped default backend URL: clean builds now default to `https://ghostsignal.datarail.org` (was the non-resolving `ghostsignalv2.datarail.org`, the field-test STT/NPC failure).
+
+## Verified
+
+- `./gradlew :app:assembleDebug` — BUILD SUCCESSFUL (APK 67 MB, 2026-11-03). Core `jvmTest` and server `npm test` still green.
+
+## Not verified
+
+- On-device behaviour (spatial audio, glasses inputs, GPS) — needs a phone pass; FMOD path still requires `third_party/fmod`.
+
+## Next
+
+- Phase 5: full verification sweep and ship (HANDOFF, memory brief, deploy check).
+
+# Handoff — 2026-11-03, Meta Wonder (Phase 3: web surfaces rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 3 of 5.** All web JS re-implemented from scratch: player (`api`, `audio`, `main`, `recorder`, `sensors`, `speech`, `voices`), `account.js`, `admin.js` — modern syntax, same DOM ids, engine JSON contract, and API calls. Player stylesheet restyled to the datarail.org/library house tokens (rail-meets-circuitry: track-bed near-black, signal cyan, brass warnings, rail-rule headers, node dots); admin/account already carried the house tokens and keep them.
+
+## Verified
+
+- `node --check` clean on all 9 rewritten JS files; server `npm test` 58/58.
+- Local smoke: `/health`, `/play/`, `/account/`, `/admin/` and assets all 200 with CSP intact.
+- DOM contract: all 115 `byId(...)` ids used by the JS exist in the HTML.
+
+## Not verified
+
+- Real-browser play (mic, compass, pocket mode, Media Session) — needs a phone/browser pass by the owner.
+
+## Next
+
+- Phase 4: Android theme/polish to the same tokens.
+
+# Handoff — 2026-11-03, Meta Wonder (Phase 2: server rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 2 of 5.** Every file in `server/src/` re-implemented from scratch (fresh structure/docs, same routes, JSON shapes, error strings and status codes): `accounts`, `admin`, `audio`, `billing`, `content`, `env`, `glasses`, `index`, `meta`, `mission`, `npc`, `players`, `server`, `static`, `store`, `stt`, `tts`.
+
+## Verified
+
+- `cd server && npm test` — 58/58 pass.
+
+## Not verified
+
+- Live VPS behaviour (health/NPC/STT with a real key) — unchanged surface, needs the deployed check at ship time.
+
+## Next
+
+- Phase 3: web player + account/admin rewrite in the rail-circuitry theme.
+
+# Handoff — 2026-11-03, Meta Wonder (Phase 1: core rewrite)
+
+## What this round does
+
+- **Post-hackathon rewrite, Phase 1 of 5** (plan: `docs/REWRITE-PLAN.md`). Every V1-origin file in `core/` was re-implemented from scratch — fresh structure and docs, same public API and behaviour contracts — so the submitted code is original work after the hack start date. The V1 base (`09128e8`) stays in history, disclosed. Rewritten: `Format`, `Geo`, `SignalField`, `Types`, `AudioScene`, `GameEngine`, `HeadingFusion`, `Mission`, `MissionTools`, `RhythmMatcher`, `PhraseMatcher`, `WebGame`. Web engine bundle rebuilt (`server/play/engine/ghostsignal-core.mjs`); the `.d.mts` API surface is unchanged.
+
+## Verified
+
+- `./gradlew -p core jvmTest` — 47/47 pass (fresh results, 2026-11-03).
+- `compileKotlinJs` pass; `tools/build_web_engine.sh` rebuilt the bundle cleanly.
+
+## Not verified
+
+- Android app compile (no SDK build this round) and live play; unchanged by this phase.
+
+## Next
+
+- Phase 2: rewrite `server/src/` module by module, `npm test` as the gate.
+
 Newest first. Each agent adds an entry with every change it hands back (see AGENTS.md).
 
+# Handoff — 2026-10-30, Claude (#5: web engine build)
+
+## What changed
+
+Main was red after the elevation work (3e77dd3): the committed web engine ended with the
+compiler's source-map comment. The engine is rebuilt, and `./gradlew -p core buildWebEngine`
+(`gradlew.bat` on Windows) now builds it identically on every OS. Use it after any change under
+`core/`; AGENTS.md says so.
+
+## Verified
+
+- `tools/check_web_engine.sh` passes; the new task's output is byte-for-byte the old script's.
+- `./gradlew -p core jvmTest` passes; `npm test` in server/: 58/58.
+
+## Not verified
+
+- The task on Windows itself; Claude has no Windows machine. Wonder: please run
+  `gradlew.bat -p core buildWebEngine` once and check `git status` shows no change to the engine.
 # Handoff — 2026-10-31, Claude
 
 ## What this round does

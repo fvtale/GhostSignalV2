@@ -20,46 +20,60 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
- * Keeps a run alive with the screen off and the phone in a pocket: GPS, audio and (during
- * listening windows) the microphone all need a foreground service on Android 14+.
+ * Keeps a run alive with the screen off and the phone pocketed: GPS, audio,
+ * and (during listening windows) the microphone all require a foreground
+ * service on Android 14+. The notification mirrors run progress.
  */
 class GameService : LifecycleService() {
+
   private var wakeLock: PowerManager.WakeLock? = null
 
   override fun onCreate() {
     super.onCreate()
-    val nm = getSystemService(NotificationManager::class.java)
-    nm.createNotificationChannel(NotificationChannel(CHANNEL, "Signal run", NotificationManager.IMPORTANCE_LOW))
-    var types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-    if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-      types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+    val notificationManager = getSystemService(NotificationManager::class.java)
+    notificationManager.createNotificationChannel(
+        NotificationChannel(CHANNEL_ID, "Signal run", NotificationManager.IMPORTANCE_LOW),
+    )
+
+    var serviceTypes = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+    if (hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+      serviceTypes = serviceTypes or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
     }
-    if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-      types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+    if (hasPermission(Manifest.permission.RECORD_AUDIO)) {
+      serviceTypes = serviceTypes or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
     }
-    startForeground(NOTIFICATION_ID, build("Tuning in…"), types)
-    wakeLock =
-        getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GhostSignal:run").apply {
-          acquire(3 * 60 * 60 * 1000L)
-        }
-    val game = (application as GhostSignalApp).graph.game
+    startForeground(NOTIFICATION_ID, buildNotification("Tuning in…"), serviceTypes)
+
+    wakeLock = getSystemService(PowerManager::class.java)
+        .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GhostSignal:run")
+        .apply { acquire(MAX_RUN_MS) }
+
+    val gameController = (application as GhostSignalApp).graph.game
     lifecycleScope.launch {
-      game.ui
-          .map { ui -> if (ui.paused) "Paused" else "${ui.collected.size}/${ui.total} · ${ui.objective}" }
+      gameController.ui
+          .map { ui ->
+            if (ui.paused) "Paused" else "${ui.collected.size}/${ui.total} · ${ui.objective}"
+          }
           .distinctUntilChanged()
-          .collect { text -> nm.notify(NOTIFICATION_ID, build(text)) }
+          .collect { text -> notificationManager.notify(NOTIFICATION_ID, buildNotification(text)) }
     }
   }
 
-  private fun build(text: String): Notification {
-    val open =
-        PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-    return Notification.Builder(this, CHANNEL)
+  private fun hasPermission(permission: String): Boolean =
+      checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+
+  private fun buildNotification(text: String): Notification {
+    val openAppIntent = PendingIntent.getActivity(
+        this,
+        0,
+        Intent(this, MainActivity::class.java),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+    return Notification.Builder(this, CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_launcher_foreground)
         .setContentTitle("GhostSignal")
         .setContentText(text)
-        .setContentIntent(open)
+        .setContentIntent(openAppIntent)
         .setOngoing(true)
         .build()
   }
@@ -70,12 +84,13 @@ class GameService : LifecycleService() {
   }
 
   override fun onDestroy() {
-    wakeLock?.let { if (it.isHeld) it.release() }
+    wakeLock?.let { lock -> if (lock.isHeld) lock.release() }
     super.onDestroy()
   }
 
-  companion object {
-    private const val CHANNEL = "run"
-    private const val NOTIFICATION_ID = 99
+  private companion object {
+    const val CHANNEL_ID = "run"
+    const val NOTIFICATION_ID = 99
+    const val MAX_RUN_MS = 3 * 60 * 60 * 1000L // Three hours.
   }
 }

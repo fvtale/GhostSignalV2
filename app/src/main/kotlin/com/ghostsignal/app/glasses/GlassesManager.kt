@@ -50,12 +50,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class CapState {
-  OFF,
-  STARTING,
-  ACTIVE,
-  FAILED,
-}
+enum class CapState { OFF, STARTING, ACTIVE, FAILED }
 
 data class Capability(val state: CapState = CapState.OFF, val detail: String = "")
 
@@ -66,8 +61,9 @@ data class GlassesState(
     val deviceName: String? = null,
     val deviceType: String? = null,
     /**
-     * DAT's identifier for the connected pair, and its firmware: what linking the glasses to an
-     * account sends. Not a serial number, and not signed by Meta, which is why an admin approves.
+     * DAT's identifier for the connected pair, plus its firmware: what an
+     * account link sends. Not a serial number and not signed by Meta,
+     * which is why an admin approves each link.
      */
     val deviceId: String? = null,
     val firmware: String? = null,
@@ -88,76 +84,100 @@ data class GlassesState(
 data class GlassesInput(val action: PlayerAction, val deviceTimeMs: Long?, val raw: String)
 
 /**
- * Owns the Meta Wearables Device Access Toolkit: registration with the Meta AI app, the device
- * session, and the three experimental capabilities GhostSignal uses: Inputs (capture button and
- * touchpad), Motion (head tracking) and Speech (on-glasses recognition). Each capability is
- * optional; whatever fails to attach is reported and the game falls back to phone-side input,
- * the phone compass or GPS course, and the phone's recognizer.
+ * Owns the Meta Wearables Device Access Toolkit: registration with the
+ * Meta AI app, the device session, and the three capabilities GhostSignal
+ * uses — Inputs (capture button, touchpad), Motion (head tracking), and
+ * Speech (on-glasses recognition). Each is optional; whatever fails to
+ * attach is reported, and the game falls back to phone input, phone
+ * compass/GPS course, and the phone recognizer.
  */
-class GlassesManager(private val context: Context, private val scope: CoroutineScope) {
-  private val _state = MutableStateFlow(GlassesState())
-  val state: StateFlow<GlassesState> = _state
+class GlassesManager(
+    private val context: Context,
+    private val scope: CoroutineScope,
+) {
 
-  private val _inputs = MutableSharedFlow<GlassesInput>(extraBufferCapacity = 32)
-  val inputs: SharedFlow<GlassesInput> = _inputs
+  private val mutableState = MutableStateFlow(GlassesState())
+  val state: StateFlow<GlassesState> = mutableState
 
-  private val _imu = MutableSharedFlow<ImuSample>(extraBufferCapacity = 128)
-  val imu: SharedFlow<ImuSample> = _imu
+  private val mutableInputs = MutableSharedFlow<GlassesInput>(extraBufferCapacity = 32)
+  val inputs: SharedFlow<GlassesInput> = mutableInputs
 
-  @Volatile var speech: Speech? = null
+  private val mutableImu = MutableSharedFlow<ImuSample>(extraBufferCapacity = 128)
+  val imu: SharedFlow<ImuSample> = mutableImu
+
+  private val mutableLaunchRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
+
+  /** "Hey Meta, start GhostSignal" while the app is already running. */
+  val launchRequests: SharedFlow<Unit> = mutableLaunchRequests
+
+  @Volatile
+  var speech: Speech? = null
     private set
 
-  private var session: DeviceSession? = null
-  private var motion: Motion? = null
+  private var deviceSession: DeviceSession? = null
+  private var motionCapability: Motion? = null
   private val sessionJobs = mutableListOf<Job>()
-  private var wantConnected = false
-  private var mockGlasses: MockGlasses? = null
-  private var imuCount = 0
-  private var imuWindowStart = 0L
+  private var wantsConnection = false
+  private var mockPair: MockGlasses? = null
+  private var imuSampleCount = 0
+  private var imuWindowStartMs = 0L
+  private var isObserving = false
+  private var voiceInvocations: VoiceInvocationsStream? = null
 
-  // --------------------------------------------------------------- setup
+  // -- setup ---------------------------------------------------------------------
 
   /** Call once Bluetooth permission is granted. Safe to call repeatedly. */
   fun initialize() {
-    if (_state.value.initialized) return
+    if (mutableState.value.initialized) return
     Wearables.initialize(context)
         .onSuccess {
-          _state.update { it.copy(initialized = true, error = null) }
-          observe()
+          mutableState.update { it.copy(initialized = true, error = null) }
+          startObserving()
         }
-        .onFailure { error, _ -> _state.update { it.copy(error = "DAT init failed: ${error.description}") } }
+        .onFailure { error, _ ->
+          mutableState.update { it.copy(error = "DAT init failed: ${error.description}") }
+        }
   }
 
-  private var observing = false
+  private fun startObserving() {
+    if (isObserving) return
+    isObserving = true
 
-  private fun observe() {
-    if (observing) return
-    observing = true
     scope.launch {
-      Wearables.registrationState.collect { reg ->
-        _state.update { it.copy(registration = reg.name.lowercase(), registered = reg == RegistrationState.REGISTERED) }
-        if (reg == RegistrationState.REGISTERED && wantConnected && session == null) connect()
+      Wearables.registrationState.collect { registration ->
+        val isRegistered = registration == RegistrationState.REGISTERED
+        mutableState.update {
+          it.copy(registration = registration.name.lowercase(), registered = isRegistered)
+        }
+        if (isRegistered && wantsConnection && deviceSession == null) connect()
       }
     }
     scope.launch {
-      Wearables.registrationErrorStream.collect { e -> _state.update { it.copy(error = "Registration: ${e.description}") } }
+      Wearables.registrationErrorStream.collect { error ->
+        mutableState.update { it.copy(error = "Registration: ${error.description}") }
+      }
     }
     scope.launch {
-      Wearables.devices.collectLatest { ids ->
-        val id = ids.firstOrNull()
-        if (id == null) {
-          _state.update { it.copy(deviceName = null, deviceType = null, deviceId = null, firmware = null, battery = null, worn = null) }
+      Wearables.devices.collectLatest { deviceIds ->
+        val firstDeviceId = deviceIds.firstOrNull()
+        if (firstDeviceId == null) {
+          mutableState.update {
+            it.copy(
+                deviceName = null, deviceType = null, deviceId = null,
+                firmware = null, battery = null, worn = null,
+            )
+          }
           return@collectLatest
         }
-        Wearables.devicesMetadata[id]?.collect { d ->
-          _state.update {
-            it.copy(
-                deviceName = d.name.ifBlank { d.deviceType.description },
-                deviceType = d.deviceType.name,
-                deviceId = id.identifier,
-                firmware = d.firmwareInfo,
-                battery = d.batteryLevel,
-                worn = when (d.donState.name) {
+        Wearables.devicesMetadata[firstDeviceId]?.collect { metadata ->
+          mutableState.update { current ->
+            current.copy(
+                deviceName = metadata.name.ifBlank { metadata.deviceType.description },
+                deviceType = metadata.deviceType.name,
+                deviceId = firstDeviceId.identifier,
+                firmware = metadata.firmwareInfo,
+                battery = metadata.batteryLevel,
+                worn = when (metadata.donState.name) {
                   "DONNED" -> true
                   "DOFFED" -> false
                   else -> null
@@ -169,25 +189,20 @@ class GlassesManager(private val context: Context, private val scope: CoroutineS
     }
   }
 
-  private val _launchRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
-
-  /** "Hey Meta, start GhostSignal" while the app is already running. */
-  val launchRequests: SharedFlow<Unit> = _launchRequests
-  private var voiceInvocations: VoiceInvocationsStream? = null
-
   /**
-   * Listens for Meta AI voice launches. Needs Voice Invocations approved and a spoken app name set
-   * in Wearables Developer Center; harmless otherwise.
+   * Listens for Meta AI voice launches. Needs Voice Invocations approved
+   * and a spoken app name in the Wearables Developer Center; harmless
+   * otherwise.
    */
   fun startVoiceInvocations() {
-    if (voiceInvocations != null || !_state.value.initialized) return
+    if (voiceInvocations != null || !mutableState.value.initialized) return
     val stream = Wearables.startVoiceInvocationsStream(AutoDeviceSelector())
     voiceInvocations = stream
     scope.launch {
       stream.invocations.collect { invocation ->
         when (invocation) {
           is LaunchApp -> {
-            _launchRequests.tryEmit(Unit)
+            mutableLaunchRequests.tryEmit(Unit)
             invocation.responseHandle.sendSuccess(null)
           }
         }
@@ -199,254 +214,312 @@ class GlassesManager(private val context: Context, private val scope: CoroutineS
 
   fun startUnregistration(activity: Activity) = Wearables.startUnregistration(activity)
 
-  /** Registration requests can also start from the Meta AI app and arrive as a deep link. */
+  /** Registration can also start from the Meta AI app and arrive as a deep link. */
   fun handleIntent(activity: Activity, intent: Intent) {
-    if (!_state.value.initialized) return
+    if (!mutableState.value.initialized) return
     Wearables.handleIntent(intent) { request ->
       request.continueRegistration(activity).onFailure { error, _ ->
-        _state.update { it.copy(error = "Registration: ${error.description}") }
+        mutableState.update { it.copy(error = "Registration: ${error.description}") }
       }
     }
   }
 
   suspend fun refreshMicPermission() {
-    if (!_state.value.initialized) return
+    if (!mutableState.value.initialized) return
     Wearables.checkPermissionStatus(Permission.MICROPHONE)
         .onSuccess { status ->
-          _state.update { it.copy(micPermission = if (status == PermissionStatus.Granted) "granted" else "denied") }
+          mutableState.update {
+            it.copy(micPermission = if (status == PermissionStatus.Granted) "granted" else "denied")
+          }
         }
-        .onFailure { error, _ -> _state.update { it.copy(micPermission = "error: ${error.description}") } }
+        .onFailure { error, _ ->
+          mutableState.update { it.copy(micPermission = "error: ${error.description}") }
+        }
   }
 
   fun onMicPermissionResult(status: PermissionStatus) {
-    _state.update { it.copy(micPermission = if (status == PermissionStatus.Granted) "granted" else "denied") }
-    // Speech needs the permission at attach time; reattach if the session is up.
-    session?.let { s -> if (s.state.value == DeviceSessionState.STARTED && speech == null) attachSpeech(s) }
+    mutableState.update {
+      it.copy(micPermission = if (status == PermissionStatus.Granted) "granted" else "denied")
+    }
+    // Speech attaches only with the permission in hand; reattach if live.
+    deviceSession?.let { session ->
+      val sessionLive = session.state.value == DeviceSessionState.STARTED
+      if (sessionLive && speech == null) attachSpeechCapability(session)
+    }
   }
 
-  // --------------------------------------------------------------- session
+  // -- session ----------------------------------------------------------------------
 
   fun connect() {
-    wantConnected = true
-    if (!_state.value.initialized || session != null) return
+    wantsConnection = true
+    if (!mutableState.value.initialized || deviceSession != null) return
     Wearables.createSession(AutoDeviceSelector())
-        .onSuccess { s ->
-          session = s
-          sessionJobs +=
-              scope.launch {
-                s.state.collect { st ->
-                  _state.update { it.copy(session = st.name.lowercase()) }
-                  when (st) {
-                    DeviceSessionState.STARTED -> attachCapabilities(s)
-                    DeviceSessionState.STOPPED -> onSessionStopped(s)
-                    else -> Unit
-                  }
-                }
+        .onSuccess { newSession ->
+          deviceSession = newSession
+          sessionJobs += scope.launch {
+            newSession.state.collect { sessionState ->
+              mutableState.update { it.copy(session = sessionState.name.lowercase()) }
+              when (sessionState) {
+                DeviceSessionState.STARTED -> attachAllCapabilities(newSession)
+                DeviceSessionState.STOPPED -> handleSessionStopped(newSession)
+                else -> Unit
               }
-          sessionJobs += scope.launch { s.errors.collect { e -> _state.update { it.copy(error = "Session: ${e.description}") } } }
-          s.start()
+            }
+          }
+          sessionJobs += scope.launch {
+            newSession.errors.collect { error ->
+              mutableState.update { it.copy(error = "Session: ${error.description}") }
+            }
+          }
+          newSession.start()
         }
-        .onFailure { error, _ -> _state.update { it.copy(error = "Session: ${error.description}", session = "failed") } }
+        .onFailure { error, _ ->
+          mutableState.update {
+            it.copy(error = "Session: ${error.description}", session = "failed")
+          }
+        }
   }
 
   fun disconnect() {
-    wantConnected = false
-    session?.stop()
+    wantsConnection = false
+    deviceSession?.stop()
   }
 
-  private fun onSessionStopped(s: DeviceSession) {
-    if (session !== s) return
+  private fun handleSessionStopped(stoppedSession: DeviceSession) {
+    if (deviceSession !== stoppedSession) return
     sessionJobs.forEach { it.cancel() }
     sessionJobs.clear()
-    session = null
+    deviceSession = null
     speech = null
-    motion = null
-    _state.update {
-      it.copy(session = "stopped", inputs = Capability(), motion = Capability(), speech = Capability())
+    motionCapability = null
+    mutableState.update {
+      it.copy(
+          session = "stopped",
+          inputs = Capability(),
+          motion = Capability(),
+          speech = Capability(),
+      )
     }
-    // A stopped session is terminal; make a new one if we still want the glasses.
-    if (wantConnected) {
+    // A stopped session is terminal; rebuild if the glasses are still wanted.
+    if (wantsConnection) {
       scope.launch {
         delay(3_000)
-        if (wantConnected && session == null) connect()
+        if (wantsConnection && deviceSession == null) connect()
       }
     }
   }
 
-  private fun attachCapabilities(s: DeviceSession) {
-    if (_state.value.inputs.state == CapState.OFF) attachInputs(s)
-    if (_state.value.motion.state == CapState.OFF) attachMotion(s)
-    if (_state.value.speech.state == CapState.OFF) attachSpeech(s)
+  private fun attachAllCapabilities(session: DeviceSession) {
+    if (mutableState.value.inputs.state == CapState.OFF) attachInputsCapability(session)
+    if (mutableState.value.motion.state == CapState.OFF) attachMotionCapability(session)
+    if (mutableState.value.speech.state == CapState.OFF) attachSpeechCapability(session)
   }
 
-  private fun attachInputs(s: DeviceSession) {
-    _state.update { it.copy(inputs = Capability(CapState.STARTING)) }
-    s.addInputs(InputsConfiguration(consumeBack = true))
+  /** Detaches and reattaches every capability (e.g. after Developer Center changes). */
+  fun reattach() {
+    val session = deviceSession ?: return
+    runCatching { session.removeInputs() }
+    runCatching { session.removeMotion() }
+    runCatching { session.removeSpeech() }
+    speech = null
+    motionCapability = null
+    mutableState.update {
+      it.copy(inputs = Capability(), motion = Capability(), speech = Capability())
+    }
+    if (session.state.value == DeviceSessionState.STARTED) attachAllCapabilities(session)
+  }
+
+  // -- inputs ------------------------------------------------------------------------
+
+  private fun attachInputsCapability(session: DeviceSession) {
+    mutableState.update { it.copy(inputs = Capability(CapState.STARTING)) }
+    session.addInputs(InputsConfiguration(consumeBack = true))
         .onSuccess { inputs ->
-          _state.update { it.copy(inputs = Capability(CapState.ACTIVE)) }
-          sessionJobs += scope.launch { inputs.events.collect { onInput(it) } }
-          sessionJobs +=
-              scope.launch {
-                inputs.errors.filterNotNull().collect { e ->
-                  _state.update { it.copy(inputs = Capability(CapState.FAILED, e.description)) }
-                }
+          mutableState.update { it.copy(inputs = Capability(CapState.ACTIVE)) }
+          sessionJobs += scope.launch {
+            inputs.events.collect { event -> handleInputEvent(event) }
+          }
+          sessionJobs += scope.launch {
+            inputs.errors.filterNotNull().collect { error ->
+              mutableState.update {
+                it.copy(inputs = Capability(CapState.FAILED, error.description))
               }
-        }
-        .onFailure { error, _ -> _state.update { it.copy(inputs = Capability(CapState.FAILED, error.description)) } }
-  }
-
-  private fun onInput(event: InputEvent) {
-    val action: PlayerAction?
-    val raw: String
-    when (event) {
-      is InputEvent.Capture -> {
-        raw = "capture ${event.pressType.name.lowercase()}"
-        action =
-            when (event.pressType) {
-              CapturePressType.SHORT_PRESS -> PlayerAction.SCAN
-              CapturePressType.HOLD -> PlayerAction.TALK
-              CapturePressType.DOUBLE_PRESS -> PlayerAction.REPEAT
             }
-      }
-      is InputEvent.Select -> {
-        raw = "touchpad tap"
-        action = PlayerAction.TAP
-      }
-      is InputEvent.Nav -> {
-        raw = "swipe ${event.direction.name.lowercase()}"
-        action =
-            when (event.direction) {
-              NavDirection.LEFT -> PlayerAction.REPEAT
-              NavDirection.RIGHT -> PlayerAction.HINT
-              NavDirection.UP, NavDirection.DOWN -> PlayerAction.STATUS
-            }
-      }
-      is InputEvent.Back -> {
-        raw = "back"
-        action = PlayerAction.PAUSE_TOGGLE
-      }
-      is InputEvent.Button -> {
-        raw = "button ${event.button.name.lowercase()}"
-        action = if (event.button == ButtonType.ACTION) PlayerAction.TALK else null
-      }
-      is InputEvent.Drag -> {
-        raw = "drag ${event.action.name.lowercase()}"
-        action = null
-      }
-    }
-    _state.update { it.copy(lastInput = "$raw (${event.source.name.lowercase()})") }
-    if (action != null) _inputs.tryEmit(GlassesInput(action, event.timestampMs, raw))
-  }
-
-  private fun attachMotion(s: DeviceSession) {
-    _state.update { it.copy(motion = Capability(CapState.STARTING)) }
-    s.addMotion(MotionConfiguration(MotionSamplingRate.HZ_60))
-        .onSuccess { m ->
-          motion = m
-          sessionJobs +=
-              scope.launch {
-                m.samples.collect { sample ->
-                  countImu()
-                  _imu.tryEmit(
-                      ImuSample(
-                          sample.timestampNs,
-                          sample.accelerometer?.let { Vec3(it.x.toDouble(), it.y.toDouble(), it.z.toDouble()) },
-                          sample.gyroscope?.let { Vec3(it.x.toDouble(), it.y.toDouble(), it.z.toDouble()) },
-                          sample.orientation?.let { Quat(it.x.toDouble(), it.y.toDouble(), it.z.toDouble(), it.w.toDouble()) },
-                      ))
-                }
-              }
-          sessionJobs +=
-              scope.launch {
-                m.state.collect { st ->
-                  val cap = if (st.name == "STARTED") Capability(CapState.ACTIVE) else Capability(CapState.STARTING, st.name.lowercase())
-                  _state.update { it.copy(motion = cap) }
-                }
-              }
-          sessionJobs +=
-              scope.launch {
-                m.errors.filterNotNull().collect { e -> _state.update { it.copy(motion = Capability(CapState.FAILED, e.description)) } }
-              }
-          m.start()
-        }
-        .onFailure { error, _ -> _state.update { it.copy(motion = Capability(CapState.FAILED, error.description)) } }
-  }
-
-  private fun countImu() {
-    val now = System.currentTimeMillis()
-    if (imuWindowStart == 0L) imuWindowStart = now
-    imuCount++
-    if (now - imuWindowStart >= 2_000) {
-      val rate = imuCount * 1000.0 / (now - imuWindowStart)
-      _state.update { it.copy(imuRateHz = rate) }
-      imuCount = 0
-      imuWindowStart = now
-    }
-  }
-
-  private fun attachSpeech(s: DeviceSession) {
-    _state.update { it.copy(speech = Capability(CapState.STARTING)) }
-    s.addSpeech(SpeechConfiguration())
-        .onSuccess { sp ->
-          speech = sp
-          _state.update { it.copy(speech = Capability(CapState.ACTIVE)) }
+          }
         }
         .onFailure { error, _ ->
-          _state.update { it.copy(speech = Capability(CapState.FAILED, error.description)) }
+          mutableState.update {
+            it.copy(inputs = Capability(CapState.FAILED, error.description))
+          }
         }
   }
 
-  /** Detaches and reattaches every capability, e.g. after enabling them in the Developer Center. */
-  fun reattach() {
-    val s = session ?: return
-    runCatching { s.removeInputs() }
-    runCatching { s.removeMotion() }
-    runCatching { s.removeSpeech() }
-    speech = null
-    motion = null
-    _state.update { it.copy(inputs = Capability(), motion = Capability(), speech = Capability()) }
-    if (s.state.value == DeviceSessionState.STARTED) attachCapabilities(s)
+  private fun handleInputEvent(event: InputEvent) {
+    val (rawDescription, mappedAction) = when (event) {
+      is InputEvent.Capture -> {
+        val action = when (event.pressType) {
+          CapturePressType.SHORT_PRESS -> PlayerAction.SCAN
+          CapturePressType.HOLD -> PlayerAction.TALK
+          CapturePressType.DOUBLE_PRESS -> PlayerAction.REPEAT
+        }
+        "capture ${event.pressType.name.lowercase()}" to action
+      }
+      is InputEvent.Select -> "touchpad tap" to PlayerAction.TAP
+      is InputEvent.Nav -> {
+        val action = when (event.direction) {
+          NavDirection.LEFT -> PlayerAction.REPEAT
+          NavDirection.RIGHT -> PlayerAction.HINT
+          NavDirection.UP, NavDirection.DOWN -> PlayerAction.STATUS
+        }
+        "swipe ${event.direction.name.lowercase()}" to action
+      }
+      is InputEvent.Back -> "back" to PlayerAction.PAUSE_TOGGLE
+      is InputEvent.Button -> {
+        val action = if (event.button == ButtonType.ACTION) PlayerAction.TALK else null
+        "button ${event.button.name.lowercase()}" to action
+      }
+      is InputEvent.Drag -> "drag ${event.action.name.lowercase()}" to null
+    }
+    mutableState.update {
+      it.copy(lastInput = "$rawDescription (${event.source.name.lowercase()})")
+    }
+    if (mappedAction != null) {
+      mutableInputs.tryEmit(GlassesInput(mappedAction, event.timestampMs, rawDescription))
+    }
   }
 
-  // --------------------------------------------------------------- mock glasses for desk testing
+  // -- motion --------------------------------------------------------------------------
 
-  /** Simulated glasses from MockDeviceKit, so the whole DAT path can be exercised without hardware. */
+  private fun attachMotionCapability(session: DeviceSession) {
+    mutableState.update { it.copy(motion = Capability(CapState.STARTING)) }
+    session.addMotion(MotionConfiguration(MotionSamplingRate.HZ_60))
+        .onSuccess { motion ->
+          motionCapability = motion
+          sessionJobs += scope.launch {
+            motion.samples.collect { sample -> forwardImuSample(sample) }
+          }
+          sessionJobs += scope.launch {
+            motion.state.collect { motionState ->
+              val capability = if (motionState.name == "STARTED") {
+                Capability(CapState.ACTIVE)
+              } else {
+                Capability(CapState.STARTING, motionState.name.lowercase())
+              }
+              mutableState.update { it.copy(motion = capability) }
+            }
+          }
+          sessionJobs += scope.launch {
+            motion.errors.filterNotNull().collect { error ->
+              mutableState.update {
+                it.copy(motion = Capability(CapState.FAILED, error.description))
+              }
+            }
+          }
+          motion.start()
+        }
+        .onFailure { error, _ ->
+          mutableState.update {
+            it.copy(motion = Capability(CapState.FAILED, error.description))
+          }
+        }
+  }
+
+  // DAT motion types are toolkit-specific; the core heading package stays
+  // toolkit-free, so conversion happens here at the boundary.
+  private fun forwardImuSample(sample: com.meta.wearable.dat.motion.types.MotionSample) {
+    trackImuRate()
+    mutableImu.tryEmit(
+        ImuSample(
+            timestampNs = sample.timestampNs,
+            accel = sample.accelerometer?.let { Vec3(it.x.toDouble(), it.y.toDouble(), it.z.toDouble()) },
+            gyro = sample.gyroscope?.let { Vec3(it.x.toDouble(), it.y.toDouble(), it.z.toDouble()) },
+            orientation = sample.orientation?.let {
+              Quat(it.x.toDouble(), it.y.toDouble(), it.z.toDouble(), it.w.toDouble())
+            },
+        ),
+    )
+  }
+
+  private fun trackImuRate() {
+    val nowMs = System.currentTimeMillis()
+    if (imuWindowStartMs == 0L) imuWindowStartMs = nowMs
+    imuSampleCount++
+    val windowMs = nowMs - imuWindowStartMs
+    if (windowMs >= 2_000) {
+      mutableState.update { it.copy(imuRateHz = imuSampleCount * 1000.0 / windowMs) }
+      imuSampleCount = 0
+      imuWindowStartMs = nowMs
+    }
+  }
+
+  // -- speech ----------------------------------------------------------------------------
+
+  private fun attachSpeechCapability(session: DeviceSession) {
+    mutableState.update { it.copy(speech = Capability(CapState.STARTING)) }
+    session.addSpeech(SpeechConfiguration())
+        .onSuccess { attachedSpeech ->
+          speech = attachedSpeech
+          mutableState.update { it.copy(speech = Capability(CapState.ACTIVE)) }
+        }
+        .onFailure { error, _ ->
+          mutableState.update {
+            it.copy(speech = Capability(CapState.FAILED, error.description))
+          }
+        }
+  }
+
+  // -- mock glasses (desk testing) ---------------------------------------------------------
+
+  /** Simulated glasses from MockDeviceKit: the full DAT path without hardware. */
   fun enableMock() {
     val kit = MockDeviceKit.getInstance(context)
-    if (!kit.isEnabled) kit.enable(MockDeviceKitConfig(initiallyRegistered = true, initialPermissionsGranted = true))
-    _state.update { it.copy(initialized = true, mock = true) }
-    observe()
+    if (!kit.isEnabled) {
+      kit.enable(
+          MockDeviceKitConfig(
+              initiallyRegistered = true,
+              initialPermissionsGranted = true,
+          ),
+      )
+    }
+    mutableState.update { it.copy(initialized = true, mock = true) }
+    startObserving()
     kit.pairGlasses(GlassesModel.RAYBAN_META)
-        .onSuccess { g ->
-          mockGlasses = g
-          g.powerOn()
-          g.unfold()
-          g.don()
+        .onSuccess { pair ->
+          mockPair = pair
+          pair.powerOn()
+          pair.unfold()
+          pair.don()
           connect()
         }
-        .onFailure { error, _ -> _state.update { it.copy(error = "Mock glasses: ${error.description}") } }
+        .onFailure { error, _ ->
+          mutableState.update { it.copy(error = "Mock glasses: ${error.description}") }
+        }
   }
 
   fun mockInput(action: PlayerAction) {
-    val input = mockGlasses?.services?.input ?: return
+    val inputService = mockPair?.services?.input ?: return
     when (action) {
-      PlayerAction.SCAN -> input.capture(CapturePressType.SHORT_PRESS)
-      PlayerAction.TALK -> input.capture(CapturePressType.HOLD)
-      PlayerAction.REPEAT -> input.capture(CapturePressType.DOUBLE_PRESS)
-      PlayerAction.TAP -> input.select(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
-      PlayerAction.HINT -> input.navRight(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
-      PlayerAction.STATUS -> input.navUp(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
-      PlayerAction.PAUSE_TOGGLE -> input.back(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
+      PlayerAction.SCAN -> inputService.capture(CapturePressType.SHORT_PRESS)
+      PlayerAction.TALK -> inputService.capture(CapturePressType.HOLD)
+      PlayerAction.REPEAT -> inputService.capture(CapturePressType.DOUBLE_PRESS)
+      PlayerAction.TAP ->
+        inputService.select(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
+      PlayerAction.HINT ->
+        inputService.navRight(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
+      PlayerAction.STATUS ->
+        inputService.navUp(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
+      PlayerAction.PAUSE_TOGGLE ->
+        inputService.back(com.meta.wearable.dat.inputs.types.InputSource.CAPTOUCH)
     }
   }
 
   fun mockSpeech(text: String) {
-    mockGlasses?.services?.speech?.simulateTranscription(text, true, 0.9f)
+    mockPair?.services?.speech?.simulateTranscription(text, isFinal = true, confidence = 0.9f)
   }
 
   companion object {
     private const val TAG = "GhostSignalGlasses"
 
-    fun log(msg: String) = Log.i(TAG, msg)
+    fun log(message: String) = Log.i(TAG, message)
   }
 }
