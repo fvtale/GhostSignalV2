@@ -1,5 +1,27 @@
 # Handoffs
 
+# Handoff — 2026-11-17, Claude (characters on their own service)
+
+## What changed
+
+- **Live characters are down.** Checked on 2026-11-17 with a throwaway account (deleted
+  afterwards): `POST /v1/npc` on ghostsignal.datarail.org answers 502, "Meta Model API returned
+  404", while `/health` says `npc: true`. Runners hear only the written fallback lines.
+- This ports #11 onto the rewritten server: with `NPC_API_KEY` (and `NPC_API_BASE`,
+  `NPC_MODEL`) characters run on their own OpenAI-shaped service, e.g. Muse Spark Open on
+  Fireworks, and speech stays on `MODEL_API_KEY`. `/health` gains `npcHost`. Without
+  `NPC_API_KEY` nothing changes. Supersedes #11.
+
+## Verified
+
+- Server `npm test`: 80 pass, including #11's five client tests and `npcHost` in `/health`.
+- A startup with fake keys logs characters "at api.fireworks.ai".
+
+## Not verified
+
+- A real reply through Fireworks: needs a Fireworks key in `/etc/ghostsignal.env` and a deploy.
+  If replies come back empty, look at `max_completion_tokens` (400) and `reasoning_effort` first.
+
 # Handoff — 2026-11-03, Meta Wonder (rewrite deployed)
 
 ## What this round does

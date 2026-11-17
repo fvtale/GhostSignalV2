@@ -1,7 +1,7 @@
 import { createAccounts } from "./accounts.js";
 import { createAdmin } from "./admin.js";
 import { loadEnvFile } from "./env.js";
-import { createMeta } from "./meta.js";
+import { createChatClient, createMeta } from "./meta.js";
 import { loadMission, loadMissions } from "./mission.js";
 import { createNpc } from "./npc.js";
 import { createServer } from "./server.js";
@@ -21,7 +21,8 @@ const missions = loadMissions();
 const mission = loadMission();
 if (!missions.has(mission.id)) missions.set(mission.id, mission);
 const meta = createMeta();
-const npc = createNpc({ meta });
+// Characters can run on their own key and service (NPC_API_KEY, NPC_API_BASE).
+const npc = createNpc({ meta: createChatClient({ shared: meta }) });
 const stt = createStt({ meta });
 const tts = createTts();
 
@@ -63,7 +64,7 @@ const adminModes = ["admin accounts", operatorToken && "operator token", datarai
 const paymentProviders = ["stripe", "lemonsqueezy"].filter((key) => billing.secrets[key]).join(", ") || "none";
 
 console.log(
-  `missions ${[...missions.keys()].join(", ")} (default ${mission.id}) · characters ${npc.enabled ? `on ${npc.model}` : "OFF (no MODEL_API_KEY)"}` +
+  `missions ${[...missions.keys()].join(", ")} (default ${mission.id}) · characters ${npc.enabled ? `on ${npc.model} at ${npc.host}` : "OFF (no MODEL_API_KEY or NPC_API_KEY)"}` +
   ` · speech ${stt.enabled ? `on ${stt.model}` : "OFF (no MODEL_API_KEY)"}` +
   ` · voices on-device · admin sign-in ${adminModes}`,
 );
