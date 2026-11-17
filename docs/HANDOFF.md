@@ -1,5 +1,28 @@
 # Handoffs
 
+# Handoff — 2026-11-17, Claude (signing key and README)
+
+## What changed
+
+- **Signing:** the build signs with a private keystore when one is configured (CI secrets
+  `SIGNING_KEYSTORE_BASE64` and `SIGNING_KEYSTORE_PASSWORD`, or `ghostsignal.keystore` in
+  `local.properties`), and falls back to the public debug key otherwise. CI publishes the APK
+  release only for private-key builds. Setup is in DEPLOY.md, "The signing key".
+- **README:** a one-page overview for judges and newcomers.
+- Sits on top of #6, which rebuilds the web engine and turns `main` green.
+
+## Verified
+
+- Server `npm test`: 75 pass. The README's run commands work (`/play/` 200 on a fresh server).
+- CI's Android job builds with the fallback key (see the PR's checks).
+
+## Not verified
+
+- A build with a real private key: the owner has to create the key and add the secrets.
+- `/download/ghostsignal.apk` on the VPS is uploaded by hand on deploy; it needs replacing
+  with a private-key build once one exists.
+- docs/WHITEPAPER.md still describes the shared public key; update it after the switch.
+
 # Handoff — 2026-11-03, Meta Wonder (rewrite deployed)
 
 ## What this round does
