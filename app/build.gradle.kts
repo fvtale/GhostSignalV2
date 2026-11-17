@@ -86,7 +86,6 @@ android {
       }
     }
   }
-  }
 
   buildFeatures {
     compose = true
