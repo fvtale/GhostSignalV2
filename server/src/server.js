@@ -253,6 +253,8 @@ export function createServer({
         ok: true,
         mission: mission.id,
         npc: npc.enabled,
+        // Where character replies go. `npc` only says a key is set, not that it works.
+        npcHost: npc.host,
         tts: tts.enabled,
         stt: stt.enabled,
         model: npc.model,

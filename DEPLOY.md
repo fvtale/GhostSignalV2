@@ -95,6 +95,13 @@ variable), then `systemctl restart ghostsignalv2`:
   transcription (Muse Voice). Without it, characters use their written fallback lines and
   speech falls back to the on-device recognizers. Character voices are always rendered on
   the device (Android TTS, browser speech synthesis); the server keeps no voice keys.
+- `NPC_API_KEY`, `NPC_API_BASE` and `NPC_MODEL`: character replies on their own service, with
+  speech staying on `MODEL_API_KEY`. Needed on this VPS today: from here the Meta Model API
+  answers every chat request with 404, so characters only play their written lines (checked
+  2026-11-17). For Fireworks, set `NPC_API_KEY` to a Fireworks key,
+  `NPC_API_BASE=https://api.fireworks.ai/inference/v1` and
+  `NPC_MODEL=accounts/fireworks/models/muse-spark-open`. `/health` shows where replies go as
+  `npcHost`; `npc: true` only means a key is set.
 - Payments: paste the payment link on the admin page (Players tab), or set `PAYMENT_LINK_URL`.
   For premium to switch on by itself, point the provider's webhook at
   `https://ghostsignalv2.datarail.org/v1/billing/stripe` (or `/v1/billing/lemonsqueezy`) and put its

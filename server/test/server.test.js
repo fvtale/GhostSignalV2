@@ -85,6 +85,7 @@ describe("health and auth", () => {
     assert.equal(body.npc, true);
     assert.equal(body.tts, false, "voices are rendered on the device");
     assert.equal(body.stt, true);
+    assert.equal(typeof body.npcHost, "string", "says where character replies go");
   });
 
   it("takes the client address from the proxy only when told to, and only from loopback", () => {
