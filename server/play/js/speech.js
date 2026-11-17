@@ -1,15 +1,20 @@
 import { api } from "./api.js";
 
-/**
- * Listening windows. The runner's clip is recorded in the browser, sent to Muse Voice on
- * the server (POST /v1/stt) and the transcript comes back as one final result. The window
- * ends on a short silence after speech, on the timeout, or when the game stops listening.
- * Either way the screen offers the expected answers as buttons and a box to type in, so a
- * challenge never depends on transcription hearing you in a noisy park.
- */
+// Listening windows. The runner's clip is recorded in the browser, sent to
+// Muse Voice on the server (POST /v1/stt), and the transcript returns as a
+// single final result. A window closes on a short silence after speech, on
+// the challenge timeout, or when the game stops listening. The screen
+// always offers the expected answers as buttons plus a type-in box, so no
+// challenge ever depends on transcription hearing you in a noisy park.
+
+const TARGET_RATE = 16000;
+const LOUD_THRESHOLD = 0.02;
+const SILENCE_END_MS = 1200;
+const PEAK_STRIDE = 8; // Peak-check every 8th sample; plenty for voice activity.
+
 export class Speech {
   constructor() {
-    this.active = null;
+    this.session = null;
   }
 
   get available() {
@@ -17,140 +22,169 @@ export class Speech {
   }
 
   /**
-   * Opens a window. [onText](text, isFinal, confidence) for what's heard (or tapped), then
-   * [onEnd]() exactly once.
+   * Opens a listening window. onText(text, isFinal, confidence) delivers
+   * what was heard (or tapped/typed); onEnd() then fires exactly once.
    */
   listen({ timeoutMs, hints = [] }, { onText, onEnd }) {
     this.stop();
-    const session = { onText, onEnd, ended: false, stream: null, ctx: null, node: null, chunks: [], rate: 16000, finish: null, end: null };
-    this.active = session;
+
+    const session = {
+      onText,
+      onEnd,
+      ended: false,
+      finishing: false,
+      stream: null,
+      context: null,
+      processor: null,
+      chunks: [],
+      sampleRate: TARGET_RATE,
+      timer: null,
+      finish: null,
+      end: null,
+    };
+    this.session = session;
+
     const end = () => {
       if (session.ended) return;
       session.ended = true;
-      if (this.active === session) this.active = null;
+      if (this.session === session) this.session = null;
       onEnd();
     };
     session.end = end;
 
-    let finishing = false;
+    const releaseAudio = () => {
+      clearTimeout(session.timer);
+      if (session.processor) session.processor.onaudioprocess = null;
+      session.processor?.disconnect();
+      session.stream?.getTracks().forEach((track) => track.stop());
+      session.context?.close().catch(() => {});
+    };
+
     const finish = async () => {
-      if (finishing || session.ended) return;
-      finishing = true;
-      cleanup();
+      if (session.finishing || session.ended) return;
+      session.finishing = true;
+      releaseAudio();
       try {
-        const wav = encodeWav(session.chunks, session.rate);
+        const wav = encodeWav(session.chunks, session.sampleRate);
         if (wav) {
           const text = await api.stt(wav, hints);
           if (text && !session.ended) onText(text, true, 0.9);
         }
       } catch {
-        // Transcription unavailable (signed out, offline): tapped and typed answers remain.
+        // Transcription unavailable: tapped/typed answers still work.
       }
       end();
     };
     session.finish = finish;
-
-    const cleanup = () => {
-      clearTimeout(session.timer);
-      if (session.node) session.node.onaudioprocess = null;
-      session.node?.disconnect();
-      session.stream?.getTracks().forEach((t) => t.stop());
-      session.ctx?.close().catch(() => {});
-    };
     session.timer = setTimeout(finish, timeoutMs + 8000);
 
-    (async () => {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch {
-        return; // No mic: the window stays open for taps until the timer ends it.
-      }
-      if (session.ended || finishing) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-      session.stream = stream;
-      const ctx = new AudioContext();
-      session.ctx = ctx;
-      session.rate = ctx.sampleRate;
-      const node = ctx.createScriptProcessor(4096, 1, 1);
-      session.node = node;
-      const started = performance.now();
-      let heard = false;
-      let lastLoud = 0;
-      node.onaudioprocess = (e) => {
-        const data = e.inputBuffer.getChannelData(0);
-        session.chunks.push(new Float32Array(data));
-        let peak = 0;
-        for (let i = 0; i < data.length; i += 8) peak = Math.max(peak, Math.abs(data[i]));
-        const now = performance.now();
-        if (peak > 0.02) {
-          heard = true;
-          lastLoud = now;
-        }
-        if ((heard && now - lastLoud > 1200) || now - started > timeoutMs) finish();
-      };
-      ctx.createMediaStreamSource(stream).connect(node);
-      node.connect(ctx.destination);
-    })();
+    this.captureMicrophone(session, timeoutMs, finish);
   }
 
-  /** An answer tapped or typed on screen: counts as heard, and closes the window. */
+  async captureMicrophone(session, timeoutMs, finish) {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      return; // No mic: the window stays open for taps until its timer.
+    }
+    if (session.ended || session.finishing) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+
+    session.stream = stream;
+    const context = new AudioContext();
+    session.context = context;
+    session.sampleRate = context.sampleRate;
+
+    const processor = context.createScriptProcessor(4096, 1, 1);
+    session.processor = processor;
+    const startedAt = performance.now();
+    let heardSpeech = false;
+    let lastLoudAt = 0;
+
+    processor.onaudioprocess = (event) => {
+      const samples = event.inputBuffer.getChannelData(0);
+      session.chunks.push(new Float32Array(samples));
+
+      let peak = 0;
+      for (let i = 0; i < samples.length; i += PEAK_STRIDE) {
+        peak = Math.max(peak, Math.abs(samples[i]));
+      }
+      const now = performance.now();
+      if (peak > LOUD_THRESHOLD) {
+        heardSpeech = true;
+        lastLoudAt = now;
+      }
+      const silenceEnded = heardSpeech && now - lastLoudAt > SILENCE_END_MS;
+      if (silenceEnded || now - startedAt > timeoutMs) finish();
+    };
+
+    context.createMediaStreamSource(stream).connect(processor);
+    processor.connect(context.destination);
+  }
+
+  /** A tapped or typed answer: delivered as heard, closing the window. */
   answer(text) {
-    const s = this.active;
-    if (!s || !text.trim()) return;
-    s.onText(text.trim(), true, 1);
-    s.end();
+    const session = this.session;
+    if (!session || !text.trim()) return;
+    session.onText(text.trim(), true, 1);
+    session.end();
   }
 
   stop() {
-    const s = this.active;
-    if (!s) return;
-    if (s.finish) s.finish();
-    else s.end();
+    const session = this.session;
+    if (!session) return;
+    if (session.finish) session.finish();
+    else session.end();
   }
 }
 
-/** The recorded clip as a mono 16 kHz PCM WAV, which is what Muse Voice accepts. */
+/** Encodes captured float samples as a mono 16 kHz PCM WAV (Muse Voice input). */
 function encodeWav(chunks, inputRate) {
-  let length = 0;
-  for (const c of chunks) length += c.length;
-  if (!length) return null;
-  const flat = new Float32Array(length);
-  let at = 0;
-  for (const c of chunks) {
-    flat.set(c, at);
-    at += c.length;
+  let totalSamples = 0;
+  for (const chunk of chunks) totalSamples += chunk.length;
+  if (!totalSamples) return null;
+
+  const flat = new Float32Array(totalSamples);
+  let offset = 0;
+  for (const chunk of chunks) {
+    flat.set(chunk, offset);
+    offset += chunk.length;
   }
-  const ratio = inputRate / 16000;
-  const frames = Math.max(1, Math.floor(length / ratio));
-  const pcm = new Int16Array(frames);
-  for (let i = 0; i < frames; i++) {
-    const from = Math.floor(i * ratio);
-    const to = Math.min(flat.length, Math.floor((i + 1) * ratio));
+
+  // Downsample by averaging each input window into one output frame.
+  const ratio = inputRate / TARGET_RATE;
+  const frameCount = Math.max(1, Math.floor(totalSamples / ratio));
+  const pcm = new Int16Array(frameCount);
+  for (let frame = 0; frame < frameCount; frame++) {
+    const from = Math.floor(frame * ratio);
+    const to = Math.min(flat.length, Math.floor((frame + 1) * ratio));
     let sum = 0;
-    for (let j = from; j < to; j++) sum += flat[j];
-    const v = Math.max(-1, Math.min(1, sum / Math.max(1, to - from)));
-    pcm[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
+    for (let i = from; i < to; i++) sum += flat[i];
+    const value = Math.max(-1, Math.min(1, sum / Math.max(1, to - from)));
+    pcm[frame] = value < 0 ? value * 0x8000 : value * 0x7fff;
   }
+
   const bytes = new ArrayBuffer(44 + pcm.length * 2);
   const view = new DataView(bytes);
-  const text = (offset, s) => {
-    for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+  const writeText = (at, text) => {
+    for (let i = 0; i < text.length; i++) view.setUint8(at + i, text.charCodeAt(i));
   };
-  text(0, "RIFF");
+  writeText(0, "RIFF");
   view.setUint32(4, 36 + pcm.length * 2, true);
-  text(8, "WAVEfmt ");
+  writeText(8, "WAVEfmt ");
   view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, 16000, true);
-  view.setUint32(28, 32000, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, TARGET_RATE, true);
+  view.setUint32(28, TARGET_RATE * 2, true);
   view.setUint16(32, 2, true);
   view.setUint16(34, 16, true);
-  text(36, "data");
+  writeText(36, "data");
   view.setUint32(40, pcm.length * 2, true);
   for (let i = 0; i < pcm.length; i++) view.setInt16(44 + i * 2, pcm[i], true);
+
   return new Blob([bytes], { type: "audio/wav" });
 }

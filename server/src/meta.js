@@ -1,13 +1,17 @@
-/**
- * Meta Model API (https://api.meta.ai/v1): one key covers Muse Spark chat — the character
- * replies — and Muse Voice Transcribe — the runner's speech. Chat is OpenAI-shaped;
- * transcription is a multipart POST of a mono integer-PCM WAV at 16 or 24 kHz (the recorded
- * clip is the turn: PUSH_TO_TALK). Docs: https://dev.meta.ai/docs/api-reference
- */
+// Client for the Meta Model API (https://api.meta.ai/v1). One key powers
+// both Muse Spark chat (character replies) and Muse Voice transcription
+// (runner speech). Chat completions are OpenAI-shaped; transcription is a
+// multipart POST of a mono PCM WAV (16 or 24 kHz) treated as one
+// push-to-talk turn. Reference: https://dev.meta.ai/docs/api-reference
+
 export const DEFAULT_CHAT_MODEL = "muse-spark-1.3";
 export const DEFAULT_STT_MODEL = "muse-voice-transcribe-1.0";
 
-const fail = (status, message) => Object.assign(new Error(message), { status });
+const API_TIMEOUT_MS = 20_000;
+
+function apiError(status, message) {
+  return Object.assign(new Error(message), { status });
+}
 
 export function createMeta({
   apiKey = process.env.MODEL_API_KEY || process.env.META_API_KEY || "",
@@ -15,33 +19,36 @@ export function createMeta({
   fetchImpl = globalThis.fetch,
   log = console,
 } = {}) {
-  const base = String(baseUrl).replace(/\/+$/, "");
+  const root = String(baseUrl).replace(/\/+$/, "");
+  const configured = Boolean(apiKey);
 
-  async function call(pathName, init) {
-    let res;
+  async function request(pathname, init) {
+    let response;
     try {
-      res = await fetchImpl(`${base}${pathName}`, {
+      response = await fetchImpl(`${root}${pathname}`, {
         ...init,
         headers: { authorization: `Bearer ${apiKey}`, ...(init.headers ?? {}) },
-        signal: AbortSignal.timeout(20_000),
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
       });
-    } catch (e) {
-      throw fail(502, `Meta Model API unreachable: ${e.message}`);
+    } catch (cause) {
+      throw apiError(502, `Meta Model API unreachable: ${cause.message}`);
     }
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      log.warn?.(`meta ${pathName} ${res.status}: ${detail.slice(0, 200)}`);
-      throw fail(res.status === 429 ? 429 : 502, `Meta Model API returned ${res.status}`);
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      log.warn?.(`meta ${pathname} ${response.status}: ${detail.slice(0, 200)}`);
+      // Rate limiting is the caller's signal to back off; everything else
+      // upstream is presented as a bad gateway.
+      throw apiError(response.status === 429 ? 429 : 502, `Meta Model API returned ${response.status}`);
     }
-    return res;
+    return response;
   }
 
   return {
-    enabled: Boolean(apiKey),
+    enabled: configured,
 
-    /** One character reply: system persona + the per-request game state, as a chat completion. */
+    /** One character reply from a system persona plus a user turn. */
     async chat({ model, system, user, effort = "low" }) {
-      const res = await call("/chat/completions", {
+      const response = await request("/chat/completions", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -55,19 +62,28 @@ export function createMeta({
           reasoning_effort: effort,
         }),
       });
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content ?? "";
+      const payload = await response.json();
+      return payload.choices?.[0]?.message?.content ?? "";
     },
 
-    /** Transcribes a mono PCM16 WAV clip (16/24 kHz). Returns the transcript text. */
+    /** Transcribes one mono PCM16 WAV clip; returns the transcript text. */
     async transcribe(wav, { model = DEFAULT_STT_MODEL, keywords = [] } = {}) {
+      const requestJson = {
+        model,
+        audioEncoding: "WAV",
+        mode: "PUSH_TO_TALK",
+        ...(keywords.length ? { keywords } : {}),
+      };
       const form = new FormData();
-      const request = { model, audioEncoding: "WAV", mode: "PUSH_TO_TALK", ...(keywords.length ? { keywords } : {}) };
-      form.append("request", new Blob([JSON.stringify(request)], { type: "application/json" }));
+      form.append("request", new Blob([JSON.stringify(requestJson)], { type: "application/json" }));
       form.append("audio", new Blob([wav], { type: "audio/wav" }), "speech.wav");
-      const res = await call("/asr/transcribe", { method: "POST", headers: { accept: "application/json" }, body: form });
-      const data = await res.json();
-      return typeof data.transcript === "string" ? data.transcript : "";
+      const response = await request("/asr/transcribe", {
+        method: "POST",
+        headers: { accept: "application/json" },
+        body: form,
+      });
+      const payload = await response.json();
+      return typeof payload.transcript === "string" ? payload.transcript : "";
     },
   };
 }

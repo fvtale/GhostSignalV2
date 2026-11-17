@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="void_black">#FF07070C</color>
-    <color name="signal_cyan">#FF2EF2E2</color>
-    <color name="ghost_magenta">#FFFF2E88</color>
+    <!-- DataRail house tokens: rail meets circuitry. -->
+    <color name="track_bed">#FF05070B</color>
+    <color name="signal_cyan">#FF42F5FF</color>
+    <color name="confirmed_mint">#FF42FFB3</color>
+    <color name="brass">#FFE0B25C</color>
 </resources>

@@ -10,6 +10,8 @@ captures/
 /third_party/fmod/
 node_modules/
 server/data/
+# Built Android binaries served at /download/ — uploaded on deploy, never committed (~70 MB).
+server/downloads/
 # Local secrets (server/.env is loaded at startup; real keys never get committed).
 .env
 *.keystore

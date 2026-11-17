@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,93 +30,145 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-object Neon {
-  val Void = Color(0xFF07070C)
-  val Panel = Color(0xFF11111B)
-  val Line = Color(0xFF26263A)
-  val Cyan = Color(0xFF2EF2E2)
-  val Magenta = Color(0xFFFF2E88)
-  val Amber = Color(0xFFFFC94D)
-  val Text = Color(0xFFE6E6F0)
-  val Dim = Color(0xFF8A8AA0)
-  val Bad = Color(0xFFFF5A5A)
+/**
+ * GhostSignal's rail-circuitry palette: the DataRail house tokens
+ * (datarail.org/library) carried into the app. Track-bed blacks, signal
+ * cyan on the rails, brass for warnings, mint for confirmed states.
+ * Dark only: the game is played outdoors, often at night.
+ */
+object Rail {
+  val TrackBed = Color(0xFF05070B)
+  val Surface = Color(0xFF0B0F16)
+  val Raised = Color(0xFF10151E)
+  val Line = Color(0xFF1C232F)
+  val LineBright = Color(0xFF2A3444)
+  val Signal = Color(0xFF42F5FF)
+  val Confirmed = Color(0xFF42FFB3)
+  val Brass = Color(0xFFE0B25C)
+  val Text = Color(0xFFF5F5F7)
+  val Muted = Color(0xFF9CA3AF)
+  val Dim = Color(0xFF7D8694)
+  val Fault = Color(0xFFFF8098)
 }
 
-val Mono = FontFamily.Monospace
+val Mono: FontFamily = FontFamily.Monospace
 
 @Composable
 fun GhostTheme(content: @Composable () -> Unit) {
   MaterialTheme(
-      colorScheme =
-          darkColorScheme(
-              primary = Neon.Cyan,
-              onPrimary = Neon.Void,
-              secondary = Neon.Magenta,
-              onSecondary = Neon.Void,
-              tertiary = Neon.Amber,
-              background = Neon.Void,
-              onBackground = Neon.Text,
-              surface = Neon.Panel,
-              onSurface = Neon.Text,
-              outline = Neon.Line,
-          ),
+      colorScheme = darkColorScheme(
+          primary = Rail.Signal,
+          onPrimary = Rail.TrackBed,
+          secondary = Rail.Brass,
+          onSecondary = Rail.TrackBed,
+          tertiary = Rail.Confirmed,
+          onTertiary = Rail.TrackBed,
+          background = Rail.TrackBed,
+          onBackground = Rail.Text,
+          surface = Rail.Surface,
+          onSurface = Rail.Text,
+          surfaceVariant = Rail.Raised,
+          onSurfaceVariant = Rail.Muted,
+          outline = Rail.Line,
+          error = Rail.Fault,
+      ),
       content = content,
   )
 }
 
+/** Monospaced label: the app's signage voice. */
 @Composable
-fun Label(text: String, color: Color = Neon.Dim, size: Int = 12, weight: FontWeight = FontWeight.Normal, modifier: Modifier = Modifier) =
-    Text(text, color = color, style = TextStyle(fontFamily = Mono, fontSize = size.sp, fontWeight = weight), modifier = modifier)
+fun Label(
+    text: String,
+    color: Color = Rail.Dim,
+    size: Int = 12,
+    weight: FontWeight = FontWeight.Normal,
+    modifier: Modifier = Modifier,
+) {
+  Text(
+      text = text,
+      color = color,
+      style = TextStyle(fontFamily = Mono, fontSize = size.sp, fontWeight = weight),
+      modifier = modifier,
+  )
+}
 
+/**
+ * A card headed like a station sign: a node dot, the title in tracked
+ * mono, and a rail rule running to the edge.
+ */
 @Composable
 fun Section(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
   Column(
       modifier
           .fillMaxWidth()
-          .background(Neon.Panel, RoundedCornerShape(10.dp))
-          .border(1.dp, Neon.Line, RoundedCornerShape(10.dp))
+          .background(Rail.Surface, RoundedCornerShape(10.dp))
+          .border(1.dp, Rail.Line, RoundedCornerShape(10.dp))
           .padding(14.dp),
       verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    Label(title.uppercase(), Neon.Cyan, 12, FontWeight.Bold)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Box(Modifier.size(7.dp).background(Rail.Signal, CircleShape))
+      Spacer(Modifier.width(8.dp))
+      Label(title.uppercase(), Rail.Text, 12, FontWeight.Bold)
+      Spacer(Modifier.width(10.dp))
+      Box(Modifier.weight(1f).height(1.dp).background(Rail.LineBright))
+    }
     content()
   }
 }
 
-/** One status line with a coloured dot: green ok, amber partial, red problem, grey unknown. */
+/** One status line with a node dot: mint ok, brass partial, rose fault, grey unknown. */
 @Composable
 fun Status(label: String, value: String, ok: Boolean?, warn: Boolean = false) {
   Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-    val dot =
-        when {
-          ok == true -> Neon.Cyan
-          warn -> Neon.Amber
-          ok == false -> Neon.Bad
-          else -> Neon.Dim
-        }
-    Box(Modifier.size(8.dp).background(dot, CircleShape))
+    val dotColor = when {
+      ok == true -> Rail.Confirmed
+      warn -> Rail.Brass
+      ok == false -> Rail.Fault
+      else -> Rail.Dim
+    }
+    Box(Modifier.size(8.dp).background(dotColor, CircleShape))
     Spacer(Modifier.width(8.dp))
-    Label(label, Neon.Dim, 13, modifier = Modifier.width(120.dp))
-    Label(value, Neon.Text, 13)
+    Label(label, Rail.Dim, 13, modifier = Modifier.width(120.dp))
+    Label(value, Rail.Text, 13)
   }
 }
 
+/** Primary action: a filled signal button. */
 @Composable
-fun NeonButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color = Neon.Cyan, enabled: Boolean = true) {
+fun RailButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: Color = Rail.Signal,
+    enabled: Boolean = true,
+) {
   Button(
       onClick = onClick,
       enabled = enabled,
       modifier = modifier,
       shape = RoundedCornerShape(8.dp),
-      colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Neon.Void),
+      colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Rail.TrackBed),
   ) {
     Text(text, fontFamily = Mono, fontWeight = FontWeight.Bold)
   }
 }
 
+/** Secondary action: an outlined track button. */
 @Composable
-fun GhostButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-  OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier, shape = RoundedCornerShape(8.dp)) {
-    Text(text, fontFamily = Mono, color = if (enabled) Neon.Text else Neon.Dim)
+fun GhostButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+  OutlinedButton(
+      onClick = onClick,
+      enabled = enabled,
+      modifier = modifier,
+      shape = RoundedCornerShape(8.dp),
+  ) {
+    Text(text, fontFamily = Mono, color = if (enabled) Rail.Text else Rail.Dim)
   }
 }

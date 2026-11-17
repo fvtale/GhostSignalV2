@@ -1,777 +1,1178 @@
-/* GhostSignal admin page. Plain DOM and the vendored Leaflet map, no build step.
-   The session token is kept in sessionStorage for this tab only and sent as a bearer token. */
-(function () {
+// GhostSignal admin console. Plain DOM plus the vendored Leaflet map; no
+// build step. The tab's session token lives in sessionStorage and travels
+// as a Bearer token on every call.
+(() => {
   "use strict";
 
-  var KEY = "ghostsignal-admin";
-  var $ = function (id) { return document.getElementById(id); };
+  const SESSION_KEY = "ghostsignal-admin";
+  const byId = (id) => document.getElementById(id);
 
-  var auth = null;          // { session, who }
-  var mission = null;       // GET /v1/admin/mission
-  var route = null;         // stored venue route: placements and labels
-  var draft = {};           // signal id -> { lat, lon, radiusM, lockRadiusM, name, place }
-  var catalog = null;       // GET /v1/tracks/:mission?all=1
-  var map = null, pins = {}, rings = {}, selected = null;
-  var editing = null;       // { id, isNew, published, stems: { slot: { blob, info, name, gainDb } } }
+  let auth = null; // { session, who }
+  let mission = null; // GET /v1/admin/mission
+  let storedRoute = null; // Published venue route (placements + labels)
+  let draft = {}; // signalId -> { lat, lon, radiusM, lockRadiusM, name, place }
+  let catalog = null; // GET /v1/tracks/:missionId?all=1
+  let map = null;
+  let pins = {};
+  let rings = {};
+  let selectedSignalId = null;
+  let editorState = null; // { id, isNew, published, stems: {slot: {...}} }
 
-  // ------------------------------------------------------------------ small helpers
+  // -- DOM + storage helpers ------------------------------------------------
 
-  function el(tag, attrs) {
-    var node = document.createElement(tag);
-    Object.keys(attrs || {}).forEach(function (k) {
-      var v = attrs[k];
-      if (v === null || v === undefined || v === false) return;
-      if (k === "text") node.textContent = v;
-      else if (k === "class") node.className = v;
-      else if (k.slice(0, 2) === "on") node.addEventListener(k.slice(2), v);
-      else node.setAttribute(k, v === true ? "" : v);
-    });
-    for (var i = 2; i < arguments.length; i++) {
-      var c = arguments[i];
-      if (c === null || c === undefined || c === false) continue;
-      node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  /** Tiny element builder: text/class attrs, on* handlers, plain attrs. */
+  function createEl(tag, attrs, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs || {})) {
+      if (value === null || value === undefined || value === false) continue;
+      if (key === "text") node.textContent = value;
+      else if (key === "class") node.className = value;
+      else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+      else node.setAttribute(key, value === true ? "" : value);
+    }
+    for (const child of children) {
+      if (child === null || child === undefined || child === false) continue;
+      node.append(typeof child === "string" ? document.createTextNode(child) : child);
     }
     return node;
   }
 
-  function store(value) {
+  function saveSession(value) {
     try {
-      if (value) sessionStorage.setItem(KEY, JSON.stringify(value));
-      else sessionStorage.removeItem(KEY);
-    } catch (e) { /* private window: the session lasts until reload */ }
-  }
-
-  function stored() {
-    try { return JSON.parse(sessionStorage.getItem(KEY) || "null"); } catch (e) { return null; }
-  }
-
-  function api(path, opts) {
-    opts = opts || {};
-    var headers = { accept: "application/json" };
-    if (auth) headers.authorization = "Bearer " + auth.session;
-    var body = opts.body;
-    if (body !== undefined && !(body instanceof Blob)) {
-      headers["content-type"] = "application/json";
-      body = JSON.stringify(body);
-    } else if (body instanceof Blob) {
-      headers["content-type"] = body.type || "application/octet-stream";
+      if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value));
+      else sessionStorage.removeItem(SESSION_KEY);
+    } catch {
+      // Private window: the session lasts until reload.
     }
-    return fetch(path, { method: opts.method || "GET", headers: headers, body: body }).then(function (res) {
-      if (res.status === 204) return null;
-      return res.json().catch(function () { return {}; }).then(function (data) {
-        if (res.ok) return data;
-        if ((res.status === 401 || res.status === 403) && auth && !opts.login) {
-          signOut("Your admin session ended. Sign in again.");
-        }
-        var err = new Error(data.error || "HTTP " + res.status);
-        err.status = res.status;
-        throw err;
-      });
-    });
   }
 
-  function num(v) { var n = parseFloat(v); return isFinite(n) ? n : NaN; }
-  function round6(n) { return Math.round(n * 1e6) / 1e6; }
-  function pad2(n) { return String(n).padStart(2, "0"); }
-  function slug(s) { return s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40); }
-  function loopSeconds(bpm, beats, bars) { return bars * beats * 60 / bpm; }
-
-  // ------------------------------------------------------------------ sign in
-
-  function showSignin(message) {
-    $("app").hidden = true;
-    $("who").hidden = true;
-    $("signin").hidden = false;
-    $("signinError").textContent = message || "";
+  function loadSession() {
+    try {
+      return JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+    } catch {
+      return null;
+    }
   }
 
-  var SIGNIN = { account: ["tabAccount", "formAccount"], datarail: ["tabDatarail", "formDatarail"], token: ["tabToken", "formToken"] };
+  async function api(path, { method = "GET", body, isLogin = false } = {}) {
+    const headers = { accept: "application/json" };
+    if (auth) headers.authorization = `Bearer ${auth.session}`;
 
-  function pickTab(name) {
-    Object.keys(SIGNIN).forEach(function (k) {
-      $(SIGNIN[k][0]).setAttribute("aria-selected", String(k === name));
-      $(SIGNIN[k][1]).hidden = k !== name;
-    });
-    $("signinError").textContent = "";
+    let payload = body;
+    if (payload !== undefined && !(payload instanceof Blob)) {
+      headers["content-type"] = "application/json";
+      payload = JSON.stringify(payload);
+    } else if (payload instanceof Blob) {
+      headers["content-type"] = payload.type || "application/octet-stream";
+    }
+
+    const response = await fetch(path, { method, headers, body: payload });
+    if (response.status === 204) return null;
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) return data;
+    if ((response.status === 401 || response.status === 403) && auth && !isLogin) {
+      signOut("Your admin session ended. Sign in again.");
+    }
+    const error = new Error(data.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
-  function signIn(body, form) {
-    var button = form.querySelector("button");
+  const parseNumber = (value) => {
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const round6 = (n) => Math.round(n * 1e6) / 1e6;
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const slugify = (text) => text.toLowerCase().normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  const loopSecondsFor = (bpm, beatsPerBar, loopBars) => (loopBars * beatsPerBar * 60) / bpm;
+
+  // -- sign in ------------------------------------------------------------------
+
+  const SIGNIN_TABS = {
+    account: ["tabAccount", "formAccount"],
+    datarail: ["tabDatarail", "formDatarail"],
+    token: ["tabToken", "formToken"],
+  };
+
+  function showSignIn(message) {
+    byId("app").hidden = true;
+    byId("who").hidden = true;
+    byId("signin").hidden = false;
+    byId("signinError").textContent = message || "";
+  }
+
+  function selectSignInTab(name) {
+    for (const [key, [tabId, formId]] of Object.entries(SIGNIN_TABS)) {
+      byId(tabId).setAttribute("aria-selected", String(key === name));
+      byId(formId).hidden = key !== name;
+    }
+    byId("signinError").textContent = "";
+  }
+
+  async function submitSignIn(credentials, form) {
+    const button = form.querySelector("button");
     button.disabled = true;
-    $("signinError").textContent = "";
-    api("/v1/admin/login", { method: "POST", body: body, login: true })
-      .then(function (data) {
-        auth = { session: data.session, who: data.who };
-        store(auth);
-        form.reset();
-        return showApp();
-      })
-      .catch(function (e) { $("signinError").textContent = e.message; })
-      .then(function () { button.disabled = false; });
+    byId("signinError").textContent = "";
+    try {
+      const data = await api("/v1/admin/login", {
+        method: "POST", body: credentials, isLogin: true,
+      });
+      auth = { session: data.session, who: data.who };
+      saveSession(auth);
+      form.reset();
+      await showApp();
+    } catch (error) {
+      byId("signinError").textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
   }
 
   function signOut(message) {
-    if (auth) fetch("/v1/admin/logout", { method: "POST", headers: { authorization: "Bearer " + auth.session } }).catch(function () {});
+    if (auth) {
+      fetch("/v1/admin/logout", {
+        method: "POST",
+        headers: { authorization: `Bearer ${auth.session}` },
+      }).catch(() => {});
+    }
     auth = null;
-    store(null);
-    showSignin(message);
+    saveSession(null);
+    showSignIn(message);
   }
 
-  // ------------------------------------------------------------------ signed in
+  // -- signed-in shell --------------------------------------------------------------
 
-  function showApp() {
-    return api("/v1/admin/mission").then(function (m) {
-      mission = m;
-      return Promise.all([
-        api("/v1/routes/" + mission.id).catch(function (e) { if (e.status === 404) return null; throw e; }),
-        api("/v1/tracks/" + mission.id + "?all=1"),
-      ]);
-    }).then(function (got) {
-      route = got[0] || { placements: {}, labels: {} };
-      catalog = got[1];
-      $("signin").hidden = true;
-      $("app").hidden = false;
-      $("who").hidden = false;
-      $("whoName").textContent = auth.who.display + (auth.who.via === "datarail" ? " · DataRail admin" : auth.who.via === "ghostsignal" ? " · admin" : "");
-      resetDraft();
-      renderSignals();
-      renderTracks();
-      api("/v1/admin/glasses").then(function (d) {
-        var n = d.links.filter(function (l) { return l.status === "pending"; }).length;
-        $("glassesCount").textContent = n ? "(" + n + ")" : "";
-      }).catch(function () {});
-    });
+  async function showApp() {
+    mission = await api("/v1/admin/mission");
+    const [routeResult, catalogResult] = await Promise.all([
+      api(`/v1/routes/${mission.id}`).catch((error) => {
+        if (error.status === 404) return null;
+        throw error;
+      }),
+      api(`/v1/tracks/${mission.id}?all=1`),
+    ]);
+    storedRoute = routeResult || { placements: {}, labels: {} };
+    catalog = catalogResult;
+
+    byId("signin").hidden = true;
+    byId("app").hidden = false;
+    byId("who").hidden = false;
+    const viaLabel = auth.who.via === "datarail"
+      ? " · DataRail admin"
+      : auth.who.via === "ghostsignal" ? " · admin" : "";
+    byId("whoName").textContent = `${auth.who.display}${viaLabel}`;
+
+    resetDraft();
+    renderSignals();
+    renderTracks();
+    refreshGlassesBadge();
   }
 
-  function view(name) {
-    document.querySelectorAll("[data-view]").forEach(function (t) { t.setAttribute("aria-selected", String(t.dataset.view === name)); });
-    ["signals", "tracks", "players", "glasses"].forEach(function (v) { $("view-" + v).hidden = v !== name; });
-    if (name === "signals" && map) setTimeout(function () { map.invalidateSize(); }, 0);
+  async function refreshGlassesBadge() {
+    try {
+      const data = await api("/v1/admin/glasses");
+      const pending = data.links.filter((link) => link.status === "pending").length;
+      byId("glassesCount").textContent = pending ? `(${pending})` : "";
+    } catch {
+      // The badge is a nicety; the Glasses tab still loads on demand.
+    }
+  }
+
+  function switchView(name) {
+    document.querySelectorAll("[data-view]").forEach((tab) =>
+      tab.setAttribute("aria-selected", String(tab.dataset.view === name)));
+    for (const viewName of ["signals", "tracks", "players", "glasses"]) {
+      byId(`view-${viewName}`).hidden = viewName !== name;
+    }
+    if (name === "signals" && map) setTimeout(() => map.invalidateSize(), 0);
     if (name === "players") loadPlayers();
     if (name === "glasses") loadGlasses();
   }
 
-  // ------------------------------------------------------------------ signals
+  // -- signals ----------------------------------------------------------------------
 
-  function authored(s) {
-    return { lat: s.location.lat, lon: s.location.lon, radiusM: s.radiusM, lockRadiusM: s.lockRadiusM, name: s.name, place: s.place };
-  }
+  const authoredSignal = (signal) => ({
+    lat: signal.location.lat,
+    lon: signal.location.lon,
+    radiusM: signal.radiusM,
+    lockRadiusM: signal.lockRadiusM,
+    name: signal.name,
+    place: signal.place,
+  });
 
-  /** What every phone gets now: the authored signal with the stored route on top. */
-  function live(s) {
-    var a = authored(s), p = (route.placements || {})[s.id], l = (route.labels || {})[s.id] || {};
+  /** The live signal: authored values with the published route applied. */
+  function liveSignal(signal) {
+    const authored = authoredSignal(signal);
+    const placement = (storedRoute.placements || {})[signal.id];
+    const label = (storedRoute.labels || {})[signal.id] || {};
     return {
-      lat: p ? p.location.lat : a.lat,
-      lon: p ? p.location.lon : a.lon,
-      radiusM: p ? p.radiusM : a.radiusM,
-      lockRadiusM: p ? p.lockRadiusM : a.lockRadiusM,
-      name: l.name || a.name,
-      place: l.place || a.place,
+      lat: placement ? placement.location.lat : authored.lat,
+      lon: placement ? placement.location.lon : authored.lon,
+      radiusM: placement ? placement.radiusM : authored.radiusM,
+      lockRadiusM: placement ? placement.lockRadiusM : authored.lockRadiusM,
+      name: label.name || authored.name,
+      place: label.place || authored.place,
     };
   }
+
+  const liveName = (signal) => liveSignal(signal).name;
 
   function resetDraft() {
     draft = {};
-    mission.signals.forEach(function (s) { draft[s.id] = live(s); });
+    for (const signal of mission.signals) draft[signal.id] = liveSignal(signal);
   }
 
-  var FIELDS = ["name", "place", "lat", "lon", "radiusM", "lockRadiusM"];
+  const EDITABLE_FIELDS = ["name", "place", "lat", "lon", "radiusM", "lockRadiusM"];
 
-  function changed(s, field) { return String(draft[s.id][field]) !== String(live(s)[field]); }
-  function moved(s) { var a = authored(s), d = draft[s.id]; return d.lat !== a.lat || d.lon !== a.lon; }
+  const fieldChanged = (signal, field) =>
+    String(draft[signal.id][field]) !== String(liveSignal(signal)[field]);
 
-  function problems() {
-    var out = [];
-    mission.signals.forEach(function (s, i) {
-      var d = draft[s.id];
-      if (!(Math.abs(d.lat) <= 90 && Math.abs(d.lon) <= 180)) out.push("Signal " + (i + 1) + " needs a valid position.");
-      if (!(d.radiusM >= 5 && d.radiusM <= 500)) out.push("Signal " + (i + 1) + ": near radius is 5 to 500 m.");
-      if (!(d.lockRadiusM >= 5 && d.lockRadiusM <= d.radiusM)) out.push("Signal " + (i + 1) + ": capture radius is 5 m up to its near radius.");
-      if (d.lockRadiusM < 10) out.push("Signal " + (i + 1) + ": a capture radius under 10 m is unreliable on phone GPS.");
+  const signalMoved = (signal) => {
+    const authored = authoredSignal(signal);
+    const current = draft[signal.id];
+    return current.lat !== authored.lat || current.lon !== authored.lon;
+  };
+
+  function draftProblems() {
+    const problems = [];
+    mission.signals.forEach((signal, index) => {
+      const d = draft[signal.id];
+      const label = `Signal ${index + 1}`;
+      if (!(Math.abs(d.lat) <= 90 && Math.abs(d.lon) <= 180)) {
+        problems.push(`${label} needs a valid position.`);
+      }
+      if (!(d.radiusM >= 5 && d.radiusM <= 500)) {
+        problems.push(`${label}: near radius is 5 to 500 m.`);
+      }
+      if (!(d.lockRadiusM >= 5 && d.lockRadiusM <= d.radiusM)) {
+        problems.push(`${label}: capture radius is 5 m up to its near radius.`);
+      }
+      if (d.lockRadiusM < 10) {
+        problems.push(`${label}: a capture radius under 10 m is unreliable on phone GPS.`);
+      }
     });
-    return out;
+    return problems;
   }
 
-  function refreshDirty() {
-    var dirty = mission.signals.some(function (s) { return FIELDS.some(function (f) { return changed(s, f); }); });
-    var issues = problems();
-    $("signalSave").hidden = !dirty;
-    $("signalSaveBtn").disabled = issues.some(function (p) { return p.indexOf("unreliable") < 0; });
-    $("signalDirty").textContent = issues.length ? issues[0] : "Unsaved changes";
-    mission.signals.forEach(function (s) {
-      var row = document.querySelector('[data-signal="' + s.id + '"]');
-      if (!row) return;
-      FIELDS.forEach(function (f) { row.querySelector('[name="' + f + '"]').classList.toggle("changed", changed(s, f)); });
-      var icon = pins[s.id] && pins[s.id].getElement();
-      if (icon) icon.firstChild.classList.toggle("moved", moved(s));
-    });
+  function refreshSignalDirty() {
+    const anyDirty = mission.signals.some((signal) =>
+      EDITABLE_FIELDS.some((field) => fieldChanged(signal, field)));
+    const problems = draftProblems();
+    byId("signalSave").hidden = !anyDirty;
+    byId("signalSaveBtn").disabled =
+      problems.some((problem) => !problem.includes("unreliable"));
+    byId("signalDirty").textContent = problems.length ? problems[0] : "Unsaved changes";
+
+    for (const signal of mission.signals) {
+      const row = document.querySelector(`[data-signal="${signal.id}"]`);
+      if (!row) continue;
+      for (const field of EDITABLE_FIELDS) {
+        row.querySelector(`[name="${field}"]`)
+          .classList.toggle("changed", fieldChanged(signal, field));
+      }
+      const iconElement = pins[signal.id]?.getElement();
+      if (iconElement) iconElement.firstChild.classList.toggle("moved", signalMoved(signal));
+    }
   }
 
-  function pinIcon(i) {
-    return L.divIcon({ className: "", html: '<div class="pin">' + (i + 1) + "</div>", iconSize: [28, 28], iconAnchor: [14, 14] });
+  const pinIconFor = (index) => L.divIcon({
+    className: "",
+    html: `<div class="pin">${index + 1}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+
+  function selectSignal(signalId, panToPin) {
+    selectedSignalId = signalId;
+    document.querySelectorAll(".signal").forEach((row) =>
+      row.classList.toggle("selected", row.dataset.signal === signalId));
+    for (const [id, pin] of Object.entries(pins)) {
+      const iconElement = pin.getElement();
+      if (iconElement) iconElement.firstChild.classList.toggle("selected", id === signalId);
+    }
+    if (panToPin && map && pins[signalId]) map.panTo(pins[signalId].getLatLng());
   }
 
-  function select(id, pan) {
-    selected = id;
-    document.querySelectorAll(".signal").forEach(function (r) { r.classList.toggle("selected", r.dataset.signal === id); });
-    Object.keys(pins).forEach(function (k) {
-      var icon = pins[k].getElement();
-      if (icon) icon.firstChild.classList.toggle("selected", k === id);
-    });
-    if (pan && map && pins[id]) map.panTo(pins[id].getLatLng());
-  }
-
-  function placeOnMap(s) {
-    var d = draft[s.id], at = [d.lat, d.lon];
+  function syncPinToDraft(signal) {
+    const d = draft[signal.id];
     if (!(Math.abs(d.lat) <= 90 && Math.abs(d.lon) <= 180)) return;
-    pins[s.id].setLatLng(at);
-    rings[s.id].near.setLatLng(at).setRadius(Math.max(1, d.radiusM || 1));
-    rings[s.id].lock.setLatLng(at).setRadius(Math.max(1, d.lockRadiusM || 1));
+    const position = [d.lat, d.lon];
+    pins[signal.id].setLatLng(position);
+    rings[signal.id].near.setLatLng(position).setRadius(Math.max(1, d.radiusM || 1));
+    rings[signal.id].lock.setLatLng(position).setRadius(Math.max(1, d.lockRadiusM || 1));
+  }
+
+  function ensureMap() {
+    if (map) return;
+    map = L.map("map", { scrollWheelZoom: false });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      // OSM tile servers block requests without a Referer, and this page
+      // sends no-referrer; tiles may send this origin (never the path).
+      referrerPolicy: "strict-origin-when-cross-origin",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
   }
 
   function renderSignals() {
-    var list = $("signalList");
+    const list = byId("signalList");
     list.textContent = "";
-    if (!map) {
-      map = L.map("map", { scrollWheelZoom: false });
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        // OpenStreetMap's tile servers block browser requests without a Referer, and this page's
-        // policy is no-referrer. The tiles alone send this site's origin (never the path).
-        referrerPolicy: "strict-origin-when-cross-origin",
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
+    ensureMap();
+
+    for (const id of Object.keys(pins)) {
+      pins[id].remove();
+      rings[id].near.remove();
+      rings[id].lock.remove();
     }
-    Object.keys(pins).forEach(function (k) { pins[k].remove(); rings[k].near.remove(); rings[k].lock.remove(); });
     pins = {};
     rings = {};
 
-    mission.signals.forEach(function (s, i) {
-      var d = draft[s.id];
-      rings[s.id] = {
-        near: L.circle([d.lat, d.lon], { radius: d.radiusM, color: "#42f5ff", weight: 1, dashArray: "4 6", fillOpacity: 0.04 }).addTo(map),
-        lock: L.circle([d.lat, d.lon], { radius: d.lockRadiusM, color: "#42f5ff", weight: 1.5, fillOpacity: 0.1 }).addTo(map),
+    mission.signals.forEach((signal, index) => {
+      const current = draft[signal.id];
+      rings[signal.id] = {
+        near: L.circle([current.lat, current.lon], {
+          radius: current.radiusM, color: "#42f5ff", weight: 1, dashArray: "4 6", fillOpacity: 0.04,
+        }).addTo(map),
+        lock: L.circle([current.lat, current.lon], {
+          radius: current.lockRadiusM, color: "#42f5ff", weight: 1.5, fillOpacity: 0.1,
+        }).addTo(map),
       };
-      var pin = L.marker([d.lat, d.lon], { icon: pinIcon(i), draggable: true, title: d.name, keyboard: false }).addTo(map);
-      pin.on("drag", function (e) {
-        var p = e.target.getLatLng();
-        rings[s.id].near.setLatLng(p);
-        rings[s.id].lock.setLatLng(p);
-      });
-      pin.on("dragend", function (e) {
-        var p = e.target.getLatLng();
-        d.lat = round6(p.lat);
-        d.lon = round6(p.lng);
-        var row = document.querySelector('[data-signal="' + s.id + '"]');
-        row.querySelector('[name="lat"]').value = d.lat;
-        row.querySelector('[name="lon"]').value = d.lon;
-        select(s.id, false);
-        refreshDirty();
-      });
-      pin.on("click", function () { select(s.id, false); document.querySelector('[data-signal="' + s.id + '"] [name="name"]').focus(); });
-      pins[s.id] = pin;
 
-      function field(name, label, type, extra) {
-        var input = el("input", Object.assign({ name: name, value: d[name], type: type || "text" }, extra || {}));
-        input.addEventListener("input", function () {
-          d[name] = type === "number" ? num(input.value) : input.value;
-          if (type === "number") placeOnMap(s);
-          if (name === "name") pin.options.title = input.value;
-          refreshDirty();
-        });
-        input.addEventListener("focus", function () { select(s.id, true); });
-        return el("label", null, label, input);
-      }
+      const pin = L.marker([current.lat, current.lon], {
+        icon: pinIconFor(index), draggable: true, title: current.name, keyboard: false,
+      }).addTo(map);
+      pin.on("drag", (event) => {
+        const point = event.target.getLatLng();
+        rings[signal.id].near.setLatLng(point);
+        rings[signal.id].lock.setLatLng(point);
+      });
+      pin.on("dragend", (event) => {
+        const point = event.target.getLatLng();
+        current.lat = round6(point.lat);
+        current.lon = round6(point.lng);
+        const row = document.querySelector(`[data-signal="${signal.id}"]`);
+        row.querySelector('[name="lat"]').value = current.lat;
+        row.querySelector('[name="lon"]').value = current.lon;
+        selectSignal(signal.id, false);
+        refreshSignalDirty();
+      });
+      pin.on("click", () => {
+        selectSignal(signal.id, false);
+        document.querySelector(`[data-signal="${signal.id}"] [name="name"]`).focus();
+      });
+      pins[signal.id] = pin;
 
-      var a = authored(s);
-      list.appendChild(el("li", { class: "signal", "data-signal": s.id },
-        el("span", { class: "num" }, pad2(i + 1), el("small", { text: s.stem })),
-        field("name", "Name", "text", { maxlength: 60, placeholder: a.name }),
-        field("place", "Place (spoken in hints)", "text", { maxlength: 160, placeholder: a.place }),
-        field("lat", "Latitude", "number", { step: "0.000001" }),
-        field("lon", "Longitude", "number", { step: "0.000001" }),
-        field("radiusM", "Near m", "number", { step: "1", min: 5, max: 500 }),
-        field("lockRadiusM", "Capture m", "number", { step: "1", min: 5, max: 500 }),
-        el("button", {
-          type: "button", class: "btn ghost small reset", text: "As written",
-          title: "Back to the position and name in the mission file",
-          onclick: function () {
-            draft[s.id] = authored(s);
-            renderSignals();
-            select(s.id, true);
-          },
-        })));
+      list.append(buildSignalRow(signal, index, pin));
     });
-    var bounds = L.latLngBounds(mission.signals.map(function (s) { return [draft[s.id].lat, draft[s.id].lon]; }));
+
+    const bounds = L.latLngBounds(
+      mission.signals.map((signal) => [draft[signal.id].lat, draft[signal.id].lon]),
+    );
     map.fitBounds(bounds.pad(0.25));
-    setTimeout(function () { map.invalidateSize(); }, 0);
-    refreshDirty();
-    if (selected) select(selected, false);
+    setTimeout(() => map.invalidateSize(), 0);
+    refreshSignalDirty();
+    if (selectedSignalId) selectSignal(selectedSignalId, false);
   }
 
-  function saveSignals() {
-    var placements = {}, labels = {};
-    mission.signals.forEach(function (s) {
-      var a = authored(s), d = draft[s.id];
-      var samePlace = d.lat === a.lat && d.lon === a.lon && d.radiusM === a.radiusM && d.lockRadiusM === a.lockRadiusM;
-      placements[s.id] = samePlace ? null : { location: { lat: d.lat, lon: d.lon }, radiusM: d.radiusM, lockRadiusM: d.lockRadiusM };
-      var name = d.name.trim() === a.name ? "" : d.name.trim();
-      var place = d.place.trim() === a.place ? "" : d.place.trim();
-      labels[s.id] = name || place ? { name: name, place: place } : null;
-    });
-    $("signalSaveBtn").disabled = true;
-    api("/v1/routes/" + mission.id, { method: "PUT", body: { missionId: mission.id, name: "Venue route", placements: placements, labels: labels } })
-      .then(function () { return api("/v1/routes/" + mission.id); })
-      .then(function (r) {
-        route = r;
-        resetDraft();
-        renderSignals();
-        $("signalStatus").textContent = "Saved. Phones pick it up the next time GhostSignal opens, or when the operator pulls from the server.";
-      })
-      .catch(function (e) { $("signalStatus").textContent = "Couldn't save: " + e.message; })
-      .then(function () { $("signalSaveBtn").disabled = false; refreshDirty(); });
+  function buildSignalRow(signal, index, pin) {
+    const current = draft[signal.id];
+    const authored = authoredSignal(signal);
+
+    const makeField = (fieldName, labelText, inputType, extraAttrs) => {
+      const input = createEl("input", {
+        name: fieldName,
+        value: current[fieldName],
+        type: inputType || "text",
+        ...(extraAttrs || {}),
+      });
+      input.addEventListener("input", () => {
+        current[fieldName] = inputType === "number" ? parseNumber(input.value) : input.value;
+        if (inputType === "number") syncPinToDraft(signal);
+        if (fieldName === "name") pin.options.title = input.value;
+        refreshSignalDirty();
+      });
+      input.addEventListener("focus", () => selectSignal(signal.id, true));
+      return createEl("label", null, labelText, input);
+    };
+
+    return createEl("li", { class: "signal", "data-signal": signal.id },
+      createEl("span", { class: "num" }, pad2(index + 1),
+        createEl("small", { text: signal.stem })),
+      makeField("name", "Name", "text", { maxlength: 60, placeholder: authored.name }),
+      makeField("place", "Place (spoken in hints)", "text", { maxlength: 160, placeholder: authored.place }),
+      makeField("lat", "Latitude", "number", { step: "0.000001" }),
+      makeField("lon", "Longitude", "number", { step: "0.000001" }),
+      makeField("radiusM", "Near m", "number", { step: "1", min: 5, max: 500 }),
+      makeField("lockRadiusM", "Capture m", "number", { step: "1", min: 5, max: 500 }),
+      createEl("button", {
+        type: "button",
+        class: "btn ghost small reset",
+        text: "As written",
+        title: "Back to the position and name in the mission file",
+        onclick: () => {
+          draft[signal.id] = authoredSignal(signal);
+          renderSignals();
+          selectSignal(signal.id, true);
+        },
+      }));
   }
 
-  // ------------------------------------------------------------------ soundtracks
+  async function saveSignals() {
+    const placements = {};
+    const labels = {};
+    for (const signal of mission.signals) {
+      const authored = authoredSignal(signal);
+      const current = draft[signal.id];
+      const samePlace = current.lat === authored.lat && current.lon === authored.lon &&
+        current.radiusM === authored.radiusM && current.lockRadiusM === authored.lockRadiusM;
+      placements[signal.id] = samePlace ? null : {
+        location: { lat: current.lat, lon: current.lon },
+        radiusM: current.radiusM,
+        lockRadiusM: current.lockRadiusM,
+      };
+      const name = current.name.trim() === authored.name ? "" : current.name.trim();
+      const place = current.place.trim() === authored.place ? "" : current.place.trim();
+      labels[signal.id] = name || place ? { name, place } : null;
+    }
 
-  function signalName(s) { return live(s).name; }
+    byId("signalSaveBtn").disabled = true;
+    try {
+      await api(`/v1/routes/${mission.id}`, {
+        method: "PUT",
+        body: { missionId: mission.id, name: "Venue route", placements, labels },
+      });
+      storedRoute = await api(`/v1/routes/${mission.id}`);
+      resetDraft();
+      renderSignals();
+      byId("signalStatus").textContent =
+        "Saved. Phones pick it up the next time GhostSignal opens, or when the operator pulls from the server.";
+    } catch (error) {
+      byId("signalStatus").textContent = `Couldn't save: ${error.message}`;
+    } finally {
+      byId("signalSaveBtn").disabled = false;
+      refreshSignalDirty();
+    }
+  }
+
+  // -- soundtracks ---------------------------------------------------------------------
 
   function renderTracks() {
-    var deployed = catalog.soundtracks;
-    var base = deployed.filter(function (t) { return t.published && !t.premium && t.unlockAfterCompletions === 0; });
-    var premium = deployed.filter(function (t) { return t.published && t.premium; });
-    var bonus = mission.bundledSoundtracks.map(function (t) { return t.title + " after " + t.unlockAfterCompletions + (t.unlockAfterCompletions === 1 ? " run" : " runs"); })
-      .concat(deployed.filter(function (t) { return t.published && t.unlockAfterCompletions > 0; })
-        .map(function (t) { return t.title + " after " + t.unlockAfterCompletions + (t.unlockAfterCompletions === 1 ? " run" : " runs"); }));
-    $("trackSummary").textContent =
-      "Base game: " + (1 + base.length) + " soundtrack" + (base.length ? "s" : "") + " (" +
-      [mission.music.title || "Original"].concat(base.map(function (t) { return t.title; })).join(", ") + "). " +
-      (bonus.length ? "Earned: " + bonus.join(", ") + ". " : "") +
-      (premium.length ? "Premium: " + premium.map(function (t) { return t.title; }).join(", ") + "." : "");
+    const deployed = catalog.soundtracks;
+    const baseTracks = deployed.filter((t) => t.published && !t.premium && t.unlockAfterCompletions === 0);
+    const premiumTracks = deployed.filter((t) => t.published && t.premium);
+    const earnedLabels = mission.bundledSoundtracks
+      .map((t) => `${t.title} after ${t.unlockAfterCompletions} ${t.unlockAfterCompletions === 1 ? "run" : "runs"}`)
+      .concat(deployed
+        .filter((t) => t.published && t.unlockAfterCompletions > 0)
+        .map((t) => `${t.title} after ${t.unlockAfterCompletions} ${t.unlockAfterCompletions === 1 ? "run" : "runs"}`));
 
-    var list = $("trackList");
+    byId("trackSummary").textContent =
+      `Base game: ${1 + baseTracks.length} soundtrack${baseTracks.length ? "s" : ""} ` +
+      `(${[mission.music.title || "Original", ...baseTracks.map((t) => t.title)].join(", ")}). ` +
+      (earnedLabels.length ? `Earned: ${earnedLabels.join(", ")}. ` : "") +
+      (premiumTracks.length ? `Premium: ${premiumTracks.map((t) => t.title).join(", ")}.` : "");
+
+    const list = byId("trackList");
     list.textContent = "";
-    list.appendChild(el("li", { class: "track" },
-      el("div", { class: "t" }, el("b", { text: mission.music.title || "Original" }), el("span", { text: "original · " + mission.music.bpm + " BPM · ships with the app" })),
-      el("span", { class: "badge base", text: "Base" }), el("span", { class: "badge live", text: "In the app" })));
-    mission.bundledSoundtracks.forEach(function (t) {
-      list.appendChild(el("li", { class: "track" },
-        el("div", { class: "t" }, el("b", { text: t.title }), el("span", { text: t.id + " · ships with the app" })),
-        el("span", { class: "badge bonus", text: "Bonus · after " + t.unlockAfterCompletions }), el("span", { class: "badge live", text: "In the app" })));
-    });
-    deployed.forEach(function (t) {
-      var stems = t.music.stems.length, all = mission.signals.length;
-      list.appendChild(el("li", { class: "track" },
-        el("div", { class: "t" }, el("b", { text: t.title }),
-          el("span", { text: t.id + " · " + t.music.bpm + " BPM · " + stems + "/" + all + " stems · updated " + new Date(t.updatedAtMs).toLocaleString() })),
-        el("span", {
-          class: t.premium ? "badge premium" : t.unlockAfterCompletions ? "badge bonus" : "badge base",
-          text: t.premium ? "Premium" : t.unlockAfterCompletions ? "Bonus · after " + t.unlockAfterCompletions : "Base",
+    list.append(createEl("li", { class: "track" },
+      createEl("div", { class: "t" },
+        createEl("b", { text: mission.music.title || "Original" }),
+        createEl("span", { text: `original · ${mission.music.bpm} BPM · ships with the app` })),
+      createEl("span", { class: "badge base", text: "Base" }),
+      createEl("span", { class: "badge live", text: "In the app" })));
+
+    for (const bundled of mission.bundledSoundtracks) {
+      list.append(createEl("li", { class: "track" },
+        createEl("div", { class: "t" },
+          createEl("b", { text: bundled.title }),
+          createEl("span", { text: `${bundled.id} · ships with the app` })),
+        createEl("span", { class: "badge bonus", text: `Bonus · after ${bundled.unlockAfterCompletions}` }),
+        createEl("span", { class: "badge live", text: "In the app" })));
+    }
+
+    for (const track of deployed) {
+      list.append(createEl("li", { class: "track" },
+        createEl("div", { class: "t" },
+          createEl("b", { text: track.title }),
+          createEl("span", {
+            text: `${track.id} · ${track.music.bpm} BPM · ${track.music.stems.length}/${mission.signals.length} stems · updated ${new Date(track.updatedAtMs).toLocaleString()}`,
+          })),
+        createEl("span", {
+          class: track.premium ? "badge premium" : track.unlockAfterCompletions ? "badge bonus" : "badge base",
+          text: track.premium ? "Premium" : track.unlockAfterCompletions ? `Bonus · after ${track.unlockAfterCompletions}` : "Base",
         }),
-        el("span", { class: t.published ? "badge live" : "badge draft", text: t.published ? "Published" : "Draft" }),
-        el("button", { type: "button", class: "btn ghost small", text: "Edit", onclick: function () { openEditor(t); } }),
-        el("button", {
+        createEl("span", {
+          class: track.published ? "badge live" : "badge draft",
+          text: track.published ? "Published" : "Draft",
+        }),
+        createEl("button", {
+          type: "button", class: "btn ghost small", text: "Edit",
+          onclick: () => openTrackEditor(track),
+        }),
+        createEl("button", {
           type: "button", class: "btn danger small", text: "Delete",
-          onclick: function () {
-            if (!confirm("Take “" + t.title + "” down? Phones drop it the next time they sync.")) return;
-            api("/v1/tracks/" + mission.id + "/" + t.id, { method: "DELETE" })
-              .then(reloadTracks)
-              .then(function () { $("trackStatus").textContent = "Deleted " + t.title + "."; })
-              .catch(function (e) { $("trackStatus").textContent = "Couldn't delete: " + e.message; });
+          onclick: async () => {
+            if (!confirm(`Take “${track.title}” down? Phones drop it the next time they sync.`)) return;
+            try {
+              await api(`/v1/tracks/${mission.id}/${track.id}`, { method: "DELETE" });
+              await reloadTracks();
+              byId("trackStatus").textContent = `Deleted ${track.title}.`;
+            } catch (error) {
+              byId("trackStatus").textContent = `Couldn't delete: ${error.message}`;
+            }
           },
         })));
-    });
-  }
-
-  function reloadTracks() {
-    return api("/v1/tracks/" + mission.id + "?all=1").then(function (c) { catalog = c; renderTracks(); });
-  }
-
-  function form() { return $("editor").elements; }
-
-  function currentLoop() {
-    var f = form();
-    var s = loopSeconds(num(f.bpm.value), parseInt(f.beatsPerBar.value, 10), parseInt(f.loopBars.value, 10));
-    return isFinite(s) && s > 0 ? s : NaN;
-  }
-
-  function openEditor(track) {
-    var f = form();
-    $("editor").hidden = false;
-    $("editorError").textContent = "";
-    $("warnings").textContent = "";
-    editing = { id: track ? track.id : "", isNew: !track, published: track ? track.published : false, stems: {}, idTouched: Boolean(track) };
-    $("editorTitle").textContent = track ? "Edit “" + track.title + "”" : "New soundtrack";
-    f.title.value = track ? track.title : "";
-    f.id.value = track ? track.id : "";
-    f.id.readOnly = Boolean(track);
-    f.description.value = track ? track.description || "" : "";
-    var m = track ? track.music : mission.music;
-    f.bpm.value = m.bpm;
-    f.beatsPerBar.value = m.beatsPerBar || 4;
-    f.loopBars.value = m.loopBars || 8;
-    var unlock = track ? track.unlockAfterCompletions : 0;
-    f.avail.value = track && track.premium ? "premium" : unlock > 0 ? "bonus" : "base";
-    f.unlock.value = unlock > 0 ? unlock : 1;
-    if (track) {
-      track.music.stems.forEach(function (st) {
-        editing.stems[st.id] = {
-          blob: st.file.replace(/^server:/, ""),
-          info: { format: st.format, durationS: st.durationS, bytes: st.bytes },
-          name: st.name, gainDb: st.gainDb,
-        };
-      });
     }
-    renderStems();
-    $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function stemInfo(st) {
-    if (!st) return { text: "No file yet", cls: "" };
-    if (st.uploading) return { text: "Uploading…", cls: "" };
-    if (st.error) return { text: st.error, cls: "bad" };
-    var i = st.info, loop = currentLoop();
-    var what = (st.original ? st.original + " · " : "") + i.durationS.toFixed(2) + " s" +
-      (i.sampleRate ? " · " + Math.round(i.sampleRate / 100) / 10 + " kHz" : "") +
-      (i.channels ? (i.channels === 1 ? " mono" : " stereo") : "") + " · " + (i.format || "").toUpperCase();
-    if (!isFinite(loop)) return { text: what, cls: "" };
-    var off = i.durationS - loop;
-    if (Math.abs(off) <= 0.02) return { text: what + " · loops on the beat", cls: "ok" };
-    return { text: what + " · the loop is " + loop.toFixed(2) + " s, so it'll be " + (off > 0 ? "cut short" : "padded with silence"), cls: "warn" };
+  async function reloadTracks() {
+    catalog = await api(`/v1/tracks/${mission.id}?all=1`);
+    renderTracks();
   }
 
-  function renderStems() {
-    var list = $("stemList");
+  const editorForm = () => byId("editor").elements;
+
+  function editorLoopSeconds() {
+    const form = editorForm();
+    const seconds = loopSecondsFor(
+      parseNumber(form.bpm.value),
+      parseInt(form.beatsPerBar.value, 10),
+      parseInt(form.loopBars.value, 10),
+    );
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : NaN;
+  }
+
+  function openTrackEditor(track) {
+    const form = editorForm();
+    byId("editor").hidden = false;
+    byId("editorError").textContent = "";
+    byId("warnings").textContent = "";
+
+    editorState = {
+      id: track ? track.id : "",
+      isNew: !track,
+      published: track ? track.published : false,
+      stems: {},
+      idTouched: Boolean(track),
+    };
+    byId("editorTitle").textContent = track ? `Edit “${track.title}”` : "New soundtrack";
+    form.title.value = track ? track.title : "";
+    form.id.value = track ? track.id : "";
+    form.id.readOnly = Boolean(track);
+    form.description.value = track ? track.description || "" : "";
+
+    const music = track ? track.music : mission.music;
+    form.bpm.value = music.bpm;
+    form.beatsPerBar.value = music.beatsPerBar || 4;
+    form.loopBars.value = music.loopBars || 8;
+
+    const unlock = track ? track.unlockAfterCompletions : 0;
+    form.avail.value = track && track.premium ? "premium" : unlock > 0 ? "bonus" : "base";
+    form.unlock.value = unlock > 0 ? unlock : 1;
+
+    if (track) {
+      for (const stem of track.music.stems) {
+        editorState.stems[stem.id] = {
+          blob: stem.file.replace(/^server:/, ""),
+          info: { format: stem.format, durationS: stem.durationS, bytes: stem.bytes },
+          name: stem.name,
+          gainDb: stem.gainDb,
+        };
+      }
+    }
+    renderStemRows();
+    byId("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function describeStem(stemState) {
+    if (!stemState) return { text: "No file yet", cls: "" };
+    if (stemState.uploading) return { text: "Uploading…", cls: "" };
+    if (stemState.error) return { text: stemState.error, cls: "bad" };
+    const info = stemState.info;
+    const summary = `${stemState.original ? `${stemState.original} · ` : ""}${info.durationS.toFixed(2)} s` +
+      (info.sampleRate ? ` · ${Math.round(info.sampleRate / 100) / 10} kHz` : "") +
+      (info.channels ? (info.channels === 1 ? " mono" : " stereo") : "") +
+      ` · ${(info.format || "").toUpperCase()}`;
+    const loop = editorLoopSeconds();
+    if (!Number.isFinite(loop)) return { text: summary, cls: "" };
+    const drift = info.durationS - loop;
+    if (Math.abs(drift) <= 0.02) return { text: `${summary} · loops on the beat`, cls: "ok" };
+    return {
+      text: `${summary} · the loop is ${loop.toFixed(2)} s, so it'll be ${drift > 0 ? "cut short" : "padded with silence"}`,
+      cls: "warn",
+    };
+  }
+
+  function renderStemRows() {
+    const list = byId("stemList");
     list.textContent = "";
-    mission.signals.forEach(function (s, i) {
-      var st = editing.stems[s.stem];
-      var info = stemInfo(st);
-      var file = el("input", { type: "file", accept: ".ogg,.opus,.wav,.flac,audio/ogg,audio/wav,audio/flac", "aria-label": "Audio for " + signalName(s) });
-      file.addEventListener("change", function () { if (file.files[0]) upload(s, file.files[0]); });
-      var name = el("input", { maxlength: 60, placeholder: signalName(s), value: st && st.name !== signalName(s) ? st.name || "" : "" });
-      name.addEventListener("input", function () { if (editing.stems[s.stem]) editing.stems[s.stem].name = name.value; });
-      var gain = el("input", { type: "number", min: -30, max: 12, step: 0.5, value: st ? st.gainDb || 0 : 0 });
-      gain.addEventListener("input", function () { if (editing.stems[s.stem]) editing.stems[s.stem].gainDb = num(gain.value) || 0; });
-      list.appendChild(el("li", { class: "stem" },
-        el("span", { class: "num" }, pad2(i + 1), el("small", { text: s.stem })),
-        el("div", { class: "file" }, el("b", { text: signalName(s) }), file, el("span", { class: "info " + info.cls, text: info.text })),
-        el("label", null, "Layer name", name),
-        el("label", null, "Gain dB", gain)));
+    mission.signals.forEach((signal, index) => {
+      const stemState = editorState.stems[signal.stem];
+      const info = describeStem(stemState);
+
+      const fileInput = createEl("input", {
+        type: "file",
+        accept: ".ogg,.opus,.wav,.flac,audio/ogg,audio/wav,audio/flac",
+        "aria-label": `Audio for ${liveName(signal)}`,
+      });
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files[0]) uploadStem(signal, fileInput.files[0]);
+      });
+
+      const nameInput = createEl("input", {
+        maxlength: 60,
+        placeholder: liveName(signal),
+        value: stemState && stemState.name !== liveName(signal) ? stemState.name || "" : "",
+      });
+      nameInput.addEventListener("input", () => {
+        if (editorState.stems[signal.stem]) editorState.stems[signal.stem].name = nameInput.value;
+      });
+
+      const gainInput = createEl("input", {
+        type: "number", min: -30, max: 12, step: 0.5,
+        value: stemState ? stemState.gainDb || 0 : 0,
+      });
+      gainInput.addEventListener("input", () => {
+        if (editorState.stems[signal.stem]) {
+          editorState.stems[signal.stem].gainDb = parseNumber(gainInput.value) || 0;
+        }
+      });
+
+      list.append(createEl("li", { class: "stem" },
+        createEl("span", { class: "num" }, pad2(index + 1),
+          createEl("small", { text: signal.stem })),
+        createEl("div", { class: "file" },
+          createEl("b", { text: liveName(signal) }),
+          fileInput,
+          createEl("span", { class: `info ${info.cls}`, text: info.text })),
+        createEl("label", null, "Layer name", nameInput),
+        createEl("label", null, "Gain dB", gainInput)));
     });
-    refreshEditor();
+    refreshEditorButtons();
   }
 
-  function refreshEditor() {
-    var f = form();
-    var loop = currentLoop();
-    $("loopLength").textContent = isFinite(loop) ? f.loopBars.value + " bars = " + loop.toFixed(2) + " s per loop" : "";
-    var ready = mission.signals.every(function (s) { var st = editing.stems[s.stem]; return st && st.blob && !st.uploading && !st.error; });
-    var busy = mission.signals.some(function (s) { var st = editing.stems[s.stem]; return st && st.uploading; });
-    $("editorPublish").disabled = !ready || busy;
-    $("editorDraft").disabled = busy;
-    $("editorPublish").textContent = editing.published ? "Save and keep published" : "Publish";
-    $("editorDraft").textContent = editing.published ? "Unpublish (back to draft)" : "Save as draft";
-    $("editorPublish").title = ready ? "" : "Every signal needs a stem before the track can be published";
+  function refreshEditorButtons() {
+    const form = editorForm();
+    const loop = editorLoopSeconds();
+    byId("loopLength").textContent = Number.isFinite(loop)
+      ? `${form.loopBars.value} bars = ${loop.toFixed(2)} s per loop`
+      : "";
+    const allReady = mission.signals.every((signal) => {
+      const stemState = editorState.stems[signal.stem];
+      return stemState && stemState.blob && !stemState.uploading && !stemState.error;
+    });
+    const anyBusy = mission.signals.some((signal) => editorState.stems[signal.stem]?.uploading);
+    byId("editorPublish").disabled = !allReady || anyBusy;
+    byId("editorDraft").disabled = anyBusy;
+    byId("editorPublish").textContent = editorState.published ? "Save and keep published" : "Publish";
+    byId("editorDraft").textContent = editorState.published ? "Unpublish (back to draft)" : "Save as draft";
+    byId("editorPublish").title = allReady
+      ? ""
+      : "Every signal needs a stem before the track can be published";
   }
 
-  function upload(s, file) {
-    var prev = editing.stems[s.stem] || {};
-    editing.stems[s.stem] = Object.assign({}, prev, { uploading: true, error: null });
-    renderStems();
-    api("/v1/blobs?name=" + encodeURIComponent(file.name), { method: "PUT", body: file })
-      .then(function (blob) {
-        editing.stems[s.stem] = { blob: blob.name, info: blob, original: file.name, name: prev.name || "", gainDb: prev.gainDb || 0 };
-      })
-      .catch(function (e) {
-        editing.stems[s.stem] = Object.assign({}, prev, { uploading: false, error: file.name + ": " + e.message });
-      })
-      .then(renderStems);
+  async function uploadStem(signal, file) {
+    const previous = editorState.stems[signal.stem] || {};
+    editorState.stems[signal.stem] = { ...previous, uploading: true, error: null };
+    renderStemRows();
+    try {
+      const blob = await api(`/v1/blobs?name=${encodeURIComponent(file.name)}`, {
+        method: "PUT", body: file,
+      });
+      editorState.stems[signal.stem] = {
+        blob: blob.name,
+        info: blob,
+        original: file.name,
+        name: previous.name || "",
+        gainDb: previous.gainDb || 0,
+      };
+    } catch (error) {
+      editorState.stems[signal.stem] = {
+        ...previous, uploading: false, error: `${file.name}: ${error.message}`,
+      };
+    }
+    renderStemRows();
   }
 
-  function saveTrack(publish) {
-    var f = form();
-    var id = f.id.value.trim();
-    var unlock = f.avail.value === "bonus" ? parseInt(f.unlock.value, 10) : 0;
-    var body = {
-      title: f.title.value.trim(),
-      description: f.description.value.trim(),
-      unlockAfterCompletions: unlock,
-      premium: f.avail.value === "premium",
+  async function saveTrack(publish) {
+    const form = editorForm();
+    const trackId = form.id.value.trim();
+    const body = {
+      title: form.title.value.trim(),
+      description: form.description.value.trim(),
+      unlockAfterCompletions: form.avail.value === "bonus" ? parseInt(form.unlock.value, 10) : 0,
+      premium: form.avail.value === "premium",
       published: publish,
       music: {
-        bpm: num(f.bpm.value),
-        beatsPerBar: parseInt(f.beatsPerBar.value, 10),
-        loopBars: parseInt(f.loopBars.value, 10),
-        stems: mission.signals.filter(function (s) { var st = editing.stems[s.stem]; return st && st.blob; }).map(function (s) {
-          var st = editing.stems[s.stem];
-          return { id: s.stem, blob: st.blob, name: (st.name || "").trim() || signalName(s), gainDb: st.gainDb || 0 };
-        }),
+        bpm: parseNumber(form.bpm.value),
+        beatsPerBar: parseInt(form.beatsPerBar.value, 10),
+        loopBars: parseInt(form.loopBars.value, 10),
+        stems: mission.signals
+          .filter((signal) => editorState.stems[signal.stem]?.blob)
+          .map((signal) => {
+            const stemState = editorState.stems[signal.stem];
+            return {
+              id: signal.stem,
+              blob: stemState.blob,
+              name: (stemState.name || "").trim() || liveName(signal),
+              gainDb: stemState.gainDb || 0,
+            };
+          }),
       },
     };
-    $("editorError").textContent = "";
-    $("warnings").textContent = "";
-    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(id)) { $("editorError").textContent = "The ID is 2 to 40 lowercase letters, digits and dashes."; return; }
-    if (editing.isNew && catalog.soundtracks.some(function (t) { return t.id === id; })) { $("editorError").textContent = "There's already a soundtrack called " + id + "."; return; }
-    $("editorPublish").disabled = $("editorDraft").disabled = true;
-    api("/v1/tracks/" + mission.id + "/" + id, { method: "PUT", body: body })
-      .then(function (res) {
-        editing.isNew = false;
-        editing.id = id;
-        editing.published = res.track.published;
-        f.id.readOnly = true;
-        res.warnings.forEach(function (w) { $("warnings").appendChild(el("li", { text: w })); });
-        $("trackStatus").textContent = (res.track.published ? "Published " : "Saved draft of ") + res.track.title +
-          (res.track.published ? ". Phones download it the next time GhostSignal opens." : ".");
-        return reloadTracks().then(function () { if (!res.warnings.length) $("editor").hidden = true; });
-      })
-      .catch(function (e) { $("editorError").textContent = e.message; })
-      .then(refreshEditor);
+
+    byId("editorError").textContent = "";
+    byId("warnings").textContent = "";
+    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(trackId)) {
+      byId("editorError").textContent = "The ID is 2 to 40 lowercase letters, digits and dashes.";
+      return;
+    }
+    if (editorState.isNew && catalog.soundtracks.some((t) => t.id === trackId)) {
+      byId("editorError").textContent = `There's already a soundtrack called ${trackId}.`;
+      return;
+    }
+
+    byId("editorPublish").disabled = true;
+    byId("editorDraft").disabled = true;
+    try {
+      const result = await api(`/v1/tracks/${mission.id}/${trackId}`, { method: "PUT", body });
+      editorState.isNew = false;
+      editorState.id = trackId;
+      editorState.published = result.track.published;
+      form.id.readOnly = true;
+      for (const warning of result.warnings) {
+        byId("warnings").append(createEl("li", { text: warning }));
+      }
+      byId("trackStatus").textContent = result.track.published
+        ? `Published ${result.track.title}. Phones download it the next time GhostSignal opens.`
+        : `Saved draft of ${result.track.title}.`;
+      await reloadTracks();
+      if (!result.warnings.length) byId("editor").hidden = true;
+    } catch (error) {
+      byId("editorError").textContent = error.message;
+    } finally {
+      refreshEditorButtons();
+    }
   }
 
-  // ------------------------------------------------------------------ players
+  // -- players ---------------------------------------------------------------------------
 
-  var players = { accounts: [], unclaimed: [] };
-  var searchTimer = null;
+  let playersData = { accounts: [], unclaimed: [], counts: { total: 0, premium: 0, admins: 0 } };
+  let playerSearchTimer = null;
 
-  function loadPlayers() {
-    var q = $("playerSearch").value.trim();
-    return Promise.all([api("/v1/admin/accounts?q=" + encodeURIComponent(q)), api("/v1/admin/settings")])
-      .then(function (got) {
-        players = got[0];
-        renderPlayers();
-        renderPayment(got[1]);
-      })
-      .catch(function (e) { $("playerStatus").textContent = "Couldn't load players: " + e.message; });
+  async function loadPlayers() {
+    const query = byId("playerSearch").value.trim();
+    try {
+      const [accountsResult, settingsResult] = await Promise.all([
+        api(`/v1/admin/accounts?q=${encodeURIComponent(query)}`),
+        api("/v1/admin/settings"),
+      ]);
+      playersData = accountsResult;
+      renderPlayers();
+      renderPaymentSettings(settingsResult);
+    } catch (error) {
+      byId("playerStatus").textContent = `Couldn't load players: ${error.message}`;
+    }
   }
 
-  function when(ms) { return ms ? new Date(ms).toLocaleDateString() : "never"; }
+  const formatDay = (ms) => (ms ? new Date(ms).toLocaleDateString() : "never");
 
-  function renderPayment(s) {
-    var f = $("payForm").elements;
-    f.paymentLink.value = s.settings.paymentLink || "";
-    f.priceLabel.value = s.settings.priceLabel || "";
-    f.manageBillingUrl.value = s.settings.manageBillingUrl || "";
-    var hooks = $("hooks");
+  function renderPaymentSettings(settingsPayload) {
+    const form = byId("payForm").elements;
+    form.paymentLink.value = settingsPayload.settings.paymentLink || "";
+    form.priceLabel.value = settingsPayload.settings.priceLabel || "";
+    form.manageBillingUrl.value = settingsPayload.settings.manageBillingUrl || "";
+
+    const hooks = byId("hooks");
     hooks.textContent = "";
-    var provider = s.provider;
-    hooks.appendChild(el("li", {
-      text: s.settings.paymentLink
-        ? "Link: " + (provider === "stripe" ? "Stripe Payment Link" : provider === "lemonsqueezy" ? "Lemon Squeezy checkout" : "other provider (grant premium by hand)")
+    const provider = settingsPayload.provider;
+    hooks.append(createEl("li", {
+      text: settingsPayload.settings.paymentLink
+        ? `Link: ${provider === "stripe" ? "Stripe Payment Link" : provider === "lemonsqueezy" ? "Lemon Squeezy checkout" : "other provider (grant premium by hand)"}`
         : "No payment link yet: players see “Premium isn't on sale yet”.",
     }));
-    [["stripe", "Stripe", "STRIPE_WEBHOOK_SECRET", "checkout.session.completed, customer.subscription.updated, customer.subscription.deleted"],
-     ["lemonsqueezy", "Lemon Squeezy", "LEMONSQUEEZY_WEBHOOK_SECRET", "order_created, order_refunded, subscription_created, subscription_updated, subscription_expired"]].forEach(function (h) {
-      var w = s.webhooks[h[0]];
-      hooks.appendChild(el("li", null,
-        el("span", { class: w.configured ? "on" : "off", text: h[1] + " webhook " + (w.configured ? "✓ " : "– not set (" + h[2] + ") ") }),
-        "endpoint ", el("code", { text: location.origin + w.path }),
-        w.configured ? " · last event " + (w.lastMs ? new Date(w.lastMs).toLocaleString() : "none yet") : "",
-        el("br"), el("span", { class: "small", text: "Events: " + h[3] })));
-    });
+
+    const webhookRows = [
+      ["stripe", "Stripe", "STRIPE_WEBHOOK_SECRET", "checkout.session.completed, customer.subscription.updated, customer.subscription.deleted"],
+      ["lemonsqueezy", "Lemon Squeezy", "LEMONSQUEEZY_WEBHOOK_SECRET", "order_created, order_refunded, subscription_created, subscription_updated, subscription_expired"],
+    ];
+    for (const [key, label, envName, events] of webhookRows) {
+      const webhook = settingsPayload.webhooks[key];
+      hooks.append(createEl("li", null,
+        createEl("span", {
+          class: webhook.configured ? "on" : "off",
+          text: `${label} webhook ${webhook.configured ? "✓ " : `– not set (${envName}) `}`,
+        }),
+        "endpoint ",
+        createEl("code", { text: `${location.origin}${webhook.path}` }),
+        webhook.configured
+          ? ` · last event ${webhook.lastMs ? new Date(webhook.lastMs).toLocaleString() : "none yet"}`
+          : "",
+        createEl("br"),
+        createEl("span", { class: "small", text: `Events: ${events}` })));
+    }
   }
 
   function renderPlayers() {
-    var c = players.counts;
-    $("playerCounts").textContent = c.total + " accounts · " + c.premium + " premium · " + c.admins + " admin" + (c.admins === 1 ? "" : "s");
+    const counts = playersData.counts;
+    byId("playerCounts").textContent =
+      `${counts.total} accounts · ${counts.premium} premium · ${counts.admins} admin${counts.admins === 1 ? "" : "s"}`;
 
-    var un = $("unclaimedList");
-    un.textContent = "";
-    $("unclaimedCard").hidden = !players.unclaimed.length;
-    players.unclaimed.forEach(function (u) {
-      var pick = el("select", { "aria-label": "Account to apply this payment to" }, el("option", { value: "", text: "Choose an account…" }));
-      players.accounts.forEach(function (a) {
-        pick.appendChild(el("option", { value: a.id, text: a.email + (u.email && a.email === u.email ? " (same email)" : "") }));
-      });
-      var match = players.accounts.find(function (a) { return u.email && a.email === u.email; });
-      if (match) pick.value = match.id;
-      un.appendChild(el("li", { class: "track" },
-        el("div", { class: "t" }, el("b", { text: u.email || "no email" }),
-          el("span", { text: u.provider + " · " + new Date(u.atMs).toLocaleString() + (u.customerId ? " · customer " + u.customerId : "") })),
-        pick,
-        el("button", {
+    renderUnclaimed();
+    renderAccountRows();
+  }
+
+  function renderUnclaimed() {
+    const list = byId("unclaimedList");
+    list.textContent = "";
+    byId("unclaimedCard").hidden = !playersData.unclaimed.length;
+
+    for (const payment of playersData.unclaimed) {
+      const picker = createEl("select", { "aria-label": "Account to apply this payment to" },
+        createEl("option", { value: "", text: "Choose an account…" }));
+      for (const account of playersData.accounts) {
+        picker.append(createEl("option", {
+          value: account.id,
+          text: account.email + (payment.email && account.email === payment.email ? " (same email)" : ""),
+        }));
+      }
+      const emailMatch = playersData.accounts.find(
+        (account) => payment.email && account.email === payment.email,
+      );
+      if (emailMatch) picker.value = emailMatch.id;
+
+      list.append(createEl("li", { class: "track" },
+        createEl("div", { class: "t" },
+          createEl("b", { text: payment.email || "no email" }),
+          createEl("span", {
+            text: `${payment.provider} · ${new Date(payment.atMs).toLocaleString()}${payment.customerId ? ` · customer ${payment.customerId}` : ""}`,
+          })),
+        picker,
+        createEl("button", {
           type: "button", class: "btn small", text: "Apply",
-          onclick: function () {
-            if (!pick.value) return;
-            api("/v1/admin/unclaimed/" + u.id, { method: "POST", body: { accountId: pick.value } })
-              .then(loadPlayers)
-              .then(function () { $("playerStatus").textContent = "Premium applied."; })
-              .catch(function (e) { $("playerStatus").textContent = e.message; });
+          onclick: async () => {
+            if (!picker.value) return;
+            try {
+              await api(`/v1/admin/unclaimed/${payment.id}`, {
+                method: "POST", body: { accountId: picker.value },
+              });
+              await loadPlayers();
+              byId("playerStatus").textContent = "Premium applied.";
+            } catch (error) {
+              byId("playerStatus").textContent = error.message;
+            }
           },
         }),
-        el("button", {
+        createEl("button", {
           type: "button", class: "btn ghost small", text: "Dismiss",
-          onclick: function () {
+          onclick: async () => {
             if (!confirm("Dismiss this payment? Nobody gets premium for it.")) return;
-            api("/v1/admin/unclaimed/" + u.id, { method: "DELETE" }).then(loadPlayers);
+            await api(`/v1/admin/unclaimed/${payment.id}`, { method: "DELETE" });
+            await loadPlayers();
           },
         })));
-    });
+    }
+  }
 
-    var list = $("playerList");
+  function renderAccountRows() {
+    const list = byId("playerList");
     list.textContent = "";
-    if (!players.accounts.length) list.appendChild(el("li", { class: "muted", text: "No accounts yet." }));
-    players.accounts.forEach(function (a) {
-      var p = a.premium;
-      function change(body, done) {
-        return function () {
-          api("/v1/admin/accounts/" + a.id, { method: "PUT", body: body })
-            .then(loadPlayers)
-            .then(function () { $("playerStatus").textContent = done; })
-            .catch(function (e) { $("playerStatus").textContent = e.message; });
-        };
-      }
-      list.appendChild(el("li", { class: "track" },
-        el("div", { class: "t" }, el("b", { text: a.email }),
-          el("span", { text: "joined " + when(a.createdAtMs) + " · last seen " + when(a.lastSeenMs) + " · " +
-            Object.keys(a.completions).reduce(function (n, k) { return n + a.completions[k]; }, 0) + " finished runs" +
-            (p.active && p.source ? " · premium " + (p.source === "grant" ? "granted" : "paid via " + p.provider) : "") })),
-        a.role === "admin" ? el("span", { class: "badge admin", text: a.adminFromConfig ? "Admin · ADMIN_EMAILS" : "Admin" }) : null,
-        p.active ? el("span", { class: "badge premium", text: "Premium" }) : el("span", { class: "badge", text: "Free" }),
-        a.disabled ? el("span", { class: "badge off", text: "Disabled" }) : null,
-        el("button", { type: "button", class: "btn ghost small", text: p.active ? "Remove premium" : "Give premium",
-          onclick: change({ premium: !p.active }, p.active ? "Premium removed from " + a.email + "." : a.email + " has premium.") }),
-        a.adminFromConfig ? null : el("button", { type: "button", class: "btn ghost small", text: a.role === "admin" ? "Remove admin" : "Make admin",
-          onclick: change({ role: a.role === "admin" ? "player" : "admin" }, "Updated " + a.email + ".") }),
-        el("button", { type: "button", class: a.disabled ? "btn ghost small" : "btn danger small", text: a.disabled ? "Enable" : "Disable",
-          onclick: change({ disabled: !a.disabled }, (a.disabled ? "Enabled " : "Disabled ") + a.email + ".") })));
-    });
+    if (!playersData.accounts.length) {
+      list.append(createEl("li", { class: "muted", text: "No accounts yet." }));
+    }
+
+    for (const account of playersData.accounts) {
+      const premium = account.premium;
+      const finishedRuns = Object.values(account.completions || {})
+        .reduce((sum, n) => sum + n, 0);
+      const premiumNote = premium.active && premium.source
+        ? ` · premium ${premium.source === "grant" ? "granted" : `paid via ${premium.provider}`}`
+        : "";
+
+      const applyChange = (change, doneMessage) => async () => {
+        try {
+          await api(`/v1/admin/accounts/${account.id}`, { method: "PUT", body: change });
+          await loadPlayers();
+          byId("playerStatus").textContent = doneMessage;
+        } catch (error) {
+          byId("playerStatus").textContent = error.message;
+        }
+      };
+
+      list.append(createEl("li", { class: "track" },
+        createEl("div", { class: "t" },
+          createEl("b", { text: account.email }),
+          createEl("span", {
+            text: `joined ${formatDay(account.createdAtMs)} · last seen ${formatDay(account.lastSeenMs)} · ${finishedRuns} finished runs${premiumNote}`,
+          })),
+        account.role === "admin"
+          ? createEl("span", {
+              class: "badge admin",
+              text: account.adminFromConfig ? "Admin · ADMIN_EMAILS" : "Admin",
+            })
+          : null,
+        premium.active
+          ? createEl("span", { class: "badge premium", text: "Premium" })
+          : createEl("span", { class: "badge", text: "Free" }),
+        account.disabled
+          ? createEl("span", { class: "badge off", text: "Disabled" })
+          : null,
+        createEl("button", {
+          type: "button", class: "btn ghost small",
+          text: premium.active ? "Remove premium" : "Give premium",
+          onclick: applyChange(
+            { premium: !premium.active },
+            premium.active ? `Premium removed from ${account.email}.` : `${account.email} has premium.`),
+        }),
+        account.adminFromConfig ? null : createEl("button", {
+          type: "button", class: "btn ghost small",
+          text: account.role === "admin" ? "Remove admin" : "Make admin",
+          onclick: applyChange(
+            { role: account.role === "admin" ? "player" : "admin" },
+            `Updated ${account.email}.`),
+        }),
+        createEl("button", {
+          type: "button",
+          class: account.disabled ? "btn ghost small" : "btn danger small",
+          text: account.disabled ? "Enable" : "Disable",
+          onclick: applyChange(
+            { disabled: !account.disabled },
+            `${account.disabled ? "Enabled" : "Disabled"} ${account.email}.`),
+        })));
+    }
   }
 
-  function savePayment(e) {
-    e.preventDefault();
-    var f = $("payForm").elements;
-    $("payStatus").textContent = "";
-    api("/v1/admin/settings", { method: "PUT", body: { paymentLink: f.paymentLink.value.trim(), priceLabel: f.priceLabel.value.trim(), manageBillingUrl: f.manageBillingUrl.value.trim() } })
-      .then(function () { return api("/v1/admin/settings"); })
-      .then(function (s) { renderPayment(s); $("payStatus").textContent = "Saved. Players see it the next time they open their account."; })
-      .catch(function (err) { $("payStatus").textContent = err.message; });
+  async function savePaymentSettings(event) {
+    event.preventDefault();
+    const form = byId("payForm").elements;
+    byId("payStatus").textContent = "";
+    try {
+      await api("/v1/admin/settings", {
+        method: "PUT",
+        body: {
+          paymentLink: form.paymentLink.value.trim(),
+          priceLabel: form.priceLabel.value.trim(),
+          manageBillingUrl: form.manageBillingUrl.value.trim(),
+        },
+      });
+      renderPaymentSettings(await api("/v1/admin/settings"));
+      byId("payStatus").textContent = "Saved. Players see it the next time they open their account.";
+    } catch (error) {
+      byId("payStatus").textContent = error.message;
+    }
   }
 
-  // ------------------------------------------------------------------ glasses
+  // -- glasses ------------------------------------------------------------------------------
 
-  function loadGlasses() {
-    return api("/v1/admin/glasses")
-      .then(renderGlasses)
-      .catch(function (e) { $("glassesStatus").textContent = "Couldn't load glasses: " + e.message; });
+  async function loadGlasses() {
+    try {
+      renderGlasses(await api("/v1/admin/glasses"));
+    } catch (error) {
+      byId("glassesStatus").textContent = `Couldn't load glasses: ${error.message}`;
+    }
   }
 
-  function model(t) { return (t || "UNKNOWN").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+  const prettyModel = (deviceType) => (deviceType || "UNKNOWN")
+    .replace(/_/g, " ").toLowerCase()
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
 
   function renderGlasses(data) {
-    var pending = data.links.filter(function (l) { return l.status === "pending"; });
-    $("glassesCount").textContent = pending.length ? "(" + pending.length + ")" : "";
+    const pending = data.links.filter((link) => link.status === "pending");
+    byId("glassesCount").textContent = pending.length ? `(${pending.length})` : "";
 
-    function decide(l, status, done) {
-      return function () {
-        api("/v1/admin/glasses/" + l.id, { method: "PUT", body: { status: status } })
-          .then(loadGlasses)
-          .then(function () { $("glassesStatus").textContent = done; })
-          .catch(function (e) { $("glassesStatus").textContent = e.message; });
-      };
-    }
+    const decide = (link, status, doneMessage) => async () => {
+      try {
+        await api(`/v1/admin/glasses/${link.id}`, { method: "PUT", body: { status } });
+        await loadGlasses();
+        byId("glassesStatus").textContent = doneMessage;
+      } catch (error) {
+        byId("glassesStatus").textContent = error.message;
+      }
+    };
 
-    function row(l, buttons) {
-      var when = l.status === "pending" ? "asked " + new Date(l.requestedAtMs).toLocaleString() :
-        (l.status === "approved" ? "approved " : l.status === "rejected" ? "turned down " : "removed ") +
-        (l.decidedAtMs ? new Date(l.decidedAtMs).toLocaleString() : "") + (l.decidedBy ? " by " + l.decidedBy : "");
-      return el("li", { class: "track" },
-        el("div", { class: "t" },
-          el("b", { text: l.email }),
-          el("span", { text: model(l.deviceType) + (l.name ? " \u201c" + l.name + "\u201d" : "") + " \u00b7 " + l.fingerprint + (l.firmware ? " \u00b7 firmware " + l.firmware : "") + " \u00b7 " + when }),
-          l.alsoRequestedBy.length ? el("span", { class: "warnline", text: "Also asked for by " + l.alsoRequestedBy.join(", ") }) : null,
-          l.enrolled ? el("span", { class: "warnline", text: "This pair is enrolled as event glasses" }) : null),
-        buttons);
-    }
+    const linkRow = (link, actions) => {
+      const timing = link.status === "pending"
+        ? `asked ${new Date(link.requestedAtMs).toLocaleString()}`
+        : `${link.status === "approved" ? "approved " : link.status === "rejected" ? "turned down " : "removed "}` +
+          `${link.decidedAtMs ? new Date(link.decidedAtMs).toLocaleString() : ""}` +
+          (link.decidedBy ? ` by ${link.decidedBy}` : "");
+      return createEl("li", { class: "track" },
+        createEl("div", { class: "t" },
+          createEl("b", { text: link.email }),
+          createEl("span", {
+            text: `${prettyModel(link.deviceType)}${link.name ? ` “${link.name}”` : ""} · ${link.fingerprint}${link.firmware ? ` · firmware ${link.firmware}` : ""} · ${timing}`,
+          }),
+          link.alsoRequestedBy.length
+            ? createEl("span", { class: "warnline", text: `Also asked for by ${link.alsoRequestedBy.join(", ")}` })
+            : null,
+          link.enrolled
+            ? createEl("span", { class: "warnline", text: "This pair is enrolled as event glasses" })
+            : null),
+        actions);
+    };
 
-    function fill(id, list, empty, make) {
-      var ul = $(id);
-      ul.textContent = "";
-      if (!list.length) ul.appendChild(el("li", { class: "muted", text: empty }));
-      list.forEach(function (l) { ul.appendChild(make(l)); });
-    }
+    const fillList = (elementId, rows, emptyText, buildRow) => {
+      const list = byId(elementId);
+      list.textContent = "";
+      if (!rows.length) list.append(createEl("li", { class: "muted", text: emptyText }));
+      for (const row of rows) list.append(buildRow(row));
+    };
 
-    fill("glassesPending", pending, "Nothing waiting.", function (l) {
-      var wrap = el("span", { class: "actions-inline" },
-        el("button", { type: "button", class: "btn small", text: "Approve", onclick: decide(l, "approved", l.email + " has premium.") }),
-        el("button", { type: "button", class: "btn ghost small", text: "Turn down", onclick: decide(l, "rejected", "Turned down " + l.email + "'s glasses.") }));
-      return row(l, wrap);
-    });
-    fill("glassesLinked", data.links.filter(function (l) { return l.status === "approved"; }), "No linked glasses yet.", function (l) {
-      return row(l, el("button", {
+    fillList("glassesPending", pending, "Nothing waiting.", (link) =>
+      linkRow(link, createEl("span", { class: "actions-inline" },
+        createEl("button", {
+          type: "button", class: "btn small", text: "Approve",
+          onclick: decide(link, "approved", `${link.email} has premium.`),
+        }),
+        createEl("button", {
+          type: "button", class: "btn ghost small", text: "Turn down",
+          onclick: decide(link, "rejected", `Turned down ${link.email}'s glasses.`),
+        }))));
+
+    fillList("glassesLinked",
+      data.links.filter((link) => link.status === "approved"),
+      "No linked glasses yet.",
+      (link) => linkRow(link, createEl("button", {
         type: "button", class: "btn danger small", text: "Revoke",
-        onclick: function () { if (confirm("Unlink these glasses from " + l.email + "? Their premium from this pair ends.")) decide(l, "revoked", "Revoked.")(); },
-      }));
-    });
-    fill("glassesClosed", data.links.filter(function (l) { return l.status === "rejected" || l.status === "revoked"; }), "None.", function (l) {
-      return row(l, el("button", { type: "button", class: "btn ghost small", text: "Approve", onclick: decide(l, "approved", l.email + " has premium.") }));
-    });
-    fill("glassesEnrolled", data.enrolled, "No event glasses enrolled.", function (x) {
-      return el("li", { class: "track" },
-        el("div", { class: "t" }, el("b", { text: model(x.deviceType) + (x.name ? " \u201c" + x.name + "\u201d" : "") }),
-          el("span", { text: x.fingerprint + (x.note ? " \u00b7 " + x.note : "") + " \u00b7 by " + x.by })),
-        el("button", {
+        onclick: () => {
+          if (confirm(`Unlink these glasses from ${link.email}? Their premium from this pair ends.`)) {
+            decide(link, "revoked", "Revoked.")();
+          }
+        },
+      })));
+
+    fillList("glassesClosed",
+      data.links.filter((link) => link.status === "rejected" || link.status === "revoked"),
+      "None.",
+      (link) => linkRow(link, createEl("button", {
+        type: "button", class: "btn ghost small", text: "Approve",
+        onclick: decide(link, "approved", `${link.email} has premium.`),
+      })));
+
+    fillList("glassesEnrolled", data.enrolled, "No event glasses enrolled.", (entry) =>
+      createEl("li", { class: "track" },
+        createEl("div", { class: "t" },
+          createEl("b", { text: `${prettyModel(entry.deviceType)}${entry.name ? ` “${entry.name}”` : ""}` }),
+          createEl("span", {
+            text: `${entry.fingerprint}${entry.note ? ` · ${entry.note}` : ""} · by ${entry.by}`,
+          })),
+        createEl("button", {
           type: "button", class: "btn ghost small", text: "Remove",
-          onclick: function () {
-            api("/v1/admin/glasses/enrolled/" + x.id, { method: "DELETE" }).then(loadGlasses)
-              .catch(function (e) { $("glassesStatus").textContent = e.message; });
+          onclick: async () => {
+            try {
+              await api(`/v1/admin/glasses/enrolled/${entry.id}`, { method: "DELETE" });
+              await loadGlasses();
+            } catch (error) {
+              byId("glassesStatus").textContent = error.message;
+            }
           },
-        }));
-    });
+        })));
   }
 
-  // ------------------------------------------------------------------ wiring
+  // -- wiring --------------------------------------------------------------------------------
 
-  Object.keys(SIGNIN).forEach(function (k) { $(SIGNIN[k][0]).addEventListener("click", function () { pickTab(k); }); });
-  $("formAccount").addEventListener("submit", function (e) {
-    e.preventDefault();
-    signIn({ email: this.elements.email.value, password: this.elements.password.value }, this);
+  for (const name of Object.keys(SIGNIN_TABS)) {
+    byId(SIGNIN_TABS[name][0]).addEventListener("click", () => selectSignInTab(name));
+  }
+  byId("formAccount").addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitSignIn(
+      { email: event.target.elements.email.value, password: event.target.elements.password.value },
+      event.target,
+    );
   });
-  $("formDatarail").addEventListener("submit", function (e) {
-    e.preventDefault();
-    signIn({ provider: "datarail", email: this.elements.email.value, password: this.elements.password.value }, this);
+  byId("formDatarail").addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitSignIn(
+      {
+        provider: "datarail",
+        email: event.target.elements.email.value,
+        password: event.target.elements.password.value,
+      },
+      event.target,
+    );
   });
-  $("payForm").addEventListener("submit", savePayment);
-  $("playerSearch").addEventListener("input", function () {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(loadPlayers, 250);
+  byId("formToken").addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitSignIn({ token: event.target.elements.token.value }, event.target);
   });
-  $("formToken").addEventListener("submit", function (e) {
-    e.preventDefault();
-    signIn({ token: this.elements.token.value }, this);
-  });
-  $("signOut").addEventListener("click", function () { signOut(""); });
-  document.querySelectorAll("[data-view]").forEach(function (t) { t.addEventListener("click", function () { view(t.dataset.view); }); });
+  byId("signOut").addEventListener("click", () => signOut(""));
 
-  $("signalSaveBtn").addEventListener("click", saveSignals);
-  $("signalDiscard").addEventListener("click", function () { resetDraft(); renderSignals(); $("signalStatus").textContent = ""; });
+  document.querySelectorAll("[data-view]").forEach((tab) =>
+    tab.addEventListener("click", () => switchView(tab.dataset.view)));
 
-  $("newTrack").addEventListener("click", function () { openEditor(null); });
-  $("editorCancel").addEventListener("click", function () { $("editor").hidden = true; editing = null; });
-  $("editorDraft").addEventListener("click", function () { saveTrack(false); });
-  $("editorPublish").addEventListener("click", function () { saveTrack(true); });
-  form().title.addEventListener("input", function () {
-    if (editing && editing.isNew && !editing.idTouched) form().id.value = slug(form().title.value);
-  });
-  form().id.addEventListener("input", function () { if (editing) editing.idTouched = true; });
-  ["bpm", "beatsPerBar", "loopBars"].forEach(function (n) { form()[n].addEventListener("input", renderStems); });
-  form().unlock.addEventListener("focus", function () { form().avail.value = "bonus"; });
-
-  window.addEventListener("beforeunload", function (e) {
-    if (!$("signalSave").hidden) { e.preventDefault(); e.returnValue = ""; }
+  byId("signalSaveBtn").addEventListener("click", saveSignals);
+  byId("signalDiscard").addEventListener("click", () => {
+    resetDraft();
+    renderSignals();
+    byId("signalStatus").textContent = "";
   });
 
-  // ------------------------------------------------------------------ boot
-
-  fetch("/health").then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (health) {
-    var admin = health.admin || {};
-    if (!admin.datarail) {
-      $("tabDatarail").disabled = true;
-      $("tabDatarail").title = "DataRail sign-in isn't set up on this server";
-      $("datarailNote").textContent = "DataRail sign-in isn't set up on this server yet (DATARAIL_API).";
+  byId("newTrack").addEventListener("click", () => openTrackEditor(null));
+  byId("editorCancel").addEventListener("click", () => {
+    byId("editor").hidden = true;
+    editorState = null;
+  });
+  byId("editorDraft").addEventListener("click", () => saveTrack(false));
+  byId("editorPublish").addEventListener("click", () => saveTrack(true));
+  editorForm().title.addEventListener("input", () => {
+    if (editorState && editorState.isNew && !editorState.idTouched) {
+      editorForm().id.value = slugify(editorForm().title.value);
     }
-    pickTab("account");
-    auth = stored();
-    if (!auth) return showSignin("");
-    return api("/v1/admin/me").then(showApp).catch(function () { auth = null; store(null); showSignin(""); });
   });
+  editorForm().id.addEventListener("input", () => {
+    if (editorState) editorState.idTouched = true;
+  });
+  for (const field of ["bpm", "beatsPerBar", "loopBars"]) {
+    editorForm()[field].addEventListener("input", renderStemRows);
+  }
+  editorForm().unlock.addEventListener("focus", () => {
+    editorForm().avail.value = "bonus";
+  });
+
+  byId("payForm").addEventListener("submit", savePaymentSettings);
+  byId("playerSearch").addEventListener("input", () => {
+    clearTimeout(playerSearchTimer);
+    playerSearchTimer = setTimeout(loadPlayers, 250);
+  });
+
+  window.addEventListener("beforeunload", (event) => {
+    if (!byId("signalSave").hidden) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+  });
+
+  // -- boot -------------------------------------------------------------------------------------
+
+  (async () => {
+    let health = {};
+    try {
+      health = await (await fetch("/health")).json();
+    } catch {
+      health = {};
+    }
+    if (!health.admin?.datarail) {
+      byId("tabDatarail").disabled = true;
+      byId("tabDatarail").title = "DataRail sign-in isn't set up on this server";
+      byId("datarailNote").textContent =
+        "DataRail sign-in isn't set up on this server yet (DATARAIL_API).";
+    }
+    selectSignInTab("account");
+    auth = loadSession();
+    if (!auth) {
+      showSignIn("");
+      return;
+    }
+    try {
+      await api("/v1/admin/me");
+      await showApp();
+    } catch {
+      auth = null;
+      saveSession(null);
+      showSignIn("");
+    }
+  })();
 })();

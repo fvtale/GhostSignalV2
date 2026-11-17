@@ -5,163 +5,187 @@ import kotlin.math.abs
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-/** One-pole low-pass. Cheap, smooth, good enough for distance and head-shadow colouring. */
+// Small real-time DSP toolkit for the binaural mixer. Everything here is
+// allocation-free in the hot path: filters keep their state in fields, and
+// per-sample work is a handful of float operations.
+
+/** One-pole low-pass. Cheap and smooth; colours distance and head shadow. */
 class OnePoleLp(cutoffHz: Float = 20_000f) {
-  private var a = 0f
-  private var z = 0f
+
+  private var coefficient: Float = 0f
+  private var state: Float = 0f
 
   init {
     setCutoff(cutoffHz)
   }
 
   fun setCutoff(hz: Float) {
-    val c = hz.coerceIn(20f, 22_000f)
-    a = exp(-2.0 * PI * c / Pcm.SAMPLE_RATE).toFloat()
+    val clamped = hz.coerceIn(20f, 22_000f)
+    coefficient = exp(-2.0 * PI * clamped / Pcm.SAMPLE_RATE).toFloat()
   }
 
-  fun process(x: Float): Float {
-    z = x * (1 - a) + z * a
-    return z
+  fun process(input: Float): Float {
+    state = input * (1f - coefficient) + state * coefficient
+    return state
   }
 }
 
-/** One-pole high-pass (the complement of [OnePoleLp]). */
+/** One-pole high-pass, as the complement of a [OnePoleLp]. */
 class OnePoleHp(cutoffHz: Float) {
-  private val lp = OnePoleLp(cutoffHz)
 
-  fun setCutoff(hz: Float) = lp.setCutoff(hz)
+  private val lowPass = OnePoleLp(cutoffHz)
 
-  fun process(x: Float) = x - lp.process(x)
+  fun setCutoff(hz: Float) = lowPass.setCutoff(hz)
+
+  fun process(input: Float): Float = input - lowPass.process(input)
 }
 
-/** Walkie-talkie band (roughly 300 Hz - 3.4 kHz). */
+/** Walkie-talkie band: two poles each side of roughly 300 Hz – 3.4 kHz. */
 class RadioBand {
-  private val hp1 = OnePoleHp(320f)
-  private val hp2 = OnePoleHp(320f)
-  private val lp1 = OnePoleLp(3_400f)
-  private val lp2 = OnePoleLp(3_400f)
 
-  fun process(x: Float) = lp2.process(lp1.process(hp2.process(hp1.process(x))))
+  private val highPassA = OnePoleHp(320f)
+  private val highPassB = OnePoleHp(320f)
+  private val lowPassA = OnePoleLp(3_400f)
+  private val lowPassB = OnePoleLp(3_400f)
+
+  fun process(input: Float): Float =
+      lowPassB.process(lowPassA.process(highPassB.process(highPassA.process(input))))
 }
 
-/** Gentle saturation that keeps the master bus from clipping. */
-fun softClip(x: Float): Float {
-  val c = x.coerceIn(-3f, 3f)
-  return c * (27f + c * c) / (27f + 9f * c * c)
+/** Gentle saturation that keeps the master bus from clipping hard. */
+fun softClip(input: Float): Float {
+  val clamped = input.coerceIn(-3f, 3f)
+  return clamped * (27f + clamped * clamped) / (27f + 9f * clamped * clamped)
 }
 
-/** Linear ramp from the last value to a new target over one block, so changes never click. */
+/** Linear ramp toward a target across one block, so changes never click. */
 class Ramp(initial: Float = 0f) {
-  var value = initial
+
+  var value: Float = initial
     private set
 
-  private var step = 0f
-  private var target = initial
+  private var stepSize: Float = 0f
+  private var targetValue: Float = initial
 
   fun begin(newTarget: Float, frames: Int) {
-    target = newTarget
-    step = (target - value) / frames
+    targetValue = newTarget
+    stepSize = (targetValue - value) / frames
   }
 
   fun next(): Float {
-    value += step
+    value += stepSize
     return value
   }
 
   fun end() {
-    value = target
+    value = targetValue
   }
 }
 
 /**
- * Lightweight binaural panner using a spherical-head model.
- *
- * Interaural time difference (Woodworth), interaural level difference, a head-shadow low-pass on
- * the far ear and a dull, quieter "behind you" colour. It is not a measured HRTF, but over
- * open-ear speakers it reads clearly as left/right/front/back and is cheap enough for eight
- * sources on a budget phone. FMOD + Resonance Audio is the higher-fidelity option.
+ * Lightweight binaural panner on a spherical-head model: Woodworth
+ * interaural time difference, interaural level difference, a head-shadow
+ * low-pass on the far ear, and a duller, quieter colour behind the head.
+ * Elevation is approximated spectrally (brighter above, duller below)
+ * rather than with a measured HRTF. Cheap enough for eight sources.
  */
 class Binaural {
-  private val size = 128
-  private val delay = FloatArray(size)
-  private var write = 0
-  private val shadowL = OnePoleLp()
-  private val shadowR = OnePoleLp()
-  private val elevL = OnePoleLp()
-  private val elevR = OnePoleLp()
-  private val rearL = OnePoleLp()
-  private val rearR = OnePoleLp()
 
-  private val delayL = Ramp()
-  private val delayR = Ramp()
-  private val gainL = Ramp(0.7f)
-  private val gainR = Ramp(0.7f)
+  private val delayLineSize = 128
+  private val delayLine = FloatArray(delayLineSize)
+  private var writeIndex = 0
 
-  /** Sets up the next block for a source [azimuthDeg] to the right of straight ahead. */
+  private val shadowFilterLeft = OnePoleLp()
+  private val shadowFilterRight = OnePoleLp()
+  private val elevationFilterLeft = OnePoleLp()
+  private val elevationFilterRight = OnePoleLp()
+  private val rearFilterLeft = OnePoleLp()
+  private val rearFilterRight = OnePoleLp()
+
+  private val delayRampLeft = Ramp()
+  private val delayRampRight = Ramp()
+  private val gainRampLeft = Ramp(0.7f)
+  private val gainRampRight = Ramp(0.7f)
+
+  private var elevationGain: Float = 1f
+  private var rearGain: Float = 1f
+
+  /** Prepares the next block for a source [azimuthDeg] right of ahead. */
   fun prepare(azimuthDeg: Double, frames: Int, elevationDeg: Double = 0.0) {
-    val az = azimuthDeg * PI / 180.0
-    val lateral = asin(sin(az)) // -pi/2 .. pi/2, positive = right
-    val absLat = abs(lateral)
-    val itdSamples = (HEAD_RADIUS_M / SPEED_OF_SOUND * (absLat + sin(absLat)) * Pcm.SAMPLE_RATE).toFloat()
-    val right = lateral >= 0
-    delayL.begin(if (right) itdSamples else 0f, frames)
-    delayR.begin(if (right) 0f else itdSamples, frames)
+    val azimuthRad = azimuthDeg * PI / 180.0
+    val lateralRad = asin(sin(azimuthRad)) // -PI/2..PI/2, positive = right
+    val absLateral = abs(lateralRad)
 
-    val s = sin(absLat).toFloat()
-    val near = 0.72f + 0.2f * s
-    val far = 0.72f - 0.42f * s
-    gainL.begin(if (right) far else near, frames)
-    gainR.begin(if (right) near else far, frames)
-    val shadowCut = max(1_600f, 18_000f * (1f - 0.88f * s))
-    shadowL.setCutoff(if (right) shadowCut else 18_000f)
-    shadowR.setCutoff(if (right) 18_000f else shadowCut)
+    val itdSamples =
+        (HEAD_RADIUS_M / SPEED_OF_SOUND * (absLateral + sin(absLateral)) * Pcm.SAMPLE_RATE)
+            .toFloat()
+    val sourceOnRight = lateralRad >= 0
+    delayRampLeft.begin(if (sourceOnRight) itdSamples else 0f, frames)
+    delayRampRight.begin(if (sourceOnRight) 0f else itdSamples, frames)
+
+    val lateralSine = sin(absLateral).toFloat()
+    val nearEarGain = 0.72f + 0.2f * lateralSine
+    val farEarGain = 0.72f - 0.42f * lateralSine
+    gainRampLeft.begin(if (sourceOnRight) farEarGain else nearEarGain, frames)
+    gainRampRight.begin(if (sourceOnRight) nearEarGain else farEarGain, frames)
+
+    val shadowCutoff = max(1_600f, 18_000f * (1f - 0.88f * lateralSine))
+    shadowFilterLeft.setCutoff(if (sourceOnRight) shadowCutoff else 18_000f)
+    shadowFilterRight.setCutoff(if (sourceOnRight) 18_000f else shadowCutoff)
 
     // Behind the head: duller and a little quieter.
-    val behind = max(0f, -cos(az).toFloat())
-    val rearCut = 18_000f - 12_500f * behind
-    rearL.setCutoff(rearCut)
-    rearR.setCutoff(rearCut)
-    rearGain = 1f - 0.22f * behind
-    // Elevation cue (approximation, not HRTF): above reads brighter, below duller and quieter.
-    val elev = elevationDeg.coerceIn(-60.0, 60.0).toFloat()
-    val elevCut = (9_000f + elev * 150f).coerceIn(2_500f, 18_000f)
-    elevL.setCutoff(elevCut)
-    elevR.setCutoff(elevCut)
-    elevGain = 1f - 0.15f * (kotlin.math.abs(elev) / 60f)
+    val behindAmount = max(0f, -cos(azimuthRad).toFloat())
+    val rearCutoff = 18_000f - 12_500f * behindAmount
+    rearFilterLeft.setCutoff(rearCutoff)
+    rearFilterRight.setCutoff(rearCutoff)
+    rearGain = 1f - 0.22f * behindAmount
+
+    // Elevation approximation: brighter above, duller and quieter below.
+    val clampedElevation = elevationDeg.coerceIn(-60.0, 60.0).toFloat()
+    val elevationCutoff = (9_000f + clampedElevation * 150f).coerceIn(2_500f, 18_000f)
+    elevationFilterLeft.setCutoff(elevationCutoff)
+    elevationFilterRight.setCutoff(elevationCutoff)
+    elevationGain = 1f - 0.15f * (abs(clampedElevation) / 60f)
   }
 
-  private var elevGain = 1f
-  private var rearGain = 1f
+  /** Adds the processed sample into [out] at stereo frame [frameIndex]. */
+  fun process(input: Float, out: FloatArray, frameIndex: Int) {
+    delayLine[writeIndex] = input
+    val leftSample = readDelayed(delayRampLeft.next())
+    val rightSample = readDelayed(delayRampRight.next())
+    writeIndex = (writeIndex + 1) % delayLineSize
 
-  /** Adds the processed sample to [out] at stereo frame [i]. */
-  fun process(x: Float, out: FloatArray, i: Int) {
-    delay[write] = x
-    val l = read(delayL.next())
-    val r = read(delayR.next())
-    write = (write + 1) % size
-    out[2 * i] += elevL.process(rearL.process(shadowL.process(l))) * gainL.next() * rearGain * elevGain
-    out[2 * i + 1] += elevR.process(rearR.process(shadowR.process(r))) * gainR.next() * rearGain * elevGain
+    val leftChain = elevationFilterLeft.process(
+        rearFilterLeft.process(shadowFilterLeft.process(leftSample)),
+    ) * gainRampLeft.next() * rearGain * elevationGain
+    val rightChain = elevationFilterRight.process(
+        rearFilterRight.process(shadowFilterRight.process(rightSample)),
+    ) * gainRampRight.next() * rearGain * elevationGain
+
+    out[2 * frameIndex] += leftChain
+    out[2 * frameIndex + 1] += rightChain
   }
 
   fun finishBlock() {
-    delayL.end()
-    delayR.end()
-    gainL.end()
-    gainR.end()
+    delayRampLeft.end()
+    delayRampRight.end()
+    gainRampLeft.end()
+    gainRampRight.end()
   }
 
-  private fun read(delaySamples: Float): Float {
-    val d = min(delaySamples, (size - 2).toFloat())
-    val pos = write - d
-    val i0 = kotlin.math.floor(pos).toInt()
-    val t = pos - i0
-    val a = delay[(i0 % size + size) % size]
-    val b = delay[((i0 + 1) % size + size) % size]
-    return a + (b - a) * t
+  private fun readDelayed(delaySamples: Float): Float {
+    val clampedDelay = min(delaySamples, (delayLineSize - 2).toFloat())
+    val readPosition = writeIndex - clampedDelay
+    val lowerIndex = floor(readPosition).toInt()
+    val fraction = readPosition - lowerIndex
+    val sampleA = delayLine[(lowerIndex % delayLineSize + delayLineSize) % delayLineSize]
+    val sampleB = delayLine[((lowerIndex + 1) % delayLineSize + delayLineSize) % delayLineSize]
+    return sampleA + (sampleB - sampleA) * fraction
   }
 
   companion object {
@@ -170,9 +194,10 @@ class Binaural {
   }
 }
 
-/** Deterministic, allocation-free noise source. */
+/** Deterministic xorshift noise: same hiss on every run, no allocation. */
 class Noise(seed: Int = 0x2545F491) {
-  private var state = seed
+
+  private var state: Int = seed
 
   fun next(): Float {
     state = state xor (state shl 13)

@@ -1,221 +1,308 @@
-/* GhostSignal account page. The session token stays in this browser's localStorage, so the page
-   remembers you; every call sends it as X-Account-Token. */
-(function () {
+// GhostSignal account page. The session token lives in this browser's
+// localStorage (shared with the web player) and travels as X-Account-Token.
+(() => {
   "use strict";
 
-  var KEY = "ghostsignal-account";
-  var $ = function (id) { return document.getElementById(id); };
-  var token = null;
-  var mode = "in"; // or "up"
-  var missionId = null;
+  const TOKEN_KEY = "ghostsignal-account";
+  const byId = (id) => document.getElementById(id);
 
-  function remember(t) {
-    token = t;
+  let sessionToken = null;
+  let authMode = "in"; // "in" = sign in, "up" = create account
+  let currentMissionId = null;
+
+  function rememberToken(token) {
+    sessionToken = token;
     try {
-      if (t) localStorage.setItem(KEY, t);
-      else localStorage.removeItem(KEY);
-    } catch (e) { /* private window: signed in until the tab closes */ }
-  }
-
-  function remembered() {
-    try { return localStorage.getItem(KEY); } catch (e) { return null; }
-  }
-
-  function api(path, opts) {
-    opts = opts || {};
-    var headers = { accept: "application/json" };
-    if (token) headers["x-account-token"] = token;
-    if (opts.body !== undefined) headers["content-type"] = "application/json";
-    return fetch(path, { method: opts.method || "GET", headers: headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) })
-      .then(function (res) {
-        if (res.status === 204) return null;
-        return res.json().catch(function () { return {}; }).then(function (data) {
-          if (res.ok) return data;
-          if (res.status === 401 && token && !opts.signingIn) showSignin("You've been signed out. Sign in again.");
-          var err = new Error(data.error || "HTTP " + res.status);
-          err.status = res.status;
-          throw err;
-        });
-      });
-  }
-
-  /** Where to go after signing in, when another page sent you here. Same-site paths only. */
-  function returnTo() {
-    var r = new URLSearchParams(location.search).get("return");
-    return r && /^\/(?!\/)[\w\/.-]*$/.test(r) ? r : null;
-  }
-
-  function date(ms) {
-    return new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-  }
-
-  // ------------------------------------------------------------------ signed out
-
-  function pick(next) {
-    mode = next;
-    $("tabIn").setAttribute("aria-selected", String(mode === "in"));
-    $("tabUp").setAttribute("aria-selected", String(mode === "up"));
-    $("submit").textContent = mode === "in" ? "Sign in" : "Create account";
-    $("signinTitle").textContent = mode === "in" ? "Sign in" : "Create your account";
-    $("passwordHint").hidden = mode === "in";
-    $("form").elements.password.autocomplete = mode === "in" ? "current-password" : "new-password";
-    $("signinError").textContent = "";
-  }
-
-  function showSignin(message) {
-    remember(null);
-    $("app").hidden = true;
-    $("who").hidden = true;
-    $("signin").hidden = false;
-    $("signinError").textContent = message || "";
-  }
-
-  // ------------------------------------------------------------------ signed in
-
-  function render(me) {
-    var a = me.account, p = a.premium, pay = me.payment;
-    $("signin").hidden = true;
-    $("app").hidden = false;
-    $("who").hidden = false;
-    $("whoName").textContent = a.email;
-    $("emailAgain").textContent = a.email;
-
-    $("planName").textContent = p.active ? "Premium" : "Free";
-    $("planBadge").textContent = p.active ? "Premium" : "Free";
-    $("planBadge").className = "badge " + (p.active ? "premium" : "base");
-    var detail = "";
-    if (p.active) {
-      detail = p.source === "glasses" ? "Through your linked glasses." :
-        (p.source === "grant" ? "Given to you by DataRail" : "Paid") + (p.sinceMs ? " since " + date(p.sinceMs) : "") +
-        (p.untilMs ? ". Ends " + date(p.untilMs) + "." : ".");
-    } else {
-      detail = "The base game and every soundtrack you earn by finishing runs.";
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // Private window: signed in until the tab closes.
     }
-    $("planDetail").textContent = detail;
+  }
 
-    var perks = $("perks");
-    perks.textContent = "";
-    var list = document.createElement("ul");
-    list.className = "perks";
-    var items = me.premiumTracks.length
-      ? me.premiumTracks.map(function (t) { return (p.active ? "Playing: " : "Premium soundtrack: ") + t.title + (t.description ? " — " + t.description : ""); })
-      : [p.active ? "Premium soundtracks appear in the app as soon as they're published." : "Premium soundtracks, as they're published."];
-    items.forEach(function (text) {
-      var li = document.createElement("li");
-      li.textContent = text;
-      list.appendChild(li);
+  function recalledToken() {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  async function api(path, { method = "GET", body, isSignIn = false } = {}) {
+    const headers = { accept: "application/json" };
+    if (sessionToken) headers["x-account-token"] = sessionToken;
+    if (body !== undefined) headers["content-type"] = "application/json";
+
+    const response = await fetch(path, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
-    perks.appendChild(list);
-
-    var get = $("getPremium");
-    get.hidden = !pay.url;
-    if (pay.url) {
-      get.href = pay.url;
-      get.textContent = "Get premium" + (pay.priceLabel ? " · " + pay.priceLabel : "");
+    if (response.status === 204) return null;
+    const payload = await response.json().catch(() => ({}));
+    if (response.ok) return payload;
+    if (response.status === 401 && sessionToken && !isSignIn) {
+      showSignIn("You've been signed out. Sign in again.");
     }
-    $("notOnSale").hidden = Boolean(p.active || pay.url);
-    var manage = $("manageBilling");
-    manage.hidden = !(p.active && p.source === "payment" && pay.manageUrl);
-    if (!manage.hidden) manage.href = pay.manageUrl;
-
-    var gl = $("glassesList");
-    gl.textContent = "";
-    var states = { approved: "linked, premium", pending: "waiting for an admin to approve", rejected: "not approved", revoked: "removed by an admin" };
-    (me.glasses || []).forEach(function (g) {
-      var li = document.createElement("li");
-      li.textContent = g.deviceType.replace(/_/g, " ").toLowerCase() + (g.name ? " \u201c" + g.name + "\u201d" : "") + " (" + g.fingerprint + "): " + (states[g.status] || g.status);
-      gl.appendChild(li);
-    });
-    if (!(me.glasses || []).length) {
-      var none = document.createElement("li");
-      none.textContent = "No glasses linked yet.";
-      gl.appendChild(none);
-    }
-
-    var runs = missionId ? a.completions[missionId] || 0 : Object.keys(a.completions).reduce(function (n, k) { return n + a.completions[k]; }, 0);
-    $("runs").textContent = "Finished runs: " + runs;
+    const error = new Error(payload.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
-  function load() {
-    return api("/v1/account/me").then(render);
+  /** Post-sign-in destination from ?return=, same-site paths only. */
+  function returnTarget() {
+    const target = new URLSearchParams(location.search).get("return");
+    return target && /^\/(?!\/)[\w\/.-]*$/.test(target) ? target : null;
   }
 
-  /** After the payment provider sends you back with ?paid=1, look for premium for a minute. */
-  function awaitPayment() {
+  const formatDate = (ms) =>
+    new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+
+  // -- signed out ----------------------------------------------------------------
+
+  function selectAuthMode(nextMode) {
+    authMode = nextMode;
+    const signingIn = authMode === "in";
+    byId("tabIn").setAttribute("aria-selected", String(signingIn));
+    byId("tabUp").setAttribute("aria-selected", String(!signingIn));
+    byId("submit").textContent = signingIn ? "Sign in" : "Create account";
+    byId("signinTitle").textContent = signingIn ? "Sign in" : "Create your account";
+    byId("passwordHint").hidden = signingIn;
+    byId("form").elements.password.autocomplete = signingIn ? "current-password" : "new-password";
+    byId("signinError").textContent = "";
+  }
+
+  function showSignIn(message) {
+    rememberToken(null);
+    byId("app").hidden = true;
+    byId("who").hidden = true;
+    byId("signin").hidden = false;
+    byId("signinError").textContent = message || "";
+  }
+
+  // -- signed in ---------------------------------------------------------------------
+
+  function planSummary(account) {
+    const premium = account.premium;
+    if (!premium.active) {
+      return "The base game and every soundtrack you earn by finishing runs.";
+    }
+    const origin = premium.source === "glasses"
+      ? "Through your linked glasses."
+      : premium.source === "grant" ? "Given to you by DataRail" : "Paid";
+    const since = premium.sinceMs ? ` since ${formatDate(premium.sinceMs)}` : "";
+    const until = premium.untilMs ? `. Ends ${formatDate(premium.untilMs)}.` : ".";
+    return premium.source === "glasses" ? origin : `${origin}${since}${until}`;
+  }
+
+  function renderAccount(me) {
+    const account = me.account;
+    const premium = account.premium;
+    const payment = me.payment;
+
+    byId("signin").hidden = true;
+    byId("app").hidden = false;
+    byId("who").hidden = false;
+    byId("whoName").textContent = account.email;
+    byId("emailAgain").textContent = account.email;
+
+    byId("planName").textContent = premium.active ? "Premium" : "Free";
+    const badge = byId("planBadge");
+    badge.textContent = premium.active ? "Premium" : "Free";
+    badge.className = `badge ${premium.active ? "premium" : "base"}`;
+    byId("planDetail").textContent = planSummary(account);
+
+    const perkItems = me.premiumTracks.length
+      ? me.premiumTracks.map((track) =>
+          `${premium.active ? "Playing: " : "Premium soundtrack: "}${track.title}` +
+          (track.description ? ` — ${track.description}` : ""))
+      : [premium.active
+          ? "Premium soundtracks appear in the app as soon as they're published."
+          : "Premium soundtracks, as they're published."];
+    const perkList = document.createElement("ul");
+    perkList.className = "perks";
+    for (const text of perkItems) {
+      const item = document.createElement("li");
+      item.textContent = text;
+      perkList.append(item);
+    }
+    const perksBox = byId("perks");
+    perksBox.textContent = "";
+    perksBox.append(perkList);
+
+    const getPremium = byId("getPremium");
+    getPremium.hidden = !payment.url;
+    if (payment.url) {
+      getPremium.href = payment.url;
+      getPremium.textContent = `Get premium${payment.priceLabel ? ` · ${payment.priceLabel}` : ""}`;
+    }
+    byId("notOnSale").hidden = Boolean(premium.active || payment.url);
+
+    const manageBilling = byId("manageBilling");
+    manageBilling.hidden = !(premium.active && premium.source === "payment" && payment.manageUrl);
+    if (!manageBilling.hidden) manageBilling.href = payment.manageUrl;
+
+    renderGlasses(me.glasses || []);
+    renderRunCount(account);
+  }
+
+  function renderGlasses(glasses) {
+    const statusText = {
+      approved: "linked, premium",
+      pending: "waiting for an admin to approve",
+      rejected: "not approved",
+      revoked: "removed by an admin",
+    };
+    const list = byId("glassesList");
+    list.textContent = "";
+    for (const pair of glasses) {
+      const item = document.createElement("li");
+      const model = pair.deviceType.replace(/_/g, " ").toLowerCase();
+      const name = pair.name ? ` “${pair.name}”` : "";
+      item.textContent = `${model}${name} (${pair.fingerprint}): ${statusText[pair.status] || pair.status}`;
+      list.append(item);
+    }
+    if (!glasses.length) {
+      const item = document.createElement("li");
+      item.textContent = "No glasses linked yet.";
+      list.append(item);
+    }
+  }
+
+  function renderRunCount(account) {
+    const completions = account.completions || {};
+    const total = currentMissionId
+      ? completions[currentMissionId] || 0
+      : Object.values(completions).reduce((sum, n) => sum + n, 0);
+    byId("runs").textContent = `Finished runs: ${total}`;
+  }
+
+  const loadAccount = () => api("/v1/account/me").then(renderAccount);
+
+  /** After returning from payment with ?paid=1, poll for premium ~1 minute. */
+  function watchForPayment() {
     if (!/[?&]paid=1\b/.test(location.search)) return;
-    $("paidNotice").hidden = false;
-    var tries = 0;
-    var timer = setInterval(function () {
-      tries++;
-      api("/v1/account/me").then(function (me) {
-        render(me);
-        if (me.account.premium.active || tries >= 12) {
-          clearInterval(timer);
-          $("paidNotice").textContent = me.account.premium.active
-            ? "Premium is on. Open GhostSignal on your phone to get the premium soundtracks."
-            : "The payment hasn't come through yet. It can take a few minutes; refresh this page later.";
-        }
-      }).catch(function () { clearInterval(timer); });
+    byId("paidNotice").hidden = false;
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts++;
+      api("/v1/account/me")
+        .then((me) => {
+          renderAccount(me);
+          if (me.account.premium.active || attempts >= 12) {
+            clearInterval(timer);
+            byId("paidNotice").textContent = me.account.premium.active
+              ? "Premium is on. Open GhostSignal on your phone to get the premium soundtracks."
+              : "The payment hasn't come through yet. It can take a few minutes; refresh this page later.";
+          }
+        })
+        .catch(() => clearInterval(timer));
     }, 5000);
     history.replaceState(null, "", location.pathname);
   }
 
-  // ------------------------------------------------------------------ wiring
+  // -- wiring -------------------------------------------------------------------------
 
-  $("tabIn").addEventListener("click", function () { pick("in"); });
-  $("tabUp").addEventListener("click", function () { pick("up"); });
+  byId("tabIn").addEventListener("click", () => selectAuthMode("in"));
+  byId("tabUp").addEventListener("click", () => selectAuthMode("up"));
 
-  $("form").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var f = this.elements, button = $("submit");
-    button.disabled = true;
-    $("signinError").textContent = "";
-    api(mode === "in" ? "/v1/account/login" : "/v1/account/signup", {
-      method: "POST",
-      signingIn: true,
-      body: { email: f.email.value, password: f.password.value, client: "web" },
-    })
-      .then(function (data) {
-        remember(data.token);
-        f.password.value = "";
-        if (returnTo()) return location.assign(returnTo());
-        render(data);
-        awaitPayment();
-      })
-      .catch(function (err) { $("signinError").textContent = err.message; })
-      .then(function () { button.disabled = false; });
+  byId("form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const submitButton = byId("submit");
+    submitButton.disabled = true;
+    byId("signinError").textContent = "";
+    try {
+      const data = await api(
+        authMode === "in" ? "/v1/account/login" : "/v1/account/signup",
+        {
+          method: "POST",
+          isSignIn: true,
+          body: {
+            email: form.elements.email.value,
+            password: form.elements.password.value,
+            client: "web",
+          },
+        },
+      );
+      rememberToken(data.token);
+      form.elements.password.value = "";
+      const target = returnTarget();
+      if (target) {
+        location.assign(target);
+        return;
+      }
+      renderAccount(data);
+      watchForPayment();
+    } catch (error) {
+      byId("signinError").textContent = error.message;
+    } finally {
+      submitButton.disabled = false;
+    }
   });
 
-  $("signOut").addEventListener("click", function () {
-    api("/v1/account/logout", { method: "POST" }).catch(function () {}).then(function () { showSignin(""); });
+  byId("signOut").addEventListener("click", async () => {
+    try {
+      await api("/v1/account/logout", { method: "POST" });
+    } catch {
+      // Signing out locally matters even if the server already forgot us.
+    }
+    showSignIn("");
   });
 
-  $("passwordForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var f = this.elements;
-    $("passwordStatus").textContent = "";
-    api("/v1/account/password", { method: "POST", body: { current: f.current.value, next: f.next.value } })
-      .then(function () {
-        f.current.value = f.next.value = "";
-        $("passwordStatus").textContent = "Password changed. Other browsers and phones are signed out.";
-      })
-      .catch(function (err) { $("passwordStatus").textContent = err.message; });
+  byId("passwordForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    byId("passwordStatus").textContent = "";
+    try {
+      await api("/v1/account/password", {
+        method: "POST",
+        body: { current: form.elements.current.value, next: form.elements.next.value },
+      });
+      form.elements.current.value = "";
+      form.elements.next.value = "";
+      byId("passwordStatus").textContent =
+        "Password changed. Other browsers and phones are signed out.";
+    } catch (error) {
+      byId("passwordStatus").textContent = error.message;
+    }
   });
 
-  $("deleteForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var f = this.elements;
+  byId("deleteForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.target;
     if (!confirm("Delete your GhostSignal account? This can't be undone.")) return;
-    api("/v1/account/delete", { method: "POST", body: { password: f.password.value } })
-      .then(function () { showSignin("Your account has been deleted."); })
-      .catch(function (err) { $("deleteError").textContent = err.message; });
+    try {
+      await api("/v1/account/delete", {
+        method: "POST",
+        body: { password: form.elements.password.value },
+      });
+      showSignIn("Your account has been deleted.");
+    } catch (error) {
+      byId("deleteError").textContent = error.message;
+    }
   });
 
-  fetch("/health").then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (h) {
-    missionId = h.mission || null;
-    if (/[?&]signup=1\b/.test(location.search)) pick("up");
-    token = remembered();
-    if (!token) return showSignin("");
-    return load().then(awaitPayment).catch(function () { showSignin(""); });
-  });
+  // -- boot -----------------------------------------------------------------------------
+
+  (async () => {
+    try {
+      const health = await (await fetch("/health")).json();
+      currentMissionId = health.mission || null;
+    } catch {
+      currentMissionId = null;
+    }
+    if (/[?&]signup=1\b/.test(location.search)) selectAuthMode("up");
+    sessionToken = recalledToken();
+    if (!sessionToken) {
+      showSignIn("");
+      return;
+    }
+    try {
+      await loadAccount();
+      watchForPayment();
+    } catch {
+      showSignIn("");
+    }
+  })();
 })();

@@ -141,7 +141,7 @@ class GameEngineTest {
   }
 
   @Test
-  fun fullRunOnTheDeadChannelSoundtrack() = playFullRun(mission.withSoundtrack("dead-channel"))
+  fun fullRunOnTheLastEightBarsSoundtrack() = playFullRun(mission.withSoundtrack("last-eight-bars"))
 
   @Test
   fun aFinishThatUnlocksSomethingAnnouncesItBeforeTheRunCompletes() {
@@ -218,7 +218,7 @@ class GameEngineTest {
 
     assertEquals(mission.signals.map { it.stem }, unlocked)
     assertEquals(Phase.COMPLETE, d.engine.phase)
-    assertEquals("jam", d.engine.flags["fog"])
+    assertTrue("fog" in d.engine.collected)
     val finaleTexts = d.log.filterIsInstance<Effect.Speak>().flatMap { it.utterances }.map { it.text }
     assertTrue(finaleTexts.any { "still rebooting" in it }, "jam branch line should play")
     assertFalse(finaleTexts.any { "came back licensed" in it }, "comply branch line should not play")
@@ -227,10 +227,24 @@ class GameEngineTest {
 
   @Test
   fun wrongPassphraseHintsThenLetsTheRunnerThrough() {
-    val d = started()
-    val index = mission.signals.indexOfFirst { it.challenge is Challenge.Passphrase }
+    // The bundled mission no longer uses a passphrase; keep the
+    // never-stuck guarantee covered on a synthetic one.
+    val passphraseMission = mission.copy(signals = mission.signals.map { signal ->
+      if (signal.id == "undertow") {
+        signal.copy(
+            challenge = Challenge.Passphrase(
+                signal.challenge.prompt, listOf("fortitude"), hintAfterAttempts = 2,
+            ),
+        )
+      } else {
+        signal
+      }
+    })
+    val d = Driver(GameEngine(passphraseMission))
+    d.send(GameEvent.Start(d.now))
+    val index = passphraseMission.signals.indexOfFirst { it.challenge is Challenge.Passphrase }
     d.send(GameEvent.JumpTo(index))
-    d.at(mission.signals[index].location)
+    d.at(passphraseMission.signals[index].location)
     d.press(PlayerAction.SCAN)
     val hintIds = mutableListOf<String?>()
     repeat(5) {
@@ -239,10 +253,9 @@ class GameEngineTest {
         hintIds += effects.filterIsInstance<Effect.Speak>().flatMap { it.utterances }.map { it.lineId }
       }
     }
-    assertTrue(hintIds.contains("${mission.signals[index].id}.hint"), "hint should play after repeated misses")
-    assertTrue(mission.signals[index].id in d.engine.collected, "runner must never be stuck")
+    assertTrue(hintIds.contains("${passphraseMission.signals[index].id}.hint"), "hint should play after repeated misses")
+    assertTrue(passphraseMission.signals[index].id in d.engine.collected, "runner must never be stuck")
   }
-
   @Test
   fun pauseDuringStoryLineReplaysItOnResume() {
     val d = Driver(GameEngine(mission))
